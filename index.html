@@ -420,93 +420,112 @@
         }
 
         function renderOrders(orders) {
-            ordersList.innerHTML = '';
-            if (orders.length === 0) {
-                ordersList.innerHTML = '<p class="text-center text-light-gray">No orders found.</p>';
-                return;
-            }
+    ordersList.innerHTML = '';
+    if (orders.length === 0) {
+        ordersList.innerHTML = '<p class="text-center text-light-gray">No orders found.</p>';
+        return;
+    }
 
-            orders.forEach(order => {
-                const orderCard = document.createElement('div');
-                orderCard.className = 'card order-card';
+    orders.forEach(order => {
+        const orderCard = document.createElement('div');
+        orderCard.className = 'card order-card';
 
-                // Format date nicely
-                const createdAt = new Date(order.createdAt).toLocaleString();
-                const isPaid = order.isPaid ? 'Yes' : 'No';
-                const isDelivered = order.isDelivered ? 'Yes' : 'No';
+        // Get the User Phone Number, handling cases where it might be missing
+        const userPhoneNumber = order.user.phoneNumber || 'N/A'; // 👈 NEW
 
-                // Build order items list
-                const itemsHtml = order.orderItems.map(item => `
-                    <li class="text-light-gray">
-                        <strong class="text-light-slate">${item.name}</strong> - Qty: ${item.quantity} - Price: ₦${item.price.toFixed(2)}
-                    </li>
-                `).join('');
+        // Format date nicely
+        // Use toLocaleString with custom options for better formatting
+        const createdAt = new Date(order.createdAt).toLocaleDateString('en-US', { 
+            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+        });
+        const isPaid = order.isPaid ? 'Yes' : 'No';
+        const isDelivered = order.isDelivered ? 'Yes' : 'No';
 
-                // Shipping details block
-                const shipping = order.shippingAddress || {};
-                const shippingHtml = `
-                    <p class="text-light-slate"><strong>Shipping Address:</strong></p>
-                    <p class="text-light-gray">${shipping.address || 'N/A'}, ${shipping.city || 'N/A'}, ${shipping.postalCode || 'N/A'}, ${shipping.country || 'N/A'}</p>
-                `;
+        // Build order items list with NEW Vendor details
+        const itemsHtml = order.orderItems.map(item => {
+            // Safely access nested vendor details
+            const vendorName = item.vendor ? item.vendor.businessName : 'N/A';
+            const vendorPhone = item.vendor ? item.vendor.phoneNumber || 'N/A' : 'N/A';
+            // Access formattedAddress inside businessLocation object
+            const vendorLocation = item.vendor && item.vendor.businessLocation ? item.vendor.businessLocation.formattedAddress || 'N/A' : 'N/A';
 
-                // Determine button disabled states
-                const shippedDisabled = ['shipped', 'delivered'].includes(order.orderStatus.toLowerCase());
-                const deliveredDisabled = order.orderStatus.toLowerCase() === 'delivered';
+            return `
+                <li class="text-light-gray mb-2 border-l-2 border-accent-cyan pl-2">
+                    <strong class="text-light-slate">${item.name}</strong> - Qty: ${item.quantity} - Price: ₦${item.price.toFixed(2)}
+                    <br>
+                    <span class="text-sm text-gray-400">
+                        Vendor: ${vendorName} 
+                        | Phone: ${vendorPhone} 
+                        | Location: ${vendorLocation} 
+                    </span>
+                </li>
+            `;
+        }).join(''); // 👈 MODIFIED
 
-                orderCard.innerHTML = `
-                    <h3 class="text-2xl font-semibold text-accent-cyan mb-3">Order ID: ${order._id}</h3>
-                    <p class="text-light-gray mb-1"><strong>User:</strong> ${order.user.firstName} ${order.user.lastName} (<span class="text-accent-cyan">${order.user.email}</span>)</p>
-                    <p class="text-light-gray mb-1"><strong>Order Date:</strong> ${createdAt}</p>
-                    <p class="text-light-gray mb-1"><strong>Status:</strong> <span class="font-bold text-lg text-green-400">${order.orderStatus}</span></p>
-                    <p class="text-light-gray mb-1"><strong>Paid:</strong> <span class="text-${order.isPaid ? 'green' : 'red'}-400 font-bold">${isPaid}</span></p>
-                    <p class="text-light-gray mb-4"><strong>Delivered:</strong> <span class="text-${order.isDelivered ? 'green' : 'red'}-400 font-bold">${isDelivered}</span></p>
-                    <div class="mb-4">${shippingHtml}</div>
-                    <p class="text-light-slate"><strong>Items:</strong></p>
-                    <ul class="list-disc list-inside mb-6">${itemsHtml}</ul>
-                    <div>
-                        <button class="status-btn btn-shipped ${shippedDisabled ? 'btn-disabled' : ''}" ${shippedDisabled ? 'disabled' : ''} data-order-id="${order._id}" data-status="shipped">Shipped</button>
-                        <button class="status-btn btn-delivered ${deliveredDisabled ? 'btn-disabled' : ''}" ${deliveredDisabled ? 'disabled' : ''} data-order-id="${order._id}" data-status="delivered">Delivered</button>
-                    </div>
-                `;
+        // Shipping details block
+        const shipping = order.shippingAddress || {};
+        const shippingHtml = `
+            <p class="text-light-slate"><strong>Shipping Address:</strong></p>
+            <p class="text-light-gray">${shipping.address || 'N/A'}, ${shipping.city || 'N/A'}, ${shipping.postalCode || 'N/A'}, ${shipping.country || 'N/A'}</p>
+        `;
 
-                ordersList.appendChild(orderCard);
-            });
+        // Determine button disabled states
+        const shippedDisabled = ['shipped', 'delivered'].includes(order.orderStatus.toLowerCase());
+        const deliveredDisabled = order.orderStatus.toLowerCase() === 'delivered';
 
-            // Attach event listeners to order status buttons
-            document.querySelectorAll('.status-btn[data-order-id]').forEach(button => {
-                button.addEventListener('click', async (e) => {
-                    const btn = e.target;
-                    const orderId = btn.dataset.orderId;
-                    const newStatus = btn.dataset.status;
-                    btn.disabled = true;
-                    btn.classList.add('btn-disabled');
-                    try {
-                        const response = await fetch(`${BASE_URL}/api/orders/${orderId}/status`, {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${adminToken}`
-                            },
-                            body: JSON.stringify({ status: newStatus })
-                        });
-                        const data = await response.json();
-                        if (response.ok) {
-                            displayMessage(data.message || `Order marked as ${newStatus}.`, 'success');
-                            fetchOrders();
-                        } else {
-                            displayMessage(data.message || `Failed to update order status.`, 'error');
-                            btn.disabled = false;
-                            btn.classList.remove('btn-disabled');
-                        }
-                    } catch (error) {
-                        console.error('Error updating order status:', error);
-                        displayMessage(`Network error: ${error.message}`, 'error');
-                        btn.disabled = false;
-                        btn.classList.remove('btn-disabled');
-                    }
+        orderCard.innerHTML = `
+            <h3 class="text-2xl font-semibold text-accent-cyan mb-3">Order ID: ${order._id}</h3>
+            <p class="text-light-gray mb-1"><strong>User:</strong> ${order.user.firstName} ${order.user.lastName} (<span class="text-accent-cyan">${order.user.email}</span>)</p>
+            <p class="text-light-gray mb-1"><strong>User Phone:</strong> <span class="font-medium">${userPhoneNumber}</span></p> <p class="text-light-gray mb-1"><strong>Order Date:</strong> ${createdAt}</p>
+            <p class="text-light-gray mb-1"><strong>Status:</strong> <span class="font-bold text-lg text-green-400">${order.orderStatus}</span></p>
+            <p class="text-light-gray mb-1"><strong>Paid:</strong> <span class="text-${order.isPaid ? 'green' : 'red'}-400 font-bold">${isPaid}</span></p>
+            <p class="text-light-gray mb-4"><strong>Delivered:</strong> <span class="text-${order.isDelivered ? 'green' : 'red'}-400 font-bold">${isDelivered}</span></p>
+            <div class="mb-4">${shippingHtml}</div>
+            <p class="text-light-slate"><strong>Items:</strong></p>
+            <ul class="list-disc list-inside mb-6">${itemsHtml}</ul> <div>
+                <button class="status-btn btn-shipped ${shippedDisabled ? 'btn-disabled' : ''}" ${shippedDisabled ? 'disabled' : ''} data-order-id="${order._id}" data-status="shipped">Shipped</button>
+                <button class="status-btn btn-delivered ${deliveredDisabled ? 'btn-disabled' : ''}" ${deliveredDisabled ? 'disabled' : ''} data-order-id="${order._id}" data-status="delivered">Delivered</button>
+            </div>
+        `;
+
+        ordersList.appendChild(orderCard);
+    });
+
+    // Attach event listeners to order status buttons
+    document.querySelectorAll('.status-btn[data-order-id]').forEach(button => {
+        button.addEventListener('click', async (e) => {
+            const btn = e.target;
+            const orderId = btn.dataset.orderId;
+            const newStatus = btn.dataset.status;
+            btn.disabled = true;
+            btn.classList.add('btn-disabled');
+            try {
+                const response = await fetch(`${BASE_URL}/api/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify({ status: newStatus })
                 });
-            });
-        }
+                const data = await response.json();
+                if (response.ok) {
+                    displayMessage(data.message || `Order marked as ${newStatus}.`, 'success');
+                    fetchOrders();
+                } else {
+                    displayMessage(data.message || `Failed to update order status.`, 'error');
+                    btn.disabled = false;
+                    btn.classList.remove('btn-disabled');
+                }
+            } catch (error) {
+                console.error('Error updating order status:', error);
+                displayMessage(`Network error: ${error.message}`, 'error');
+                btn.disabled = false;
+                btn.classList.remove('btn-disabled');
+            }
+        });
+    });
+}
 
         // --- Disputes Logic ---
         async function fetchDisputes() {
