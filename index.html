@@ -119,6 +119,26 @@
         .input-field::placeholder {
             color: var(--light-gray);
         }
+        
+        /* NEW: Dropdown style for filtering */
+        #orderFilterDropdown {
+            appearance: none; /* Remove default arrow */
+            background-color: var(--primary-blue);
+            border: 1px solid var(--accent-cyan);
+            color: var(--light-slate);
+            padding: 10px 30px 10px 15px; /* Adjust padding for custom arrow */
+            border-radius: 8px;
+            cursor: pointer;
+            outline: none;
+            /* Optional: Add custom arrow using background image */
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364FFDA' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            transition: border-color 0.3s;
+        }
+        #orderFilterDropdown:hover {
+            border-color: #52e3c3;
+        }
 
         /* Alert and Message Styles */
         .message {
@@ -189,6 +209,55 @@
         }
         .dispute-attachments img:hover {
             transform: scale(1.05);
+        }
+
+
+        /* Custom Button Styles for Status Updates */
+        .status-btn {
+            transition: all 0.2s;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .status-btn:hover:not(:disabled) {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-primary-alt { /* Used for intermediate statuses */
+            background-color: #2c5282; /* Deep Blue/Gray */
+            color: #edf2f7;
+        }
+
+        .btn-success { /* Used for Completed */
+            background-color: #38a169;
+            color: white;
+        }
+
+        .btn-danger { /* Used for Cancelled */
+            background-color: #e53e3e;
+            color: white;
+        }
+
+        .btn-disabled {
+            background-color: #4a5568 !important; /* Muted gray */
+            color: #a0aec0 !important;
+            cursor: not-allowed !important;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .btn-current { /* Highlights the status the order is currently in */
+            background-color: #4299e1; /* Accent Blue */
+            color: white;
+            font-weight: bold;
+            border: 2px solid #63b3ed;
+            cursor: default;
+        }
+
+        .btn-current:hover {
+            transform: none;
         }
 
         /* Animated Gradients */
@@ -264,11 +333,19 @@
             Orders
             <button id="fetchOrdersBtn" class="btn btn-primary py-2 px-6 rounded-lg text-sm">See Orders</button>
         </h2>
+        
+        <div class="filter-controls mb-4 flex items-center space-x-3">
+            <label for="orderFilterDropdown" class="text-light-gray font-medium">Filter by Status:</label>
+            <select id="orderFilterDropdown">
+                <option value="all">All Orders</option>
+                <option value="delivered">Delivered Orders</option>
+                <option value="not_delivered">Pending Delivery</option>
+            </select>
+        </div>
+
         <div id="ordersList" class="space-y-8">
             <p class="text-center text-light-gray">Click "See Orders" to load orders.</p>
         </div>
-
-        ---
 
         <h2 class="text-4xl font-bold text-accent-cyan mt-12 mb-6 flex items-center justify-between">
             Disputes
@@ -278,450 +355,566 @@
             <p class="text-center text-light-gray">Click "See Disputes" to load disputes.</p>
         </div>
     </div>
-    <script>
-        const BASE_URL = 'https://naijago-backend.onrender.com';
 
-        let adminToken = '';
+<script>
+    const BASE_URL = 'https://naijago-backend.onrender.com';
 
-        const messageContainer = document.getElementById('messageContainer');
-        const pendingRequestsList = document.getElementById('pendingRequestsList');
-        const adminEmailInput = document.getElementById('adminEmail');
-        const adminPasswordInput = document.getElementById('adminPassword');
-        const loginAdminBtn = document.getElementById('loginAdminBtn');
-        const fetchOrdersBtn = document.getElementById('fetchOrdersBtn');
-        const ordersList = document.getElementById('ordersList');
-        const fetchDisputesBtn = document.getElementById('fetchDisputesBtn');
-        const disputesList = document.getElementById('disputesList');
+    let adminToken = '';
+    // Filter defaults to 'all'
+    let currentFilter = 'all'; 
 
-        // Message display helper
-        function displayMessage(message, type) {
-            messageContainer.innerHTML = `<div class="message ${type}">${message}</div>`;
-            setTimeout(() => {
-                messageContainer.innerHTML = '';
-            }, 5000);
-        }
+    const messageContainer = document.getElementById('messageContainer');
+    const pendingRequestsList = document.getElementById('pendingRequestsList');
+    const adminEmailInput = document.getElementById('adminEmail');
+    const adminPasswordInput = document.getElementById('adminPassword');
+    const loginAdminBtn = document.getElementById('loginAdminBtn');
+    const fetchOrdersBtn = document.getElementById('fetchOrdersBtn');
+    const ordersList = document.getElementById('ordersList');
+    const fetchDisputesBtn = document.getElementById('fetchDisputesBtn');
+    const disputesList = document.getElementById('disputesList');
 
-        // --- Vendor Requests Logic ---
-        async function fetchPendingVendorRequests() {
-            if (!adminToken) {
-                pendingRequestsList.innerHTML = '<p class="text-center text-light-gray">Please login as admin to load requests.</p>';
-                return;
-            }
+    const orderFilterDropdown = document.getElementById('orderFilterDropdown');
+    // Initial set of all fetched orders
+    let allOrders = []; 
 
-            pendingRequestsList.innerHTML = '<p class="text-center text-light-gray">Loading pending requests...</p>';
-            try {
-                const response = await fetch(`${BASE_URL}/api/admin/vendor-requests`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${adminToken}`
-                    }
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    renderPendingRequests(data);
-                } else {
-                    displayMessage(data.message || 'Failed to fetch pending requests.', 'error');
-                    pendingRequestsList.innerHTML = '<p class="text-center text-red-500">Error loading requests.</p>';
-                }
-            } catch (error) {
-                console.error('Network or server error:', error);
-                displayMessage(`An error occurred: ${error.message}. Check backend server and network connection.`, 'error');
-                pendingRequestsList.innerHTML = '<p class="text-center text-red-500">Error: Could not connect to backend.</p>';
-            }
-        }
-
-        function renderPendingRequests(requests) {
-            pendingRequestsList.innerHTML = '';
-            if (requests.length === 0) {
-                pendingRequestsList.innerHTML = '<p class="text-center text-light-gray">No pending vendor requests.</p>';
-                return;
-            }
-            requests.forEach(request => {
-                const requestCard = document.createElement('div');
-                requestCard.className = 'card p-6 request-card';
-                requestCard.innerHTML = `
-                    <h3 class="text-xl font-semibold text-accent-cyan mb-2">${request.firstName} ${request.lastName}</h3>
-                    <p class="text-light-gray text-sm mb-1"><span class="font-medium">Email:</span> ${request.email}</p>
-                    <p class="text-light-gray text-sm mb-1"><span class="font-medium">Phone:</span> ${request.phoneNumber}</p>
-                    <p class="text-light-gray text-sm mb-1"><span class="font-medium">Business:</span> ${request.businessName || 'N/A'}</p>
-                    <p class="text-light-gray text-sm mb-4"><span class="font-medium">Categories:</span> ${request.businessCategories ? request.businessCategories.join(', ') : 'N/A'}</p>
-                    <p class="text-light-gray text-sm mb-4"><span class="font-medium">Status:</span> <span class="text-orange-400 font-bold">${request.vendorStatus ? request.vendorStatus.toUpperCase() : 'NONE'}</span></p>
-                    <div class="flex justify-end space-x-3">
-                        <button class="btn btn-success px-5 py-2 font-medium approve-btn" data-user-id="${request._id}">Approve</button>
-                        <button class="btn btn-danger px-5 py-2 font-medium reject-btn" data-user-id="${request._id}">Reject</button>
-                    </div>
-                `;
-                pendingRequestsList.appendChild(requestCard);
-            });
-            document.querySelectorAll('.approve-btn').forEach(button => {
-                button.addEventListener('click', (e) => updateVendorStatus(e.target.dataset.userId, 'approved'));
-            });
-            document.querySelectorAll('.reject-btn').forEach(button => {
-                button.addEventListener('click', (e) => updateVendorStatus(e.target.dataset.userId, 'rejected'));
-            });
-        }
-
-        async function updateVendorStatus(userId, status) {
-            if (!adminToken) {
-                displayMessage('Admin token not set. Please login.', 'error');
-                return;
-            }
-            try {
-                const response = await fetch(`${BASE_URL}/api/admin/vendor-status/${userId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${adminToken}`
-                    },
-                    body: JSON.stringify({ status })
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    displayMessage(data.message || `Request ${status} successfully!`, 'success');
-                    fetchPendingVendorRequests();
-                } else {
-                    displayMessage(data.message || `Failed to ${status} request.`, 'error');
-                }
-            } catch (error) {
-                console.error(`Network or server error during ${status}:`, error);
-                displayMessage(`An error occurred: ${error.message}. Check backend server and network connection.`, 'error');
-            }
-        }
-
-        // --- Orders Logic ---
-        async function fetchOrders() {
-            if (!adminToken) {
-                ordersList.innerHTML = '<p class="text-center text-red-500">Please login as admin to view orders.</p>';
-                return;
-            }
-            ordersList.innerHTML = '<p class="text-center text-light-gray">Loading orders...</p>';
-
-            try {
-                // Corrected endpoint to fetch all orders
-                const response = await fetch(`${BASE_URL}/api/orders`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${adminToken}`
-                    }
-                });
-                const data = await response.json();
-
-                if (response.ok) {
-                    renderOrders(data);
-                } else {
-                    ordersList.innerHTML = `<p class="text-center text-red-500">${data.message || 'Failed to fetch orders.'}</p>`;
-                }
-            } catch (error) {
-                console.error('Error fetching orders:', error);
-                ordersList.innerHTML = `<p class="text-center text-red-500">Network or server error: ${error.message}</p>`;
-            }
-        }
-
-        function renderOrders(orders) {
-    ordersList.innerHTML = '';
-    if (orders.length === 0) {
-        ordersList.innerHTML = '<p class="text-center text-light-gray">No orders found.</p>';
-        return;
+    // Message display helper
+    function displayMessage(message, type) {
+        messageContainer.innerHTML = `<div class="message ${type}">${message}</div>`;
+        setTimeout(() => {
+            messageContainer.innerHTML = '';
+        }, 5000);
     }
 
-    orders.forEach(order => {
-        const orderCard = document.createElement('div');
-        orderCard.className = 'card order-card';
-
-        // Get the User Phone Number, handling cases where it might be missing
-        const userPhoneNumber = order.user.phoneNumber || 'N/A'; // 👈 NEW
-
-        // Format date nicely
-        // Use toLocaleString with custom options for better formatting
-        const createdAt = new Date(order.createdAt).toLocaleDateString('en-US', { 
-            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
-        });
-        const isPaid = order.isPaid ? 'Yes' : 'No';
-        const isDelivered = order.isDelivered ? 'Yes' : 'No';
-
-        // Build order items list with NEW Vendor details
-        const itemsHtml = order.orderItems.map(item => {
-            // Safely access nested vendor details
-            const vendorName = item.vendor ? item.vendor.businessName : 'N/A';
-            const vendorPhone = item.vendor ? item.vendor.phoneNumber || 'N/A' : 'N/A';
-            // Access formattedAddress inside businessLocation object
-            const vendorLocation = item.vendor && item.vendor.businessLocation ? item.vendor.businessLocation.formattedAddress || 'N/A' : 'N/A';
-
-            return `
-                <li class="text-light-gray mb-2 border-l-2 border-accent-cyan pl-2">
-                    <strong class="text-light-slate">${item.name}</strong> - Qty: ${item.quantity} - Price: ₦${item.price.toFixed(2)}
-                    <br>
-                    <span class="text-sm text-gray-400">
-                        Vendor: ${vendorName} 
-                        | Phone: ${vendorPhone} 
-                        | Location: ${vendorLocation} 
-                    </span>
-                </li>
-            `;
-        }).join(''); // 👈 MODIFIED
-
-        // Shipping details block
-        const shipping = order.shippingAddress || {};
-        const shippingHtml = `
-            <p class="text-light-slate"><strong>Shipping Address:</strong></p>
-            <p class="text-light-gray">${shipping.address || 'N/A'}, ${shipping.city || 'N/A'}, ${shipping.postalCode || 'N/A'}, ${shipping.country || 'N/A'}</p>
-        `;
-
-        // Determine button disabled states
-        const shippedDisabled = ['shipped', 'delivered'].includes(order.orderStatus.toLowerCase());
-        const deliveredDisabled = order.orderStatus.toLowerCase() === 'delivered';
-
-        orderCard.innerHTML = `
-            <h3 class="text-2xl font-semibold text-accent-cyan mb-3">Order ID: ${order._id}</h3>
-            <p class="text-light-gray mb-1"><strong>User:</strong> ${order.user.firstName} ${order.user.lastName} (<span class="text-accent-cyan">${order.user.email}</span>)</p>
-            <p class="text-light-gray mb-1"><strong>User Phone:</strong> <span class="font-medium">${userPhoneNumber}</span></p> <p class="text-light-gray mb-1"><strong>Order Date:</strong> ${createdAt}</p>
-            <p class="text-light-gray mb-1"><strong>Status:</strong> <span class="font-bold text-lg text-green-400">${order.orderStatus}</span></p>
-            <p class="text-light-gray mb-1"><strong>Paid:</strong> <span class="text-${order.isPaid ? 'green' : 'red'}-400 font-bold">${isPaid}</span></p>
-            <p class="text-light-gray mb-4"><strong>Delivered:</strong> <span class="text-${order.isDelivered ? 'green' : 'red'}-400 font-bold">${isDelivered}</span></p>
-            <div class="mb-4">${shippingHtml}</div>
-            <p class="text-light-slate"><strong>Items:</strong></p>
-            <ul class="list-disc list-inside mb-6">${itemsHtml}</ul> <div>
-                <button class="status-btn btn-shipped ${shippedDisabled ? 'btn-disabled' : ''}" ${shippedDisabled ? 'disabled' : ''} data-order-id="${order._id}" data-status="shipped">Shipped</button>
-                <button class="status-btn btn-delivered ${deliveredDisabled ? 'btn-disabled' : ''}" ${deliveredDisabled ? 'disabled' : ''} data-order-id="${order._id}" data-status="delivered">Delivered</button>
-            </div>
-        `;
-
-        ordersList.appendChild(orderCard);
-    });
-
-    // Attach event listeners to order status buttons
-    document.querySelectorAll('.status-btn[data-order-id]').forEach(button => {
-        button.addEventListener('click', async (e) => {
-            const btn = e.target;
-            const orderId = btn.dataset.orderId;
-            const newStatus = btn.dataset.status;
-            btn.disabled = true;
-            btn.classList.add('btn-disabled');
-            try {
-                const response = await fetch(`${BASE_URL}/api/orders/${orderId}/status`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${adminToken}`
-                    },
-                    body: JSON.stringify({ status: newStatus })
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    displayMessage(data.message || `Order marked as ${newStatus}.`, 'success');
-                    fetchOrders();
-                } else {
-                    displayMessage(data.message || `Failed to update order status.`, 'error');
-                    btn.disabled = false;
-                    btn.classList.remove('btn-disabled');
-                }
-            } catch (error) {
-                console.error('Error updating order status:', error);
-                displayMessage(`Network error: ${error.message}`, 'error');
-                btn.disabled = false;
-                btn.classList.remove('btn-disabled');
-            }
-        });
-    });
-}
-
-        // --- Disputes Logic ---
-        async function fetchDisputes() {
-            if (!adminToken) {
-                disputesList.innerHTML = '<p class="text-center text-red-500">Please login as admin to view disputes.</p>';
-                return;
-            }
-            disputesList.innerHTML = '<p class="text-center text-light-gray">Loading disputes...</p>';
-
-            try {
-                const response = await fetch(`${BASE_URL}/api/admin/disputes`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${adminToken}`
-                    }
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    renderDisputes(data);
-                } else {
-                    disputesList.innerHTML = `<p class="text-center text-red-500">${data.message || 'Failed to fetch disputes.'}</p>`;
-                }
-            } catch (error) {
-                console.error('Error fetching disputes:', error);
-                disputesList.innerHTML = `<p class="text-center text-red-500">Network or server error: ${error.message}</p>`;
-            }
+    // --- Vendor Requests Logic (Untouched) ---
+    async function fetchPendingVendorRequests() {
+        if (!adminToken) {
+            pendingRequestsList.innerHTML = '<p class="text-center text-light-gray">Please login as admin to load requests.</p>';
+            return;
         }
 
-        function renderDisputes(disputes) {
-            disputesList.innerHTML = '';
-            if (disputes.length === 0) {
-                disputesList.innerHTML = '<p class="text-center text-light-gray">No disputes found.</p>';
-                return;
-            }
-
-            disputes.forEach(dispute => {
-                const disputeCard = document.createElement('div');
-                disputeCard.className = 'card dispute-card';
-
-                const attachmentsHtml = dispute.attachments.length > 0
-                    ? dispute.attachments.map(url => `<img src="${url}" alt="Attachment" class="inline-block">`).join('')
-                    : '<p class="text-gray-500">No attachments.</p>';
-
-                const messagesHtml = dispute.messages.map(msg => {
-                    const senderName = msg.senderType === 'Admin' ? 'Admin' : `${dispute.user.firstName} ${dispute.user.lastName}`;
-                    const alignment = msg.senderType === 'Admin' ? 'ml-auto' : 'mr-auto';
-                    const colorClass = msg.senderType === 'Admin' ? 'bg-blue-600' : 'bg-gray-600';
-                    return `
-                        <div class="chat-message ${alignment} ${colorClass}">
-                            <strong class="text-white">${senderName}:</strong> ${msg.text}
-                        </div>
-                    `;
-                }).join('');
-
-                const resolvedDisabled = dispute.status.toLowerCase() === 'resolved';
-
-                disputeCard.innerHTML = `
-                    <h3 class="text-2xl font-semibold text-accent-cyan mb-3">Dispute ID: ${dispute._id}</h3>
-                    <p class="text-light-gray mb-1"><strong>User:</strong> ${dispute.user.firstName} ${dispute.user.lastName} (<span class="text-accent-cyan">${dispute.user.email}</span>)</p>
-                    <p class="text-light-gray mb-1"><strong>Order ID:</strong> ${dispute.order ? dispute.order._id : 'N/A'}</p>
-                    <p class="text-light-gray mb-1"><strong>Status:</strong> <span class="font-bold text-lg text-red-400">${dispute.status}</span></p>
-                    <p class="text-light-gray mb-4"><strong>Reason:</strong> ${dispute.reason}</p>
-                    
-                    <h4 class="font-semibold mt-4 mb-2 text-light-slate">Attachments:</h4>
-                    <div class="dispute-attachments flex flex-wrap">
-                        ${attachmentsHtml}
-                    </div>
-
-                    <h4 class="font-semibold mt-6 mb-3 text-light-slate">Chat History:</h4>
-                    <div class="chat-container flex flex-col">
-                        ${messagesHtml}
-                    </div>
-                    
-                    <form class="send-message-form" data-dispute-id="${dispute._id}">
-                        <textarea class="input-field w-full mb-3" rows="3" placeholder="Write a reply..."></textarea>
-                        <button type="submit" class="btn btn-primary py-2 px-6 font-medium">Send Reply</button>
-                    </form>
-
-                    <div class="mt-6">
-                        <button class="status-btn btn-resolved ${resolvedDisabled ? 'btn-disabled' : ''}" ${resolvedDisabled ? 'disabled' : ''} data-dispute-id="${dispute._id}" data-status="resolved">Mark as Resolved</button>
-                    </div>
-                `;
-                disputesList.appendChild(disputeCard);
-            });
-            
-            // Attach event listeners for dynamic elements
-            document.querySelectorAll('.send-message-form').forEach(form => {
-                form.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const disputeId = form.dataset.disputeId;
-                    const textarea = form.querySelector('textarea');
-                    const messageText = textarea.value.trim();
-                    if (messageText) {
-                        await sendDisputeMessage(disputeId, messageText);
-                        textarea.value = ''; // Clear the textarea after sending
-                    }
-                });
-            });
-
-            document.querySelectorAll('.status-btn.btn-resolved').forEach(button => {
-                button.addEventListener('click', async (e) => {
-                    const disputeId = e.target.dataset.disputeId;
-                    await updateDisputeStatus(disputeId, 'resolved');
-                });
-            });
-        }
-
-        async function sendDisputeMessage(disputeId, messageText) {
-            const response = await fetch(`${BASE_URL}/api/admin/disputes/${disputeId}/message`, {
-                method: 'POST',
+        pendingRequestsList.innerHTML = '<p class="text-center text-light-gray">Loading pending requests...</p>';
+        try {
+            const response = await fetch(`${BASE_URL}/api/admin/vendor-requests`, {
+                method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${adminToken}`
-                },
-                body: JSON.stringify({ text: messageText })
+                }
             });
-
+            const data = await response.json();
             if (response.ok) {
-                displayMessage('Message sent successfully!', 'success');
-                fetchDisputes(); // Re-fetch to update chat history
+                renderPendingRequests(data);
             } else {
-                const data = await response.json();
-                displayMessage(data.message || 'Failed to send message.', 'error');
+                displayMessage(data.message || 'Failed to fetch pending requests.', 'error');
+                pendingRequestsList.innerHTML = '<p class="text-center text-red-500">Error loading requests.</p>';
             }
+        } catch (error) {
+            console.error('Network or server error:', error);
+            displayMessage(`An error occurred: ${error.message}. Check backend server and network connection.`, 'error');
+            pendingRequestsList.innerHTML = '<p class="text-center text-red-500">Error: Could not connect to backend.</p>';
         }
+    }
 
-        async function updateDisputeStatus(disputeId, newStatus) {
-            const response = await fetch(`${BASE_URL}/api/admin/disputes/${disputeId}/status`, {
+    function renderPendingRequests(requests) {
+        pendingRequestsList.innerHTML = '';
+        if (requests.length === 0) {
+            pendingRequestsList.innerHTML = '<p class="text-center text-light-gray">No pending vendor requests.</p>';
+            return;
+        }
+        requests.forEach(request => {
+            const requestCard = document.createElement('div');
+            requestCard.className = 'card p-6 request-card';
+            requestCard.innerHTML = `
+                <h3 class="text-xl font-semibold text-accent-cyan mb-2">${request.firstName} ${request.lastName}</h3>
+                <p class="text-light-gray text-sm mb-1"><span class="font-medium">Email:</span> ${request.email}</p>
+                <p class="text-light-gray text-sm mb-1"><span class="font-medium">Phone:</span> ${request.phoneNumber}</p>
+                <p class="text-light-gray text-sm mb-1"><span class="font-medium">Business:</span> ${request.businessName || 'N/A'}</p>
+                <p class="text-light-gray text-sm mb-4"><span class="font-medium">Categories:</span> ${request.businessCategories ? request.businessCategories.join(', ') : 'N/A'}</p>
+                <p class="text-light-gray text-sm mb-4"><span class="font-medium">Status:</span> <span class="text-orange-400 font-bold">${request.vendorStatus ? request.vendorStatus.toUpperCase() : 'NONE'}</span></p>
+                <div class="flex justify-end space-x-3">
+                    <button class="btn btn-success px-5 py-2 font-medium approve-btn" data-user-id="${request._id}">Approve</button>
+                    <button class="btn btn-danger px-5 py-2 font-medium reject-btn" data-user-id="${request._id}">Reject</button>
+                </div>
+            `;
+            pendingRequestsList.appendChild(requestCard);
+        });
+        document.querySelectorAll('.approve-btn').forEach(button => {
+            button.addEventListener('click', (e) => updateVendorStatus(e.target.dataset.userId, 'approved'));
+        });
+        document.querySelectorAll('.reject-btn').forEach(button => {
+            button.addEventListener('click', (e) => updateVendorStatus(e.target.dataset.userId, 'rejected'));
+        });
+    }
+
+    async function updateVendorStatus(userId, status) {
+        if (!adminToken) {
+            displayMessage('Admin token not set. Please login.', 'error');
+            return;
+        }
+        try {
+            const response = await fetch(`${BASE_URL}/api/admin/vendor-status/${userId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${adminToken}`
                 },
-                body: JSON.stringify({ status: newStatus })
+                body: JSON.stringify({ status })
             });
+            const data = await response.json();
+            if (response.ok) {
+                displayMessage(data.message || `Request ${status} successfully!`, 'success');
+                fetchPendingVendorRequests();
+            } else {
+                displayMessage(data.message || `Failed to ${status} request.`, 'error');
+            }
+        } catch (error) {
+            console.error(`Network or server error during ${status}:`, error);
+            displayMessage(`An error occurred: ${error.message}. Check backend server and network connection.`, 'error');
+        }
+    }
+
+    // --- Orders Logic ---
+    
+    async function fetchOrders() {
+        if (!adminToken) {
+            ordersList.innerHTML = '<p class="text-center text-red-500">Please login as admin to view orders.</p>';
+            return;
+        }
+        ordersList.innerHTML = '<p class="text-center text-light-gray">Loading orders...</p>';
+
+        try {
+            const response = await fetch(`${BASE_URL}/api/orders`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                }
+            });
+            const data = await response.json();
 
             if (response.ok) {
-                displayMessage(`Dispute marked as ${newStatus}!`, 'success');
-                fetchDisputes(); // Re-fetch to update status
+                // Cache the full list and render with the current filter
+                allOrders = data; 
+                renderOrders(applyFilter(allOrders));
             } else {
-                const data = await response.json();
-                displayMessage(data.message || 'Failed to update dispute status.', 'error');
+                ordersList.innerHTML = `<p class="text-center text-red-500">${data.message || 'Failed to fetch orders.'}</p>`;
             }
+        } catch (error) {
+            console.error('Error fetching orders:', error);
+            ordersList.innerHTML = `<p class="text-center text-red-500">Network or server error: ${error.message}</p>`;
+        }
+    }
+
+    // Status-based Filter Logic (Kept the final, correct version)
+    function applyFilter(orders) {
+        const deliveredStatuses = ['delivered', 'completed'];
+
+        if (currentFilter === 'delivered') {
+            // Filter where mainOrderStatus is 'delivered' or 'completed'
+            return orders.filter(order => {
+                const status = order.mainOrderStatus ? order.mainOrderStatus.toLowerCase() : '';
+                return deliveredStatuses.includes(status);
+            });
+        } else if (currentFilter === 'not_delivered') {
+            // Filter where mainOrderStatus is NOT 'delivered' and NOT 'completed'
+            return orders.filter(order => {
+                const status = order.mainOrderStatus ? order.mainOrderStatus.toLowerCase() : '';
+                return !deliveredStatuses.includes(status);
+            });
+        }
+        // 'all' or default
+        return orders;
+    }
+
+    function renderOrders(orders) {
+        ordersList.innerHTML = '';
+        if (orders.length === 0) {
+            ordersList.innerHTML = '<p class="text-center text-light-gray">No orders found matching the filter criteria.</p>';
+            return;
         }
 
-        // --- Login Logic ---
-        loginAdminBtn.addEventListener('click', async () => {
-            const email = adminEmailInput.value.trim();
-            const password = adminPasswordInput.value.trim();
-            if (!email || !password) {
-                displayMessage('Please enter both email and password.', 'error');
-                return;
-            }
+        orders.forEach(order => {
+            const orderCard = document.createElement('div');
+            orderCard.className = 'card order-card';
 
-            try {
-                const response = await fetch(`${BASE_URL}/api/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password, deviceFingerprint: 'web-admin-panel' })
+            const userPhoneNumber = order.user.phoneNumber || 'N/A';
+
+            const createdAt = new Date(order.createdAt).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+            const isPaid = order.isPaid ? 'Yes' : 'No';
+
+            // Determine if delivered based on the string status
+            const statusLower = order.mainOrderStatus ? order.mainOrderStatus.toLowerCase() : 'pending_payment'; // Default to a known status
+            const isDelivered = (statusLower === 'delivered' || statusLower === 'completed') ? 'Yes' : 'No'; 
+
+            let itemsHtml = '';
+
+            if (order.shipments && Array.isArray(order.shipments)) {
+
+                order.shipments.forEach((shipment, shipmentIndex) => {
+                    const vendorName = shipment.vendor ? shipment.vendor.businessName : 'N/A';
+                    const vendorPhone = shipment.vendor ? shipment.vendor.phoneNumber || 'N/A' : 'N/A';
+                    const vendorLocation = shipment.vendor && shipment.vendor.businessLocation ? shipment.vendor.businessLocation.formattedAddress || 'N/A' : 'N/A';
+
+                    itemsHtml += `
+                        <h4 class="text-sm font-semibold mt-4 mb-2 text-accent-cyan border-b border-gray-700 pb-1">📦 Shipment ${shipmentIndex + 1} (Vendor: ${vendorName})</h4>
+                        <p class="text-xs text-light-gray mb-1 ml-2">Vendor Phone: ${vendorPhone} | Location: ${vendorLocation}</p>
+                    `;
+
+                    shipment.items.forEach(item => {
+                        itemsHtml += `
+                            <li class="text-light-gray mb-2 border-l-2 border-green-500 pl-2 ml-2">
+                                <strong class="text-light-slate">${item.name}</strong> - Qty: ${item.quantity} - Price: ₦${item.price.toFixed(2)}
+                                <br>
+                                <span class="text-xs text-gray-500">
+                                    Shipment ID: ${shipment._id} | Status: ${shipment.shipmentStatus}
+                                </span>
+                            </li>
+                        `;
+                    });
                 });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    adminToken = data.token;
-                    localStorage.setItem('admin_jwt_token', data.token);
-                    displayMessage(data.message || 'Admin login successful!', 'success');
-                    adminEmailInput.value = '';
-                    adminPasswordInput.value = '';
-                    fetchPendingVendorRequests();
-                    ordersList.innerHTML = '<p class="text-center text-light-gray">Click "See Orders" to load orders.</p>';
-                    disputesList.innerHTML = '<p class="text-center text-light-gray">Click "See Disputes" to load disputes.</p>';
-                } else {
-                    displayMessage(data.message || 'Admin login failed. Check credentials and ensure user is an admin.', 'error');
-                }
-            } catch (error) {
-                console.error('Admin login network error:', error);
-                displayMessage(`An error occurred during login: ${error.message}. Check backend server and network connection.`, 'error');
+            } else {
+                itemsHtml = '<p class="text-red-500">❌ No shipments linked to this order.</p>';
             }
+
+
+            const shipping = order.shippingAddress || {};
+            const shippingHtml = `
+                <p class="text-light-slate"><strong>Shipping Address:</strong></p>
+                <p class="text-light-gray">${shipping.address || 'N/A'}, ${shipping.city || 'N/A'}, ${shipping.postalCode || 'N/A'}, ${shipping.country || 'N/A'}</p>
+            `;
+
+            // --- Status Button Logic (NEW) ---
+            const currentStatus = statusLower;
+            
+            // Helper function to check if the button should be disabled based on order flow
+            const isDisabled = (targetStatus) => {
+                switch (currentStatus) {
+                    case 'completed':
+                    case 'cancelled':
+                        // Cannot change status from completed or cancelled
+                        return true;
+                    case 'delivered':
+                        // Only allow transitioning to completed
+                        return targetStatus !== 'completed' && targetStatus !== 'cancelled'; // Also allow cancel as a final admin action
+                    case 'shipped':
+                        // Only allow transitioning to delivered, completed, or cancelled
+                        return !['delivered', 'completed', 'cancelled'].includes(targetStatus);
+                    case 'partially_shipped':
+                        // Only allow transitioning to shipped, delivered, completed, or cancelled
+                        return !['shipped', 'delivered', 'completed', 'cancelled'].includes(targetStatus);
+                    case 'processing':
+                        // Only allow transitioning to partially_shipped, shipped, delivered, completed, or cancelled
+                        return !['partially_shipped', 'shipped', 'delivered', 'completed', 'cancelled'].includes(targetStatus);
+                    case 'pending_payment':
+                        // Only allow transitioning to processing or cancelled
+                        return targetStatus !== 'processing' && targetStatus !== 'cancelled';
+                    default:
+                        // For 'new' or unknown status, allow setting to pending_payment or processing
+                        return !['pending_payment', 'processing', 'cancelled'].includes(targetStatus);
+                }
+            };
+
+            const getButtonClass = (targetStatus) => {
+                 let baseClass = 'status-btn px-3 py-1 text-sm font-medium';
+                 if (targetStatus === currentStatus) {
+                    return `${baseClass} btn-current`; // Highlight current status
+                 }
+                 if (isDisabled(targetStatus)) {
+                    return `${baseClass} btn-disabled`;
+                 }
+                 if (targetStatus === 'cancelled') return `${baseClass} btn-danger`;
+                 if (targetStatus === 'completed') return `${baseClass} btn-success`;
+                 return `${baseClass} btn-primary-alt`;
+            };
+
+            const buttonHtml = `
+                <button class="${getButtonClass('pending_payment')}" ${isDisabled('pending_payment') ? 'disabled' : ''} data-order-id="${order._id}" data-status="pending_payment">Pending Payment</button>
+                <button class="${getButtonClass('processing')}" ${isDisabled('processing') ? 'disabled' : ''} data-order-id="${order._id}" data-status="processing">Processing</button>
+                <button class="${getButtonClass('partially_shipped')}" ${isDisabled('partially_shipped') ? 'disabled' : ''} data-order-id="${order._id}" data-status="partially_shipped">Partially Shipped</button>
+                <button class="${getButtonClass('shipped')}" ${isDisabled('shipped') ? 'disabled' : ''} data-order-id="${order._id}" data-status="shipped">Shipped</button>
+                <button class="${getButtonClass('delivered')}" ${isDisabled('delivered') ? 'disabled' : ''} data-order-id="${order._id}" data-status="delivered">Delivered</button>
+                <button class="${getButtonClass('completed')}" ${isDisabled('completed') ? 'disabled' : ''} data-order-id="${order._id}" data-status="completed">Completed</button>
+                <button class="${getButtonClass('cancelled')}" ${isDisabled('cancelled') ? 'disabled' : ''} data-order-id="${order._id}" data-status="cancelled">Cancel</button>
+            `;
+            // --- End Status Button Logic ---
+
+            orderCard.innerHTML = `
+                <h3 class="text-2xl font-semibold text-accent-cyan mb-3">Order ID: ${order._id}</h3>
+                <p class="text-light-gray mb-1"><strong>User:</strong> ${order.user.firstName} ${order.user.lastName} (<span class="text-accent-cyan">${order.user.email}</span>)</p>
+                <p class="text-light-gray mb-1"><strong>User Phone:</strong> <span class="font-medium">${userPhoneNumber}</span></p>
+                <p class="text-light-gray mb-1"><strong>Order Date:</strong> ${createdAt}</p>
+                <p class="text-light-gray mb-1"><strong>Paid:</strong> <span class="text-${order.isPaid ? 'green' : 'red'}-400 font-bold">${isPaid}</span></p>
+                <p class="text-light-gray mb-4"><strong>Delivered:</strong> <span class="text-${isDelivered === 'Yes' ? 'green' : 'red'}-400 font-bold">${isDelivered}</span></p>
+
+                <div class="mb-2"><strong>Current Status:</strong> <span class="font-bold text-lg text-green-400">${order.mainOrderStatus || 'N/A'}</span></div>
+                <div class="mb-4">${shippingHtml}</div>
+
+                <p class="text-light-slate text-xl font-bold">🛒 Items & Shipments:</p>
+                <ul class="list-none mb-6">${itemsHtml}</ul>
+
+                <div class="border-t border-gray-700 pt-4">
+                    <h4 class="text-light-slate font-semibold mb-2">Update Main Order Status:</h4>
+                    <div class="flex flex-wrap gap-2 status-buttons-container">
+                        ${buttonHtml}
+                    </div>
+                    <p class="text-xs text-light-gray mt-2">Buttons are enabled based on the current order flow status.</p>
+                </div>
+            `;
+
+            ordersList.appendChild(orderCard);
         });
 
-        // Load token from local storage on page load
-        window.onload = () => {
-            const storedToken = localStorage.getItem('admin_jwt_token');
-            if (storedToken) {
-                adminToken = storedToken;
-                displayMessage('Admin token loaded from local storage. Attempting to fetch data...', 'success');
+        // Attach event listeners to all status buttons (UPDATED)
+        document.querySelectorAll('.status-btn[data-order-id]').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const btn = e.target;
+                if(btn.disabled || btn.classList.contains('btn-current')) return; // Ignore disabled or current status buttons
+
+                const orderId = btn.dataset.orderId;
+                const newStatus = btn.dataset.status;
+                
+                // Temporarily disable all buttons in the container while updating
+                const container = btn.closest('.status-buttons-container');
+                const allButtons = container ? container.querySelectorAll('.status-btn') : [];
+                allButtons.forEach(b => b.disabled = true);
+                
+                try {
+                    const response = await fetch(`${BASE_URL}/api/orders/${orderId}/status`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${adminToken}`
+                        },
+                        body: JSON.stringify({ status: newStatus })
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        displayMessage(data.message || `Order status updated to ${newStatus.toUpperCase()}.`, 'success');
+                        fetchOrders(); // Reload data and re-apply filters/buttons
+                    } else {
+                        displayMessage(data.message || `Failed to update order status.`, 'error');
+                        // Re-enable buttons if update failed
+                        allButtons.forEach(b => b.disabled = false); 
+                    }
+                } catch (error) {
+                    console.error('Error updating order status:', error);
+                    displayMessage(`Network error: ${error.message}`, 'error');
+                    // Re-enable buttons if update failed
+                    allButtons.forEach(b => b.disabled = false);
+                }
+            });
+        });
+    }
+
+
+    // --- Disputes Logic (Untouched) ---
+    async function fetchDisputes() {
+        if (!adminToken) {
+            disputesList.innerHTML = '<p class="text-center text-red-500">Please login as admin to view disputes.</p>';
+            return;
+        }
+        disputesList.innerHTML = '<p class="text-center text-light-gray">Loading disputes...</p>';
+
+        try {
+            const response = await fetch(`${BASE_URL}/api/admin/disputes`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                }
+            });
+            const data = await response.json();
+            if (response.ok) {
+                renderDisputes(data);
+            } else {
+                disputesList.innerHTML = `<p class="text-center text-red-500">${data.message || 'Failed to fetch disputes.'}</p>`;
+            }
+        } catch (error) {
+            console.error('Error fetching disputes:', error);
+            disputesList.innerHTML = `<p class="text-center text-red-500">Network or server error: ${error.message}</p>`;
+        }
+    }
+
+    function renderDisputes(disputes) {
+        disputesList.innerHTML = '';
+        if (disputes.length === 0) {
+            disputesList.innerHTML = '<p class="text-center text-light-gray">No disputes found.</p>';
+            return;
+        }
+
+        disputes.forEach(dispute => {
+            const disputeCard = document.createElement('div');
+            disputeCard.className = 'card dispute-card';
+
+            const attachmentsHtml = dispute.attachments.length > 0
+                ? dispute.attachments.map(url => `<img src="${url}" alt="Attachment" class="inline-block">`).join('')
+                : '<p class="text-gray-500">No attachments.</p>';
+
+            const messagesHtml = dispute.messages.map(msg => {
+                const senderName = msg.senderType === 'Admin' ? 'Admin' : `${dispute.user.firstName} ${dispute.user.lastName}`;
+                const alignment = msg.senderType === 'Admin' ? 'ml-auto' : 'mr-auto';
+                const colorClass = msg.senderType === 'Admin' ? 'bg-blue-600' : 'bg-gray-600';
+                return `
+                    <div class="chat-message ${alignment} ${colorClass}">
+                        <strong class="text-white">${senderName}:</strong> ${msg.text}
+                    </div>
+                `;
+            }).join('');
+
+            const resolvedDisabled = dispute.status.toLowerCase() === 'resolved';
+
+            disputeCard.innerHTML = `
+                <h3 class="text-2xl font-semibold text-accent-cyan mb-3">Dispute ID: ${dispute._id}</h3>
+                <p class="text-light-gray mb-1"><strong>User:</strong> ${dispute.user.firstName} ${dispute.user.lastName} (<span class="text-accent-cyan">${dispute.user.email}</span>)</p>
+                <p class="text-light-gray mb-1"><strong>Order ID:</strong> ${dispute.order ? dispute.order._id : 'N/A'}</p>
+                <p class="text-light-gray mb-1"><strong>Status:</strong> <span class="font-bold text-lg text-red-400">${dispute.status}</span></p>
+                <p class="text-light-gray mb-4"><strong>Reason:</strong> ${dispute.reason}</p>
+
+                <h4 class="font-semibold mt-4 mb-2 text-light-slate">Attachments:</h4>
+                <div class="dispute-attachments flex flex-wrap">
+                    ${attachmentsHtml}
+                </div>
+
+                <h4 class="font-semibold mt-6 mb-3 text-light-slate">Chat History:</h4>
+                <div class="chat-container flex flex-col">
+                    ${messagesHtml}
+                </div>
+
+                <form class="send-message-form" data-dispute-id="${dispute._id}">
+                    <textarea class="input-field w-full mb-3" rows="3" placeholder="Write a reply..."></textarea>
+                    <button type="submit" class="btn btn-primary py-2 px-6 font-medium">Send Reply</button>
+                </form>
+
+                <div class="mt-6">
+                    <button class="status-btn btn-resolved ${resolvedDisabled ? 'btn-disabled' : ''}" ${resolvedDisabled ? 'disabled' : ''} data-dispute-id="${dispute._id}" data-status="resolved">Mark as Resolved</button>
+                </div>
+            `;
+            disputesList.appendChild(disputeCard);
+        });
+
+        // Attach event listeners for dynamic elements
+        document.querySelectorAll('.send-message-form').forEach(form => {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const disputeId = form.dataset.disputeId;
+                const textarea = form.querySelector('textarea');
+                const messageText = textarea.value.trim();
+                if (messageText) {
+                    await sendDisputeMessage(disputeId, messageText);
+                    textarea.value = ''; // Clear the textarea after sending
+                }
+            });
+        });
+
+        document.querySelectorAll('.status-btn.btn-resolved').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const disputeId = e.target.dataset.disputeId;
+                await updateDisputeStatus(disputeId, 'resolved');
+            });
+        });
+    }
+
+    async function sendDisputeMessage(disputeId, messageText) {
+        const response = await fetch(`${BASE_URL}/api/admin/disputes/${disputeId}/message`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${adminToken}`
+            },
+            body: JSON.stringify({ text: messageText })
+        });
+
+        if (response.ok) {
+            displayMessage('Message sent successfully!', 'success');
+            fetchDisputes(); // Re-fetch to update chat history
+        } else {
+            const data = await response.json();
+            displayMessage(data.message || 'Failed to send message.', 'error');
+        }
+    }
+
+    async function updateDisputeStatus(disputeId, newStatus) {
+        const response = await fetch(`${BASE_URL}/api/admin/disputes/${disputeId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${adminToken}`
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+
+        if (response.ok) {
+            displayMessage(`Dispute marked as ${newStatus}!`, 'success');
+            fetchDisputes(); // Re-fetch to update status
+        } else {
+            const data = await response.json();
+            displayMessage(data.message || 'Failed to update dispute status.', 'error');
+        }
+    }
+
+    // --- Login Logic (Untouched) ---
+    loginAdminBtn.addEventListener('click', async () => {
+        const email = adminEmailInput.value.trim();
+        const password = adminPasswordInput.value.trim();
+        if (!email || !password) {
+            displayMessage('Please enter both email and password.', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${BASE_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password, deviceFingerprint: 'web-admin-panel' })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                adminToken = data.token;
+                localStorage.setItem('admin_jwt_token', data.token);
+                displayMessage(data.message || 'Admin login successful!', 'success');
+                adminEmailInput.value = '';
+                adminPasswordInput.value = '';
                 fetchPendingVendorRequests();
                 ordersList.innerHTML = '<p class="text-center text-light-gray">Click "See Orders" to load orders.</p>';
+                disputesList.innerHTML = '<p class="text-center text-light-gray">Click "See Disputes" to load disputes.</p>';
+            } else {
+                displayMessage(data.message || 'Admin login failed. Check credentials and ensure user is an admin.', 'error');
             }
-        };
+        } catch (error) {
+            console.error('Admin login network error:', error);
+            displayMessage(`An error occurred during login: ${error.message}. Check backend server and network connection.`, 'error');
+        }
+    });
 
-        // Attach listeners to buttons that require login
-        fetchOrdersBtn.addEventListener('click', fetchOrders);
-        fetchDisputesBtn.addEventListener('click', fetchDisputes);
-    </script>
+    // Load token from local storage on page load
+    window.onload = () => {
+        const storedToken = localStorage.getItem('admin_jwt_token');
+        if (storedToken) {
+            adminToken = storedToken;
+            displayMessage('Admin token loaded from local storage. Attempting to fetch data...', 'success');
+            fetchPendingVendorRequests();
+            ordersList.innerHTML = '<p class="text-center text-light-gray">Click "See Orders" to load orders.</p>';
+        }
+    };
+
+    // Attach listeners to buttons that require login
+    fetchOrdersBtn.addEventListener('click', fetchOrders);
+    fetchDisputesBtn.addEventListener('click', fetchDisputes);
+
+    // Filter dropdown event listener
+    if (orderFilterDropdown) orderFilterDropdown.addEventListener('change', (e) => {
+        currentFilter = e.target.value;
+        // Only attempt to render if orders have been fetched
+        if (allOrders.length > 0) {
+            renderOrders(applyFilter(allOrders));
+        } else {
+            ordersList.innerHTML = '<p class="text-center text-light-gray">Click "See Orders" to load orders before filtering.</p>';
+        }
+    });
+</script>
 </body>
 </html>
