@@ -1,4 +1,4 @@
-<!-- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
@@ -551,7 +551,7 @@
 
             const user = order.user || {};
             
-            const userPhoneNumber = order.user.phoneNumber || 'N/A';
+            const userPhoneNumber = user.phoneNumber || 'N/A';
 
             const createdAt = new Date(order.createdAt).toLocaleDateString('en-US', {
                 year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -1045,4 +1045,6 @@ fetchRidersBtn.addEventListener('click', fetchRiderApplicants);
             ordersList.innerHTML = '<p class="text-center text-light-gray">Click "See Orders" to load orders before filtering.</p>';
         }
     });
-</script> -->
+</script>
+</body>
+</html>
