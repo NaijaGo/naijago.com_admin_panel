@@ -9,7 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Global and Layout Styles */
+        /* ────────────────────────────────────────────── */
+        /* Your complete original styles – unchanged      */
+        /* ────────────────────────────────────────────── */
         :root {
             --primary-blue: #0A192F;
             --secondary-blue: #1C2B47;
@@ -49,7 +51,6 @@
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
         }
 
-        /* Button Styles */
         .btn {
             font-weight: 600;
             border-radius: 8px;
@@ -85,7 +86,7 @@
         }
 
         .btn-shipped, .btn-delivered, .btn-resolved {
-            border-radius: 20px; /* Pill-shaped buttons */
+            border-radius: 20px;
             font-weight: 500;
             padding: 8px 20px;
             transition: background-color 0.3s ease, transform 0.2s ease;
@@ -102,7 +103,6 @@
             transform: none !important;
         }
 
-        /* Form and Input Styles */
         .input-field {
             background-color: var(--secondary-blue);
             border: 1px solid rgba(100, 255, 218, 0.3);
@@ -119,18 +119,16 @@
         .input-field::placeholder {
             color: var(--light-gray);
         }
-        
-        /* NEW: Dropdown style for filtering */
+
         #orderFilterDropdown {
-            appearance: none; /* Remove default arrow */
+            appearance: none;
             background-color: var(--primary-blue);
             border: 1px solid var(--accent-cyan);
             color: var(--light-slate);
-            padding: 10px 30px 10px 15px; /* Adjust padding for custom arrow */
+            padding: 10px 30px 10px 15px;
             border-radius: 8px;
             cursor: pointer;
             outline: none;
-            /* Optional: Add custom arrow using background image */
             background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364FFDA' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: right 10px center;
@@ -140,7 +138,6 @@
             border-color: #52e3c3;
         }
 
-        /* Alert and Message Styles */
         .message {
             padding: 16px;
             border-radius: 12px;
@@ -157,20 +154,14 @@
             color: var(--red-pastel);
         }
 
-        /* Section and Item Spacing */
         .order-card, .dispute-card, .request-card {
             margin-bottom: 2rem;
             padding: 2rem;
         }
 
-        .space-y-6 > * + * {
-            margin-top: 1.5rem;
-        }
-        .space-y-8 > * + * {
-            margin-top: 2rem;
-        }
+        .space-y-6 > * + * { margin-top: 1.5rem; }
+        .space-y-8 > * + * { margin-top: 2rem; }
 
-        /* Chat Styles */
         .chat-container {
             border: 1px solid rgba(100, 255, 218, 0.2);
             border-radius: 12px;
@@ -211,61 +202,40 @@
             transform: scale(1.05);
         }
 
-
-        /* Custom Button Styles for Status Updates */
         .status-btn {
             transition: all 0.2s;
             border-radius: 0.25rem;
             cursor: pointer;
             border: 1px solid transparent;
         }
-
         .status-btn:hover:not(:disabled) {
             opacity: 0.9;
             transform: translateY(-1px);
         }
 
-        .btn-primary-alt { /* Used for intermediate statuses */
-            background-color: #2c5282; /* Deep Blue/Gray */
-            color: #edf2f7;
-        }
-
-        .btn-success { /* Used for Completed */
-            background-color: #38a169;
-            color: white;
-        }
-
-        .btn-danger { /* Used for Cancelled */
-            background-color: #e53e3e;
-            color: white;
-        }
-
+        .btn-primary-alt { background-color: #2c5282; color: #edf2f7; }
+        .btn-success { background-color: #38a169; color: white; }
+        .btn-danger { background-color: #e53e3e; color: white; }
         .btn-disabled {
-            background-color: #4a5568 !important; /* Muted gray */
+            background-color: #4a5568 !important;
             color: #a0aec0 !important;
             cursor: not-allowed !important;
             pointer-events: none;
             opacity: 0.6;
         }
-
-        .btn-current { /* Highlights the status the order is currently in */
-            background-color: #4299e1; /* Accent Blue */
+        .btn-current {
+            background-color: #4299e1;
             color: white;
             font-weight: bold;
             border: 2px solid #63b3ed;
             cursor: default;
         }
+        .btn-current:hover { transform: none; }
 
-        .btn-current:hover {
-            transform: none;
-        }
-
-        /* Animated Gradients */
         @keyframes shimmer {
             0% { background-position: -200% 0; }
             100% { background-position: 200% 0; }
         }
-
         .shimmer-text {
             background: linear-gradient(90deg, #1C2B47, #3b82f6, #1C2B47);
             background-size: 200% 100%;
@@ -274,7 +244,6 @@
             animation: shimmer 3s infinite linear;
         }
 
-        /* Animations */
         @keyframes fade-in {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -288,10 +257,7 @@
             to { opacity: 1; transform: scale(1); }
         }
 
-        /* Scrollbar Styling */
-        ::-webkit-scrollbar {
-            width: 10px;
-        }
+        ::-webkit-scrollbar { width: 10px; }
         ::-webkit-scrollbar-track {
             background: var(--secondary-blue);
             border-radius: 10px;
@@ -300,750 +266,670 @@
             background: var(--accent-cyan);
             border-radius: 10px;
         }
+
+        /* Accordion header style */
+        .accordion-header {
+            cursor: pointer;
+            user-select: none;
+        }
+        .accordion-header::after {
+            content: '▼';
+            float: right;
+            transition: transform 0.3s;
+        }
+        .accordion-header.active::after {
+            transform: rotate(180deg);
+        }
     </style>
 </head>
-
 <body class="p-8">
-    <div class="container mx-auto">
-        <h1 class="text-5xl font-extrabold text-center text-light-slate mb-10 shimmer-text">
-            NaijaGo Admin Panel
-        </h1>
-        <div class="bg-blue-800 bg-opacity-30 border-l-4 border-accent-cyan text-light-slate p-5 rounded-lg mb-8" role="alert">
-            <p class="font-bold">Admin Authentication</p>
-            <p class="text-sm">Welcome Admin to this interface. Please log in to manage data.</p>
-        </div>
-        <div class="mb-12 p-8 card">
-            <label for="adminEmail" class="block text-light-gray text-sm font-semibold mb-2">Admin Email:</label>
-            <input type="email" id="adminEmail" class="input-field w-full mb-6" placeholder="Enter admin email" />
-            <label for="adminPassword" class="block text-light-gray text-sm font-semibold mb-2">Admin Password:</label>
-            <input type="password" id="adminPassword" class="input-field w-full mb-6" placeholder="Enter admin password" />
-            <button id="loginAdminBtn" class="btn btn-primary w-full py-3 rounded-lg text-lg">Login as Admin</button>
-        </div>
 
-        <div id="messageContainer" class="mb-4"></div>
+<div class="container mx-auto">
 
-        <h2 class="text-4xl font-bold text-accent-cyan mb-8">Pending Vendor Requests</h2>
-        <div id="pendingRequestsList" class="space-y-8">
-            <p class="text-center text-light-gray">Login to load requests...</p>
-        </div>
-        
-        
-        <div class="flex flex-wrap items-center justify-between mt-12 mb-8">
-            <h2 class="text-4xl font-bold text-accent-cyan flex items-center">
-                Rider Applicants 
-                <span id="riderCountBadge" class="ml-4 text-sm bg-gray-700 text-white px-3 py-1 rounded-full border border-accent-cyan">Total: 0</span>
-            </h2>
-            <button id="fetchRidersBtn" class="btn btn-primary py-2 px-6 font-medium">See Riders</button>
-        </div>
+    <h1 class="text-5xl font-extrabold text-center text-light-slate mb-10 shimmer-text">
+        NaijaGo Admin Panel
+    </h1>
 
-        <div id="riderApplicantsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <p class="text-center text-light-gray col-span-full">Login as admin to view rider applications.</p>
-        </div>
+    <div class="bg-blue-800 bg-opacity-30 border-l-4 border-accent-cyan text-light-slate p-5 rounded-lg mb-8" role="alert">
+        <p class="font-bold">Admin Authentication</p>
+        <p class="text-sm">Welcome Admin to this interface. Please log in to manage data.</p>
+    </div>
 
-        <h2 class="text-4xl font-bold text-accent-cyan mt-12 mb-6 flex items-center justify-between">
-            Orders
-            <button id="fetchOrdersBtn" class="btn btn-primary py-2 px-6 rounded-lg text-sm">See Orders</button>
+    <div class="mb-12 p-8 card">
+        <label for="adminEmail" class="block text-light-gray text-sm font-semibold mb-2">Admin Email:</label>
+        <input type="email" id="adminEmail" class="input-field w-full mb-6" placeholder="Enter admin email" />
+        <label for="adminPassword" class="block text-light-gray text-sm font-semibold mb-2">Admin Password:</label>
+        <input type="password" id="adminPassword" class="input-field w-full mb-6" placeholder="Enter admin password" />
+        <button id="loginAdminBtn" class="btn btn-primary w-full py-3 rounded-lg text-lg">Login as Admin</button>
+    </div>
+
+    <div id="messageContainer" class="mb-4"></div>
+
+    <!-- ────────────────────────────────────────────── -->
+    <!-- Pending Vendor Requests – always visible       -->
+    <!-- ────────────────────────────────────────────── -->
+    <h2 class="text-4xl font-bold text-accent-cyan mb-8">Pending Vendor Requests</h2>
+    <div id="pendingRequestsList" class="space-y-8 mb-16">
+        <p class="text-center text-light-gray">Login to load requests...</p>
+    </div>
+
+    <!-- ────────────────────────────────────────────── -->
+    <!-- Collapsible Riders Section                     -->
+    <!-- ────────────────────────────────────────────── -->
+    <div class="mb-10">
+        <h2 class="text-4xl font-bold text-accent-cyan mb-4 accordion-header flex items-center justify-between p-4 bg-[#1C2B47]/70 rounded-xl hover:bg-[#1C2B47] transition"
+            id="toggleRiders">
+            Rider Applicants
+            <span id="riderCountBadge" class="text-sm bg-gray-700 text-white px-3 py-1 rounded-full border border-accent-cyan ml-4">Total: 0</span>
         </h2>
-        
-        <div class="filter-controls mb-4 flex items-center space-x-3">
-            <label for="orderFilterDropdown" class="text-light-gray font-medium">Filter by Status:</label>
-            <select id="orderFilterDropdown">
-                <option value="all">All Orders</option>
-                <option value="delivered">Delivered Orders</option>
-                <option value="not_delivered">Pending Delivery</option>
-            </select>
-        </div>
-
-        <div id="ordersList" class="space-y-8">
-            <p class="text-center text-light-gray">Click "See Orders" to load orders.</p>
-        </div>
-
-        <h2 class="text-4xl font-bold text-accent-cyan mt-12 mb-6 flex items-center justify-between">
-            Disputes
-            <button id="fetchDisputesBtn" class="btn btn-primary py-2 px-6 rounded-lg text-sm">See Disputes</button>
-        </h2>
-        <div id="disputesList" class="space-y-8">
-            <p class="text-center text-light-gray">Click "See Disputes" to load disputes.</p>
+        <div id="ridersSection" class="hidden mt-6">
+            <div id="riderApplicantsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <p class="text-center text-light-gray col-span-full">Click the header to load rider applications...</p>
+            </div>
         </div>
     </div>
 
+    <!-- ────────────────────────────────────────────── -->
+    <!-- Collapsible Orders Section                     -->
+    <!-- ────────────────────────────────────────────── -->
+    <div class="mb-10">
+        <h2 class="text-4xl font-bold text-accent-cyan mb-4 accordion-header flex items-center justify-between p-4 bg-[#1C2B47]/70 rounded-xl hover:bg-[#1C2B47] transition"
+            id="toggleOrders">
+            Orders
+        </h2>
+        <div id="ordersSection" class="hidden mt-6">
+            <div class="filter-controls mb-6 flex items-center space-x-3">
+                <label for="orderFilterDropdown" class="text-light-gray font-medium">Filter by Status:</label>
+                <select id="orderFilterDropdown">
+                    <option value="all">All Orders</option>
+                    <option value="delivered">Delivered Orders</option>
+                    <option value="not_delivered">Pending Delivery</option>
+                </select>
+            </div>
+            <div id="ordersList" class="space-y-8">
+                <p class="text-center text-light-gray">Click the header to load orders...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ────────────────────────────────────────────── -->
+    <!-- Collapsible Disputes Section                   -->
+    <!-- ────────────────────────────────────────────── -->
+    <div class="mb-10">
+        <h2 class="text-4xl font-bold text-accent-cyan mb-4 accordion-header flex items-center justify-between p-4 bg-[#1C2B47]/70 rounded-xl hover:bg-[#1C2B47] transition"
+            id="toggleDisputes">
+            Disputes
+        </h2>
+        <div id="disputesSection" class="hidden mt-6">
+            <div id="disputesList" class="space-y-8">
+                <p class="text-center text-light-gray">Click the header to load disputes...</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const BASE_URL = 'https://naijago-backend.onrender.com';
+// Wrap everything in DOMContentLoaded for safety
+document.addEventListener('DOMContentLoaded', () => {
 
-        let adminToken = '';
-        // Filter defaults to 'all'
-        let currentFilter = 'all'; 
+    const BASE_URL = 'https://naijago-backend.onrender.com';
 
-        const messageContainer = document.getElementById('messageContainer');
-        const pendingRequestsList = document.getElementById('pendingRequestsList');
-        const adminEmailInput = document.getElementById('adminEmail');
-        const adminPasswordInput = document.getElementById('adminPassword');
-        const loginAdminBtn = document.getElementById('loginAdminBtn');
-        const fetchOrdersBtn = document.getElementById('fetchOrdersBtn');
-        const ordersList = document.getElementById('ordersList');
-        const fetchDisputesBtn = document.getElementById('fetchDisputesBtn');
-        const disputesList = document.getElementById('disputesList');
+    let adminToken = '';
+    let currentFilter = 'all';
+    let allOrders = [];
 
-        const orderFilterDropdown = document.getElementById('orderFilterDropdown');
-        // Initial set of all fetched orders
-        let allOrders = []; 
+    const messageContainer     = document.getElementById('messageContainer');
+    const pendingRequestsList  = document.getElementById('pendingRequestsList');
+    const adminEmailInput      = document.getElementById('adminEmail');
+    const adminPasswordInput   = document.getElementById('adminPassword');
+    const loginAdminBtn        = document.getElementById('loginAdminBtn');
 
-        // Message display helper
-        function displayMessage(message, type) {
-            messageContainer.innerHTML = `<div class="message ${type}">${message}</div>`;
-            setTimeout(() => {
-                messageContainer.innerHTML = '';
-            }, 5000);
+    const riderCountBadge      = document.getElementById('riderCountBadge');
+    const riderApplicantsList  = document.getElementById('riderApplicantsList');
+
+    const ordersList           = document.getElementById('ordersList');
+    const orderFilterDropdown  = document.getElementById('orderFilterDropdown');
+
+    const disputesList         = document.getElementById('disputesList');
+
+    function displayMessage(message, type) {
+        messageContainer.innerHTML = `<div class="message ${type}">${message}</div>`;
+        setTimeout(() => { messageContainer.innerHTML = ''; }, 6000);
+    }
+
+    // ──────────────────────────────────────────────
+    // Vendor Requests (always visible)
+    // ──────────────────────────────────────────────
+    async function fetchPendingVendorRequests() {
+        if (!adminToken) {
+            pendingRequestsList.innerHTML = '<p class="text-center text-light-gray">Please login as admin to load requests.</p>';
+            return;
         }
-
-        // --- Vendor Requests Logic (Untouched) ---
-        async function fetchPendingVendorRequests() {
-            if (!adminToken) {
-                pendingRequestsList.innerHTML = '<p class="text-center text-light-gray">Please login as admin to load requests.</p>';
-                return;
-            }
-
-            pendingRequestsList.innerHTML = '<p class="text-center text-light-gray">Loading pending requests...</p>';
-            try {
-                const response = await fetch(`${BASE_URL}/api/admin/vendor-requests`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${adminToken}`
-                    }
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    renderPendingRequests(data);
-                } else {
-                    displayMessage(data.message || 'Failed to fetch pending requests.', 'error');
-                    pendingRequestsList.innerHTML = '<p class="text-center text-red-500">Error loading requests.</p>';
-                }
-            } catch (error) {
-                console.error('Network or server error:', error);
-                displayMessage(`An error occurred: ${error.message}. Check backend server and network connection.`, 'error');
-                pendingRequestsList.innerHTML = '<p class="text-center text-red-500">Error: Could not connect to backend.</p>';
-            }
-        }
-
-        function renderPendingRequests(requests) {
-            pendingRequestsList.innerHTML = '';
-            if (requests.length === 0) {
-                pendingRequestsList.innerHTML = '<p class="text-center text-light-gray">No pending vendor requests.</p>';
-                return;
-            }
-            requests.forEach(request => {
-                const requestCard = document.createElement('div');
-                requestCard.className = 'card p-6 request-card';
-                requestCard.innerHTML = `
-                    <h3 class="text-xl font-semibold text-accent-cyan mb-2">${request.firstName} ${request.lastName}</h3>
-                    <p class="text-light-gray text-sm mb-1"><span class="font-medium">Email:</span> ${request.email}</p>
-                    <p class="text-light-gray text-sm mb-1"><span class="font-medium">Phone:</span> ${request.phoneNumber}</p>
-                    <p class="text-light-gray text-sm mb-1"><span class="font-medium">Business:</span> ${request.businessName || 'N/A'}</p>
-                    <p class="text-light-gray text-sm mb-4"><span class="font-medium">Categories:</span> ${request.businessCategories ? request.businessCategories.join(', ') : 'N/A'}</p>
-                    <p class="text-light-gray text-sm mb-4"><span class="font-medium">Status:</span> <span class="text-orange-400 font-bold">${request.vendorStatus ? request.vendorStatus.toUpperCase() : 'NONE'}</span></p>
-                    <div class="flex justify-end space-x-3">
-                        <button class="btn btn-success px-5 py-2 font-medium approve-btn" data-user-id="${request._id}">Approve</button>
-                        <button class="btn btn-danger px-5 py-2 font-medium reject-btn" data-user-id="${request._id}">Reject</button>
-                    </div>
-                `;
-                pendingRequestsList.appendChild(requestCard);
+        pendingRequestsList.innerHTML = '<p class="text-center text-light-gray">Loading pending requests...</p>';
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/vendor-requests`, {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
             });
-            document.querySelectorAll('.approve-btn').forEach(button => {
-                button.addEventListener('click', (e) => updateVendorStatus(e.target.dataset.userId, 'approved'));
-            });
-            document.querySelectorAll('.reject-btn').forEach(button => {
-                button.addEventListener('click', (e) => updateVendorStatus(e.target.dataset.userId, 'rejected'));
-            });
-        }
-
-        async function updateVendorStatus(userId, status) {
-            if (!adminToken) {
-                displayMessage('Admin token not set. Please login.', 'error');
-                return;
-            }
-            try {
-                const response = await fetch(`${BASE_URL}/api/admin/vendor-status/${userId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${adminToken}`
-                    },
-                    body: JSON.stringify({ status })
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    displayMessage(data.message || `Request ${status} successfully!`, 'success');
-                    fetchPendingVendorRequests();
-                } else {
-                    displayMessage(data.message || `Failed to ${status} request.`, 'error');
-                }
-            } catch (error) {
-                console.error(`Network or server error during ${status}:`, error);
-                displayMessage(`An error occurred: ${error.message}. Check backend server and network connection.`, 'error');
-            }
-        }
-
-        // --- Orders Logic ---
-        
-        async function fetchOrders() {
-            if (!adminToken) {
-                ordersList.innerHTML = '<p class="text-center text-red-500">Please login as admin to view orders.</p>';
-                return;
-            }
-            ordersList.innerHTML = '<p class="text-center text-light-gray">Loading orders...</p>';
-
-            try {
-                const response = await fetch(`${BASE_URL}/api/orders`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${adminToken}`
-                    }
-                });
-                const data = await response.json();
-
-                if (response.ok) {
-                    // Cache the full list and render with the current filter
-                    allOrders = data; 
-                    renderOrders(applyFilter(allOrders));
-                } else {
-                    ordersList.innerHTML = `<p class="text-center text-red-500">${data.message || 'Failed to fetch orders.'}</p>`;
-                }
-            } catch (error) {
-                console.error('Error fetching orders:', error);
-                ordersList.innerHTML = `<p class="text-center text-red-500">Network or server error: ${error.message}</p>`;
-            }
-        }
-
-        // Status-based Filter Logic (Kept the final, correct version)
-        function applyFilter(orders) {
-            const deliveredStatuses = ['delivered', 'completed'];
-
-            if (currentFilter === 'delivered') {
-                // Filter where mainOrderStatus is 'delivered' or 'completed'
-                return orders.filter(order => {
-                    const status = order.mainOrderStatus ? order.mainOrderStatus.toLowerCase() : '';
-                    return deliveredStatuses.includes(status);
-                });
-            } else if (currentFilter === 'not_delivered') {
-                // Filter where mainOrderStatus is NOT 'delivered' and NOT 'completed'
-                return orders.filter(order => {
-                    const status = order.mainOrderStatus ? order.mainOrderStatus.toLowerCase() : '';
-                    return !deliveredStatuses.includes(status);
-                });
-            }
-            // 'all' or default
-            return orders;
-        }
-
-        function renderOrders(orders) {
-            ordersList.innerHTML = '';
-            if (orders.length === 0) {
-                ordersList.innerHTML = '<p class="text-center text-light-gray">No orders found matching the filter criteria.</p>';
-                return;
-            }
-
-            orders.forEach(order => {
-                const orderCard = document.createElement('div');
-                orderCard.className = 'card order-card';
-
-                const user = order.user || {};
-                
-                const userPhoneNumber = user.phoneNumber || 'N/A';
-
-                const createdAt = new Date(order.createdAt).toLocaleDateString('en-US', {
-                    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                });
-                const isPaid = order.isPaid ? 'Yes' : 'No';
-
-                // Determine if delivered based on the string status
-                const statusLower = order.mainOrderStatus ? order.mainOrderStatus.toLowerCase() : 'pending_payment'; // Default to a known status
-                const isDelivered = (statusLower === 'delivered' || statusLower === 'completed') ? 'Yes' : 'No'; 
-
-                let itemsHtml = '';
-
-                if (order.shipments && Array.isArray(order.shipments)) {
-
-                    order.shipments.forEach((shipment, shipmentIndex) => {
-                        const vendorName = shipment.vendor ? shipment.vendor.businessName : 'N/A';
-                        const vendorPhone = shipment.vendor ? shipment.vendor.phoneNumber || 'N/A' : 'N/A';
-                        const vendorLocation = shipment.vendor && shipment.vendor.businessLocation ? shipment.vendor.businessLocation.formattedAddress || 'N/A' : 'N/A';
-
-                        itemsHtml += `
-                            <h4 class="text-sm font-semibold mt-4 mb-2 text-accent-cyan border-b border-gray-700 pb-1">📦 Shipment ${shipmentIndex + 1} (Vendor: ${vendorName})</h4>
-                            <p class="text-xs text-light-gray mb-1 ml-2">Vendor Phone: ${vendorPhone} | Location: ${vendorLocation}</p>
-                        `;
-
-                        shipment.items.forEach(item => {
-                            itemsHtml += `
-                                <li class="text-light-gray mb-2 border-l-2 border-green-500 pl-2 ml-2">
-                                    <strong class="text-light-slate">${item.name}</strong> - Qty: ${item.quantity} - Price: ₦${item.price.toFixed(2)}
-                                    <br>
-                                    <span class="text-xs text-gray-500">
-                                        Shipment ID: ${shipment._id} | Status: ${shipment.shipmentStatus}
-                                    </span>
-                                </li>
-                            `;
-                        });
-                    });
-                } else {
-                    itemsHtml = '<p class="text-red-500">❌ No shipments linked to this order.</p>';
-                }
-
-
-                const shipping = order.shippingAddress || {};
-                const shippingHtml = `
-                    <p class="text-light-slate"><strong>Shipping Address:</strong></p>
-                    <p class="text-light-gray">${shipping.address || 'N/A'}, ${shipping.city || 'N/A'}, ${shipping.postalCode || 'N/A'}, ${shipping.country || 'N/A'}</p>
-                `;
-
-                // --- Status Button Logic (NEW) ---
-                const currentStatus = statusLower;
-                
-                // Helper function to check if the button should be disabled based on order flow
-                const isDisabled = (targetStatus) => {
-                    switch (currentStatus) {
-                        case 'completed':
-                        case 'cancelled':
-                            // Cannot change status from completed or cancelled
-                            return true;
-                        case 'delivered':
-                            // Only allow transitioning to completed
-                            return targetStatus !== 'completed' && targetStatus !== 'cancelled'; // Also allow cancel as a final admin action
-                        case 'shipped':
-                            // Only allow transitioning to delivered, completed, or cancelled
-                            return !['delivered', 'completed', 'cancelled'].includes(targetStatus);
-                        case 'partially_shipped':
-                            // Only allow transitioning to shipped, delivered, completed, or cancelled
-                            return !['shipped', 'delivered', 'completed', 'cancelled'].includes(targetStatus);
-                        case 'processing':
-                            // Only allow transitioning to partially_shipped, shipped, delivered, completed, or cancelled
-                            return !['partially_shipped', 'shipped', 'delivered', 'completed', 'cancelled'].includes(targetStatus);
-                        case 'pending_payment':
-                            // Only allow transitioning to processing or cancelled
-                            return targetStatus !== 'processing' && targetStatus !== 'cancelled';
-                        default:
-                            // For 'new' or unknown status, allow setting to pending_payment or processing
-                            return !['pending_payment', 'processing', 'cancelled'].includes(targetStatus);
-                    }
-                };
-
-                const getButtonClass = (targetStatus) => {
-                     let baseClass = 'status-btn px-3 py-1 text-sm font-medium';
-                     if (targetStatus === currentStatus) {
-                        return `${baseClass} btn-current`; // Highlight current status
-                     }
-                     if (isDisabled(targetStatus)) {
-                        return `${baseClass} btn-disabled`;
-                     }
-                     if (targetStatus === 'cancelled') return `${baseClass} btn-danger`;
-                     if (targetStatus === 'completed') return `${baseClass} btn-success`;
-                     return `${baseClass} btn-primary-alt`;
-                };
-
-                const buttonHtml = `
-                    <button class="${getButtonClass('pending_payment')}" ${isDisabled('pending_payment') ? 'disabled' : ''} data-order-id="${order._id}" data-status="pending_payment">Pending Payment</button>
-                    <button class="${getButtonClass('processing')}" ${isDisabled('processing') ? 'disabled' : ''} data-order-id="${order._id}" data-status="processing">Processing</button>
-                    <button class="${getButtonClass('partially_shipped')}" ${isDisabled('partially_shipped') ? 'disabled' : ''} data-order-id="${order._id}" data-status="partially_shipped">Partially Shipped</button>
-                    <button class="${getButtonClass('shipped')}" ${isDisabled('shipped') ? 'disabled' : ''} data-order-id="${order._id}" data-status="shipped">Shipped</button>
-                    <button class="${getButtonClass('delivered')}" ${isDisabled('delivered') ? 'disabled' : ''} data-order-id="${order._id}" data-status="delivered">Delivered</button>
-                    <button class="${getButtonClass('completed')}" ${isDisabled('completed') ? 'disabled' : ''} data-order-id="${order._id}" data-status="completed">Completed</button>
-                    <button class="${getButtonClass('cancelled')}" ${isDisabled('cancelled') ? 'disabled' : ''} data-order-id="${order._id}" data-status="cancelled">Cancel</button>
-                `;
-                // --- End Status Button Logic ---
-
-                orderCard.innerHTML = `
-                    <h3 class="text-2xl font-semibold text-accent-cyan mb-3">Order ID: ${order._id}</h3>
-                    <p class="text-light-gray mb-1"><strong>User:</strong> ${user.firstName || 'N/A'} ${user.lastName || ''} (<span class="text-accent-cyan">${user.email || 'N/A'}</span>)</p>
-                    <p class="text-light-gray mb-1"><strong>User Phone:</strong> <span class="font-medium">${userPhoneNumber}</span></p>
-                    <p class="text-light-gray mb-1"><strong>Order Date:</strong> ${createdAt}</p>
-                    <p class="text-light-gray mb-1"><strong>Paid:</strong> <span class="text-${order.isPaid ? 'green' : 'red'}-400 font-bold">${isPaid}</span></p>
-                    <p class="text-light-gray mb-4"><strong>Delivered:</strong> <span class="text-${isDelivered === 'Yes' ? 'green' : 'red'}-400 font-bold">${isDelivered}</span></p>
-
-                    <div class="mb-2"><strong>Current Status:</strong> <span class="font-bold text-lg text-green-400">${order.mainOrderStatus || 'N/A'}</span></div>
-                    <div class="mb-4">${shippingHtml}</div>
-
-                    <p class="text-light-slate text-xl font-bold">🛒 Items & Shipments:</p>
-                    <ul class="list-none mb-6">${itemsHtml}</ul>
-
-                    <div class="border-t border-gray-700 pt-4">
-                        <h4 class="text-light-slate font-semibold mb-2">Update Main Order Status:</h4>
-                        <div class="flex flex-wrap gap-2 status-buttons-container">
-                            ${buttonHtml}
-                        </div>
-                        <p class="text-xs text-light-gray mt-2">Buttons are enabled based on the current order flow status.</p>
-                    </div>
-                `;
-
-                ordersList.appendChild(orderCard);
-            });
-
-            // Attach event listeners to all status buttons (UPDATED)
-            document.querySelectorAll('.status-btn[data-order-id]').forEach(button => {
-                button.addEventListener('click', async (e) => {
-                    const btn = e.target;
-                    if(btn.disabled || btn.classList.contains('btn-current')) return; // Ignore disabled or current status buttons
-
-                    const orderId = btn.dataset.orderId;
-                    const newStatus = btn.dataset.status;
-                    
-                    // Temporarily disable all buttons in the container while updating
-                    const container = btn.closest('.status-buttons-container');
-                    const allButtons = container ? container.querySelectorAll('.status-btn') : [];
-                    allButtons.forEach(b => b.disabled = true);
-                    
-                    try {
-                        const response = await fetch(`${BASE_URL}/api/orders/${orderId}/status`, {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${adminToken}`
-                            },
-                            body: JSON.stringify({ status: newStatus })
-                        });
-                        const data = await response.json();
-                        if (response.ok) {
-                            displayMessage(data.message || `Order status updated to ${newStatus.toUpperCase()}.`, 'success');
-                            fetchOrders(); // Reload data and re-apply filters/buttons
-                        } else {
-                            displayMessage(data.message || `Failed to update order status.`, 'error');
-                            // Re-enable buttons if update failed
-                            allButtons.forEach(b => b.disabled = false); 
-                        }
-                    } catch (error) {
-                        console.error('Error updating order status:', error);
-                        displayMessage(`Network error: ${error.message}`, 'error');
-                        // Re-enable buttons if update failed
-                        allButtons.forEach(b => b.disabled = false);
-                    }
-                });
-            });
-        }
-
-
-        // --- Disputes Logic (Untouched) ---
-        async function fetchDisputes() {
-            if (!adminToken) {
-                disputesList.innerHTML = '<p class="text-center text-red-500">Please login as admin to view disputes.</p>';
-                return;
-            }
-            disputesList.innerHTML = '<p class="text-center text-light-gray">Loading disputes...</p>';
-
-            try {
-                const response = await fetch(`${BASE_URL}/api/admin/disputes`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${adminToken}`
-                    }
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    renderDisputes(data);
-                } else {
-                    disputesList.innerHTML = `<p class="text-center text-red-500">${data.message || 'Failed to fetch disputes.'}</p>`;
-                }
-            } catch (error) {
-                console.error('Error fetching disputes:', error);
-                disputesList.innerHTML = `<p class="text-center text-red-500">Network or server error: ${error.message}</p>`;
-            }
-        }
-
-        function renderDisputes(disputes) {
-            disputesList.innerHTML = '';
-            if (disputes.length === 0) {
-                disputesList.innerHTML = '<p class="text-center text-light-gray">No disputes found.</p>';
-                return;
-            }
-
-            disputes.forEach(dispute => {
-                const disputeCard = document.createElement('div');
-                disputeCard.className = 'card dispute-card';
-
-                const attachmentsHtml = dispute.attachments.length > 0
-                    ? dispute.attachments.map(url => `<img src="${url}" alt="Attachment" class="inline-block">`).join('')
-                    : '<p class="text-gray-500">No attachments.</p>';
-
-                const messagesHtml = dispute.messages.map(msg => {
-                    const senderName = msg.senderType === 'Admin' ? 'Admin' : `${dispute.user ? dispute.user.firstName || 'User' : 'User'} ${dispute.user ? dispute.user.lastName || '' : ''}`;
-                    const alignment = msg.senderType === 'Admin' ? 'ml-auto' : 'mr-auto';
-                    const colorClass = msg.senderType === 'Admin' ? 'bg-blue-600' : 'bg-gray-600';
-                    return `
-                        <div class="chat-message ${alignment} ${colorClass}">
-                            <strong class="text-white">${senderName}:</strong> ${msg.text}
-                        </div>
-                    `;
-                }).join('');
-
-                const resolvedDisabled = dispute.status.toLowerCase() === 'resolved';
-
-                disputeCard.innerHTML = `
-                    <h3 class="text-2xl font-semibold text-accent-cyan mb-3">Dispute ID: ${dispute._id}</h3>
-                    <p class="text-light-gray mb-1"><strong>User:</strong> ${dispute.user ? `${dispute.user.firstName || 'N/A'} ${dispute.user.lastName || ''}` : 'N/A'} (<span class="text-accent-cyan">${dispute.user ? dispute.user.email || 'N/A' : 'N/A'}</span>)</p>
-                    <p class="text-light-gray mb-1"><strong>Order ID:</strong> ${dispute.order ? dispute.order._id : 'N/A'}</p>
-                    <p class="text-light-gray mb-1"><strong>Status:</strong> <span class="font-bold text-lg text-red-400">${dispute.status}</span></p>
-                    <p class="text-light-gray mb-4"><strong>Reason:</strong> ${dispute.reason}</p>
-
-                    <h4 class="font-semibold mt-4 mb-2 text-light-slate">Attachments:</h4>
-                    <div class="dispute-attachments flex flex-wrap">
-                        ${attachmentsHtml}
-                    </div>
-
-                    <h4 class="font-semibold mt-6 mb-3 text-light-slate">Chat History:</h4>
-                    <div class="chat-container flex flex-col">
-                        ${messagesHtml}
-                    </div>
-
-                    <form class="send-message-form" data-dispute-id="${dispute._id}">
-                        <textarea class="input-field w-full mb-3" rows="3" placeholder="Write a reply..."></textarea>
-                        <button type="submit" class="btn btn-primary py-2 px-6 font-medium">Send Reply</button>
-                    </form>
-
-                    <div class="mt-6">
-                        <button class="status-btn btn-resolved ${resolvedDisabled ? 'btn-disabled' : ''}" ${resolvedDisabled ? 'disabled' : ''} data-dispute-id="${dispute._id}" data-status="resolved">Mark as Resolved</button>
-                    </div>
-                `;
-                disputesList.appendChild(disputeCard);
-            });
-
-            // Attach event listeners for dynamic elements
-            document.querySelectorAll('.send-message-form').forEach(form => {
-                form.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const disputeId = form.dataset.disputeId;
-                    const textarea = form.querySelector('textarea');
-                    const messageText = textarea.value.trim();
-                    if (messageText) {
-                        await sendDisputeMessage(disputeId, messageText);
-                        textarea.value = ''; // Clear the textarea after sending
-                    }
-                });
-            });
-
-            document.querySelectorAll('.status-btn.btn-resolved').forEach(button => {
-                button.addEventListener('click', async (e) => {
-                    const disputeId = e.target.dataset.disputeId;
-                    await updateDisputeStatus(disputeId, 'resolved');
-                });
-            });
-        }
-
-        async function sendDisputeMessage(disputeId, messageText) {
-            const response = await fetch(`${BASE_URL}/api/admin/disputes/${disputeId}/message`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${adminToken}`
-                },
-                body: JSON.stringify({ text: messageText })
-            });
-
-            if (response.ok) {
-                displayMessage('Message sent successfully!', 'success');
-                fetchDisputes(); // Re-fetch to update chat history
+            const data = await res.json();
+            if (res.ok) {
+                renderPendingRequests(data);
             } else {
-                const data = await response.json();
-                displayMessage(data.message || 'Failed to send message.', 'error');
+                displayMessage(data.message || 'Failed to fetch requests', 'error');
+                pendingRequestsList.innerHTML = '<p class="text-center text-red-500">Error loading requests</p>';
             }
+        } catch (err) {
+            displayMessage(`Network error: ${err.message}`, 'error');
+            pendingRequestsList.innerHTML = '<p class="text-center text-red-500">Connection failed</p>';
         }
+    }
 
-        async function updateDisputeStatus(disputeId, newStatus) {
-            const response = await fetch(`${BASE_URL}/api/admin/disputes/${disputeId}/status`, {
+    function renderPendingRequests(requests) {
+        pendingRequestsList.innerHTML = '';
+        if (!requests?.length) {
+            pendingRequestsList.innerHTML = '<p class="text-center text-light-gray">No pending vendor requests.</p>';
+            return;
+        }
+        requests.forEach(r => {
+            const card = document.createElement('div');
+            card.className = 'card p-6 request-card';
+            card.innerHTML = `
+                <h3 class="text-xl font-semibold text-accent-cyan mb-2">${r.firstName} ${r.lastName}</h3>
+                <p class="text-light-gray text-sm mb-1"><strong>Email:</strong> ${r.email}</p>
+                <p class="text-light-gray text-sm mb-1"><strong>Phone:</strong> ${r.phoneNumber}</p>
+                <p class="text-light-gray text-sm mb-1"><strong>Business:</strong> ${r.businessName || 'N/A'}</p>
+                <p class="text-light-gray text-sm mb-4"><strong>Categories:</strong> ${r.businessCategories?.join(', ') || 'N/A'}</p>
+                <p class="text-light-gray text-sm mb-4"><strong>Status:</strong> <span class="text-orange-400 font-bold">${r.vendorStatus?.toUpperCase() || 'NONE'}</span></p>
+                <div class="flex justify-end gap-4 mt-4">
+                    <button class="btn btn-success px-6 py-2 approve-btn" data-user-id="${r._id}">Approve</button>
+                    <button class="btn btn-danger px-6 py-2 reject-btn" data-user-id="${r._id}">Reject</button>
+                </div>
+            `;
+            pendingRequestsList.appendChild(card);
+        });
+        document.querySelectorAll('.approve-btn').forEach(b => b.onclick = () => updateVendorStatus(b.dataset.userId, 'approved'));
+        document.querySelectorAll('.reject-btn').forEach(b => b.onclick = () => updateVendorStatus(b.dataset.userId, 'rejected'));
+    }
+
+    async function updateVendorStatus(userId, status) {
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/vendor-status/${userId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${adminToken}`
                 },
-                body: JSON.stringify({ status: newStatus })
+                body: JSON.stringify({ status })
             });
-
-            if (response.ok) {
-                displayMessage(`Dispute marked as ${newStatus}!`, 'success');
-                fetchDisputes(); // Re-fetch to update status
+            const data = await res.json();
+            if (res.ok) {
+                displayMessage(`Request ${status}!`, 'success');
+                fetchPendingVendorRequests();
             } else {
-                const data = await response.json();
-                displayMessage(data.message || 'Failed to update dispute status.', 'error');
+                displayMessage(data.message || 'Failed to update status', 'error');
             }
+        } catch (err) {
+            displayMessage(`Error: ${err.message}`, 'error');
         }
+    }
 
-        // --- Rider Management Logic ---
-        const riderApplicantsList = document.getElementById('riderApplicantsList');
-        const fetchRidersBtn = document.getElementById('fetchRidersBtn');
-        const riderCountBadge = document.getElementById('riderCountBadge');
-
-        async function fetchRiderApplicants() {
-            if (!adminToken) {
-                displayMessage('Please login as admin first.', 'error');
-                return;
-            }
-            riderApplicantsList.innerHTML = '<p class="text-center text-light-gray col-span-full">Loading rider applications...</p>';
-
-            try {
-                const response = await fetch(`${BASE_URL}/api/admin/riders/pending`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${adminToken}`
-                    }
-                });
-                const data = await response.json();
-
-                if (response.ok) {
-                    // Update the total count badge
-                    riderCountBadge.innerText = `Total: ${data.length}`;
-                    renderRiders(data);
-                } else {
-                    riderApplicantsList.innerHTML = `<p class="text-center text-red-500 col-span-full">${data.message || 'Failed to fetch riders.'}</p>`;
-                }
-            } catch (error) {
-                console.error('Error fetching riders:', error);
-                riderApplicantsList.innerHTML = `<p class="text-center text-red-500 col-span-full">Network error: ${error.message}</p>`;
-            }
+    // ──────────────────────────────────────────────
+    // Riders – collapsible
+    // ──────────────────────────────────────────────
+    async function fetchRiderApplicants() {
+        if (!adminToken) {
+            riderApplicantsList.innerHTML = '<p class="text-center text-red-500 col-span-full">Please login first.</p>';
+            return;
         }
-
-        function renderRiders(riders) {
-            riderApplicantsList.innerHTML = '';
-            if (riders.length === 0) {
-                riderApplicantsList.innerHTML = '<p class="text-center text-light-gray col-span-full">No pending rider applications.</p>';
-                return;
+        riderApplicantsList.innerHTML = '<p class="text-center text-light-gray col-span-full">Loading rider applications...</p>';
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/riders/pending`, {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                riderCountBadge.textContent = `Total: ${data.length}`;
+                renderRiders(data);
+            } else {
+                riderApplicantsList.innerHTML = `<p class="text-center text-red-500 col-span-full">${data.message || 'Failed to load riders'}</p>`;
             }
+        } catch (err) {
+            riderApplicantsList.innerHTML = `<p class="text-center text-red-500 col-span-full">Network error</p>`;
+        }
+    }
 
-            riders.forEach(rider => {
-                const riderCard = document.createElement('div');
-                riderCard.className = 'card p-6 border-l-4 border-accent-cyan flex flex-col justify-between';
-                
-                // Documents from your Rider model
-                const docLink = (label, url) => url ? 
-                    `<a href="${url}" target="_blank" class="block text-accent-cyan hover:text-white text-xs mb-1 underline">View ${label}</a>` : 
-                    `<span class="block text-gray-600 text-xs mb-1">No ${label}</span>`;
-
-                riderCard.innerHTML = `
-                    <div>
-                        <h3 class="text-xl font-bold text-light-slate mb-1">${rider.fullName}</h3>
-                        <p class="text-xs text-gray-400 mb-3 italic">ID: ${rider._id}</p>
-                        <div class="text-sm text-light-gray mb-4 space-y-1">
-                            <p><strong class="text-accent-cyan">Email:</strong> ${rider.email}</p>
-                            <p><strong class="text-accent-cyan">Plate Number:</strong> ${rider.plateNumber}</p>
-                        </div>
-                        
-                        <div class="bg-black bg-opacity-30 p-3 rounded-lg mb-6 border border-gray-800">
-                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Verification Docs</p>
-                            ${docLink('NIN Front', rider.documents?.ninFront)}
-                            ${docLink('NIN Back', rider.documents?.ninBack)}
-                            ${docLink('Plate Photo', rider.documents?.platePhoto)}
-                            ${docLink('Selfie', rider.documents?.selfie)}
-                        </div>
+    function renderRiders(riders) {
+        riderApplicantsList.innerHTML = '';
+        if (!riders.length) {
+            riderApplicantsList.innerHTML = '<p class="text-center text-light-gray col-span-full">No pending rider applications.</p>';
+            return;
+        }
+        riders.forEach(r => {
+            const card = document.createElement('div');
+            card.className = 'card p-6 border-l-4 border-accent-cyan flex flex-col justify-between';
+            card.innerHTML = `
+                <div>
+                    <h3 class="text-xl font-bold text-light-slate mb-1">${r.fullName}</h3>
+                    <p class="text-xs text-gray-400 mb-3 italic">ID: ${r._id}</p>
+                    <div class="text-sm text-light-gray mb-4 space-y-1">
+                        <p><strong class="text-accent-cyan">Email:</strong> ${r.email}</p>
+                        <p><strong class="text-accent-cyan">Plate Number:</strong> ${r.plateNumber}</p>
                     </div>
-                    <div class="flex gap-3 mt-auto">
-                        <button class="btn btn-success flex-1 py-2 text-sm font-bold approve-rider-btn" data-id="${rider._id}">APPROVE</button>
-                        <button class="btn btn-danger flex-1 py-2 text-sm font-bold reject-rider-btn" data-id="${rider._id}">REJECT</button>
+                    <div class="bg-black bg-opacity-30 p-3 rounded-lg mb-6 border border-gray-800">
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Verification Docs</p>
+                        ${r.documents?.ninFront ? `<a href="${r.documents.ninFront}" target="_blank" class="block text-accent-cyan hover:text-white text-xs mb-1 underline">View NIN Front</a>` : '<span class="block text-gray-600 text-xs mb-1">No NIN Front</span>'}
+                        ${r.documents?.ninBack ? `<a href="${r.documents.ninBack}" target="_blank" class="block text-accent-cyan hover:text-white text-xs mb-1 underline">View NIN Back</a>` : '<span class="block text-gray-600 text-xs mb-1">No NIN Back</span>'}
+                        ${r.documents?.platePhoto ? `<a href="${r.documents.platePhoto}" target="_blank" class="block text-accent-cyan hover:text-white text-xs mb-1 underline">View Plate Photo</a>` : '<span class="block text-gray-600 text-xs mb-1">No Plate Photo</span>'}
+                        ${r.documents?.selfie ? `<a href="${r.documents.selfie}" target="_blank" class="block text-accent-cyan hover:text-white text-xs mb-1 underline">View Selfie</a>` : '<span class="block text-gray-600 text-xs mb-1">No Selfie</span>'}
                     </div>
-                `;
-                riderApplicantsList.appendChild(riderCard);
-            });
-
-            // Attach Event Listeners to the buttons inside the cards
-            document.querySelectorAll('.approve-rider-btn').forEach(btn => {
-                btn.addEventListener('click', () => updateRiderStatus(btn.dataset.id, 'approved'));
-            });
-            document.querySelectorAll('.reject-rider-btn').forEach(btn => {
-                btn.addEventListener('click', () => updateRiderStatus(btn.dataset.id, 'rejected'));
-            });
-        }
-
-        async function updateRiderStatus(riderId, status) {
-            const confirmAction = confirm(`Are you sure you want to ${status} this rider?`);
-            if (!confirmAction) return;
-
-            try {
-                const response = await fetch(`${BASE_URL}/api/admin/riders/${riderId}/status`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${adminToken}`
-                    },
-                    body: JSON.stringify({ status })
-                });
-                const data = await response.json();
-
-                if (response.ok) {
-                    displayMessage(data.message, 'success');
-                    fetchRiderApplicants(); // Refresh the list and count
-                } else {
-                    displayMessage(data.message || 'Failed to update status', 'error');
-                }
-            } catch (error) {
-                displayMessage(`Error: ${error.message}`, 'error');
-            }
-        }
-
-        // Add the button listener
-        fetchRidersBtn.addEventListener('click', fetchRiderApplicants);
-
-
-        // --- Login Logic (Untouched) ---
-        loginAdminBtn.addEventListener('click', async () => {
-            const email = adminEmailInput.value.trim();
-            const password = adminPasswordInput.value.trim();
-            if (!email || !password) {
-                displayMessage('Please enter both email and password.', 'error');
-                return;
-            }
-
-            try {
-                const response = await fetch(`${BASE_URL}/api/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password, deviceFingerprint: 'web-admin-panel' })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    adminToken = data.token;
-                    localStorage.setItem('admin_jwt_token', data.token);
-                    displayMessage(data.message || 'Admin login successful!', 'success');
-                    adminEmailInput.value = '';
-                    adminPasswordInput.value = '';
-                    fetchPendingVendorRequests();
-                    fetchRiderApplicants();
-                    ordersList.innerHTML = '<p class="text-center text-light-gray">Click "See Orders" to load orders.</p>';
-                    disputesList.innerHTML = '<p class="text-center text-light-gray">Click "See Disputes" to load disputes.</p>';
-                } else {
-                    displayMessage(data.message || 'Admin login failed. Check credentials and ensure user is an admin.', 'error');
-                }
-            } catch (error) {
-                console.error('Admin login network error:', error);
-                displayMessage(`An error occurred during login: ${error.message}. Check backend server and network connection.`, 'error');
-            }
+                </div>
+                <div class="flex gap-3 mt-auto">
+                    <button class="btn btn-success flex-1 py-2 text-sm font-bold approve-rider-btn" data-id="${r._id}">APPROVE</button>
+                    <button class="btn btn-danger flex-1 py-2 text-sm font-bold reject-rider-btn" data-id="${r._id}">REJECT</button>
+                </div>
+            `;
+            riderApplicantsList.appendChild(card);
         });
 
-        // Load token from local storage on page load
-        const storedToken = localStorage.getItem('admin_jwt_token');
-        if (storedToken) {
-            adminToken = storedToken;
-            displayMessage('Admin token loaded from local storage. Attempting to fetch data...', 'success');
-            fetchPendingVendorRequests();
-            ordersList.innerHTML = '<p class="text-center text-light-gray">Click "See Orders" to load orders.</p>';
+        document.querySelectorAll('.approve-rider-btn').forEach(b => b.onclick = () => updateRiderStatus(b.dataset.id, 'approved'));
+        document.querySelectorAll('.reject-rider-btn').forEach(b => b.onclick = () => updateRiderStatus(b.dataset.id, 'rejected'));
+    }
+
+    async function updateRiderStatus(riderId, status) {
+        if (!confirm(`Are you sure you want to ${status} this rider?`)) return;
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/riders/${riderId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify({ status })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                displayMessage(data.message || `Rider ${status}!`, 'success');
+                fetchRiderApplicants();
+            } else {
+                displayMessage(data.message || 'Failed to update status', 'error');
+            }
+        } catch (err) {
+            displayMessage(`Error: ${err.message}`, 'error');
         }
+    }
 
-        // Attach listeners to buttons that require login
-        fetchOrdersBtn.addEventListener('click', fetchOrders);
-        fetchDisputesBtn.addEventListener('click', fetchDisputes);
-
-        // Filter dropdown event listener
-        if (orderFilterDropdown) orderFilterDropdown.addEventListener('change', (e) => {
-            currentFilter = e.target.value;
-            // Only attempt to render if orders have been fetched
-            if (allOrders.length > 0) {
+    // ──────────────────────────────────────────────
+    // Orders – collapsible + filter
+    // ──────────────────────────────────────────────
+    async function fetchOrders() {
+        if (!adminToken) {
+            ordersList.innerHTML = '<p class="text-center text-red-500">Please login as admin to view orders.</p>';
+            return;
+        }
+        ordersList.innerHTML = '<p class="text-center text-light-gray">Loading orders...</p>';
+        try {
+            const res = await fetch(`${BASE_URL}/api/orders`, {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                allOrders = data;
                 renderOrders(applyFilter(allOrders));
             } else {
-                ordersList.innerHTML = '<p class="text-center text-light-gray">Click "See Orders" to load orders before filtering.</p>';
+                ordersList.innerHTML = `<p class="text-center text-red-500">${data.message || 'Failed to fetch orders'}</p>`;
             }
+        } catch (err) {
+            ordersList.innerHTML = `<p class="text-center text-red-500">Network error: ${err.message}</p>`;
+        }
+    }
+
+    function applyFilter(orders) {
+        const delivered = ['delivered', 'completed'];
+        if (currentFilter === 'delivered') return orders.filter(o => delivered.includes((o.mainOrderStatus || '').toLowerCase()));
+        if (currentFilter === 'not_delivered') return orders.filter(o => !delivered.includes((o.mainOrderStatus || '').toLowerCase()));
+        return orders;
+    }
+
+    function renderOrders(orders) {
+        ordersList.innerHTML = '';
+        if (!orders.length) {
+            ordersList.innerHTML = '<p class="text-center text-light-gray">No orders found matching the filter criteria.</p>';
+            return;
+        }
+
+        orders.forEach(order => {
+            const card = document.createElement('div');
+            card.className = 'card order-card';
+
+            const user = order.user || {};
+            const shipping = order.shippingAddress || {};
+
+            const statusLower = (order.mainOrderStatus || 'pending_payment').toLowerCase();
+            const isDelivered = ['delivered','completed'].includes(statusLower) ? 'Yes' : 'No';
+
+            let itemsHtml = '';
+            if (order.shipments?.length) {
+                order.shipments.forEach((s, i) => {
+                    const v = s.vendor || {};
+                    itemsHtml += `
+                        <h4 class="text-sm font-semibold mt-4 mb-2 text-accent-cyan border-b border-gray-700 pb-1">
+                            📦 Shipment ${i+1} (Vendor: ${v.businessName || 'N/A'})
+                        </h4>
+                        <p class="text-xs text-light-gray mb-1 ml-2">
+                            Vendor Phone: ${v.phoneNumber || 'N/A'} | Location: ${v.businessLocation?.formattedAddress || 'N/A'}
+                        </p>`;
+                    s.items?.forEach(item => {
+                        itemsHtml += `
+                            <li class="text-light-gray mb-2 border-l-2 border-green-500 pl-2 ml-2">
+                                <strong class="text-light-slate">${item.name}</strong> - Qty: ${item.quantity} - ₦${item.price?.toFixed(2) || '0.00'}
+                                <br><span class="text-xs text-gray-500">Shipment ID: ${s._id} | Status: ${s.shipmentStatus}</span>
+                            </li>`;
+                    });
+                });
+            } else {
+                itemsHtml = '<p class="text-red-500">No shipments linked to this order.</p>';
+            }
+
+            const currentStatus = statusLower;
+
+            const isDisabled = (target) => {
+                switch (currentStatus) {
+                    case 'completed': case 'cancelled': return true;
+                    case 'delivered': return !['completed','cancelled'].includes(target);
+                    case 'shipped': return !['delivered','completed','cancelled'].includes(target);
+                    case 'partially_shipped': return !['shipped','delivered','completed','cancelled'].includes(target);
+                    case 'processing': return !['partially_shipped','shipped','delivered','completed','cancelled'].includes(target);
+                    case 'pending_payment': return !['processing','cancelled'].includes(target);
+                    default: return !['pending_payment','processing','cancelled'].includes(target);
+                }
+            };
+
+            const getBtnClass = (target) => {
+                let cls = 'status-btn px-3 py-1 text-sm font-medium';
+                if (target === currentStatus) return `${cls} btn-current`;
+                if (isDisabled(target)) return `${cls} btn-disabled`;
+                if (target === 'cancelled') return `${cls} btn-danger`;
+                if (target === 'completed') return `${cls} btn-success`;
+                return `${cls} btn-primary-alt`;
+            };
+
+            const btns = `
+                <button class="${getBtnClass('pending_payment')}" ${isDisabled('pending_payment')?'disabled':''} data-order-id="${order._id}" data-status="pending_payment">Pending Payment</button>
+                <button class="${getBtnClass('processing')}" ${isDisabled('processing')?'disabled':''} data-order-id="${order._id}" data-status="processing">Processing</button>
+                <button class="${getBtnClass('partially_shipped')}" ${isDisabled('partially_shipped')?'disabled':''} data-order-id="${order._id}" data-status="partially_shipped">Partially Shipped</button>
+                <button class="${getBtnClass('shipped')}" ${isDisabled('shipped')?'disabled':''} data-order-id="${order._id}" data-status="shipped">Shipped</button>
+                <button class="${getBtnClass('delivered')}" ${isDisabled('delivered')?'disabled':''} data-order-id="${order._id}" data-status="delivered">Delivered</button>
+                <button class="${getBtnClass('completed')}" ${isDisabled('completed')?'disabled':''} data-order-id="${order._id}" data-status="completed">Completed</button>
+                <button class="${getBtnClass('cancelled')}" ${isDisabled('cancelled')?'disabled':''} data-order-id="${order._id}" data-status="cancelled">Cancel</button>
+            `;
+
+            card.innerHTML = `
+                <h3 class="text-2xl font-semibold text-accent-cyan mb-3">Order ID: ${order._id}</h3>
+                <p class="text-light-gray mb-1"><strong>User:</strong> ${user.firstName||'N/A'} ${user.lastName||''} (<span class="text-accent-cyan">${user.email||'N/A'}</span>)</p>
+                <p class="text-light-gray mb-1"><strong>Phone:</strong> ${user.phoneNumber||'N/A'}</p>
+                <p class="text-light-gray mb-1"><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'})}</p>
+                <p class="text-light-gray mb-1"><strong>Paid:</strong> <span class="font-bold ${order.isPaid?'text-green-400':'text-red-400'}">${order.isPaid?'Yes':'No'}</span></p>
+                <p class="text-light-gray mb-4"><strong>Delivered:</strong> <span class="font-bold ${isDelivered==='Yes'?'text-green-400':'text-red-400'}">${isDelivered}</span></p>
+                <div class="mb-2"><strong>Status:</strong> <span class="font-bold text-lg text-green-400">${order.mainOrderStatus || 'N/A'}</span></div>
+                <div class="mb-4">
+                    <strong>Shipping Address:</strong><br>
+                    <span class="text-light-gray">${shipping.address||'N/A'}, ${shipping.city||'N/A'}, ${shipping.postalCode||'N/A'}, ${shipping.country||'N/A'}</span>
+                </div>
+                <p class="text-light-slate text-xl font-bold mb-2">🛒 Items & Shipments:</p>
+                <ul class="list-none mb-6">${itemsHtml}</ul>
+                <div class="border-t border-gray-700 pt-4">
+                    <h4 class="text-light-slate font-semibold mb-2">Update Status:</h4>
+                    <div class="flex flex-wrap gap-2">${btns}</div>
+                    <p class="text-xs text-light-gray mt-2">Enabled buttons follow valid order flow.</p>
+                </div>
+            `;
+            ordersList.appendChild(card);
         });
+
+        // Re-attach status button listeners
+        document.querySelectorAll('.status-btn:not(.btn-current):not(.btn-disabled)').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const orderId = btn.dataset.orderId;
+                const newStatus = btn.dataset.status;
+                const container = btn.closest('.flex.flex-wrap.gap-2');
+                const siblings = container?.querySelectorAll('.status-btn') || [];
+
+                siblings.forEach(b => b.disabled = true);
+
+                try {
+                    const res = await fetch(`${BASE_URL}/api/orders/${orderId}/status`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${adminToken}`
+                        },
+                        body: JSON.stringify({ status: newStatus })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        displayMessage(`Status updated to ${newStatus.toUpperCase()}`, 'success');
+                        fetchOrders();
+                    } else {
+                        displayMessage(data.message || 'Update failed', 'error');
+                        siblings.forEach(b => b.disabled = false);
+                    }
+                } catch (err) {
+                    displayMessage(`Network error`, 'error');
+                    siblings.forEach(b => b.disabled = false);
+                }
+            });
+        });
+    }
+
+    // ──────────────────────────────────────────────
+    // Disputes – collapsible
+    // ──────────────────────────────────────────────
+    async function fetchDisputes() {
+        if (!adminToken) {
+            disputesList.innerHTML = '<p class="text-center text-red-500">Please login to view disputes.</p>';
+            return;
+        }
+        disputesList.innerHTML = '<p class="text-center text-light-gray">Loading disputes...</p>';
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/disputes`, {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                renderDisputes(data);
+            } else {
+                disputesList.innerHTML = `<p class="text-center text-red-500">${data.message || 'Failed to load disputes'}</p>`;
+            }
+        } catch (err) {
+            disputesList.innerHTML = `<p class="text-center text-red-500">Network error</p>`;
+        }
+    }
+
+    function renderDisputes(disputes) {
+        disputesList.innerHTML = '';
+        if (!disputes.length) {
+            disputesList.innerHTML = '<p class="text-center text-light-gray">No disputes found.</p>';
+            return;
+        }
+
+        disputes.forEach(d => {
+            const card = document.createElement('div');
+            card.className = 'card dispute-card';
+
+            const attHtml = d.attachments?.length
+                ? d.attachments.map(u => `<img src="${u}" alt="Attachment" class="inline-block">`).join('')
+                : '<p class="text-gray-500">No attachments</p>';
+
+            const msgHtml = (d.messages || []).map(m => {
+                const name = m.senderType === 'Admin' ? 'Admin' : `${d.user?.firstName || 'User'} ${d.user?.lastName || ''}`;
+                const align = m.senderType === 'Admin' ? 'ml-auto' : 'mr-auto';
+                const bg = m.senderType === 'Admin' ? 'bg-blue-600' : 'bg-gray-600';
+                return `<div class="chat-message ${align} ${bg}"><strong>${name}:</strong> ${m.text}</div>`;
+            }).join('');
+
+            const isResolved = d.status?.toLowerCase() === 'resolved';
+
+            card.innerHTML = `
+                <h3 class="text-2xl font-semibold text-accent-cyan mb-3">Dispute ID: ${d._id}</h3>
+                <p class="mb-1"><strong>User:</strong> ${d.user?.firstName || 'N/A'} ${d.user?.lastName || ''} (<span class="text-accent-cyan">${d.user?.email || 'N/A'}</span>)</p>
+                <p class="mb-1"><strong>Order ID:</strong> ${d.order?._id || 'N/A'}</p>
+                <p class="mb-1"><strong>Status:</strong> <span class="font-bold text-lg text-red-400">${d.status}</span></p>
+                <p class="mb-4"><strong>Reason:</strong> ${d.reason || 'N/A'}</p>
+                <h4 class="font-semibold mt-4 mb-2">Attachments:</h4>
+                <div class="dispute-attachments flex flex-wrap">${attHtml}</div>
+                <h4 class="font-semibold mt-6 mb-3">Chat History:</h4>
+                <div class="chat-container flex flex-col">${msgHtml}</div>
+                <form class="send-message-form mt-4" data-dispute-id="${d._id}">
+                    <textarea class="input-field w-full mb-3" rows="3" placeholder="Reply..."></textarea>
+                    <button type="submit" class="btn btn-primary py-2 px-6">Send Reply</button>
+                </form>
+                <div class="mt-6">
+                    <button class="btn btn-success ${isResolved ? 'opacity-50 cursor-not-allowed' : ''}" ${isResolved ? 'disabled' : ''} data-dispute-id="${d._id}" data-status="resolved">
+                        Mark as Resolved
+                    </button>
+                </div>
+            `;
+            disputesList.appendChild(card);
+        });
+
+        document.querySelectorAll('.send-message-form').forEach(form => {
+            form.addEventListener('submit', async e => {
+                e.preventDefault();
+                const id = form.dataset.disputeId;
+                const ta = form.querySelector('textarea');
+                const text = ta.value.trim();
+                if (!text) return;
+                await sendDisputeMessage(id, text);
+                ta.value = '';
+            });
+        });
+
+        document.querySelectorAll('[data-dispute-id][data-status="resolved"]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                await updateDisputeStatus(btn.dataset.disputeId, 'resolved');
+            });
+        });
+    }
+
+    async function sendDisputeMessage(id, text) {
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/disputes/${id}/message`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify({ text })
+            });
+            if (res.ok) {
+                displayMessage('Reply sent', 'success');
+                fetchDisputes();
+            } else {
+                const data = await res.json();
+                displayMessage(data.message || 'Failed to send reply', 'error');
+            }
+        } catch (err) {
+            displayMessage('Network error', 'error');
+        }
+    }
+
+    async function updateDisputeStatus(id, status) {
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/disputes/${id}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify({ status })
+            });
+            if (res.ok) {
+                displayMessage(`Dispute ${status}!`, 'success');
+                fetchDisputes();
+            } else {
+                const data = await res.json();
+                displayMessage(data.message || 'Failed', 'error');
+            }
+        } catch (err) {
+            displayMessage('Network error', 'error');
+        }
+    }
+
+    // ──────────────────────────────────────────────
+    // Login & auto-load token
+    // ──────────────────────────────────────────────
+    loginAdminBtn.addEventListener('click', async () => {
+        const email = adminEmailInput.value.trim();
+        const pw = adminPasswordInput.value.trim();
+        if (!email || !pw) return displayMessage('Email and password required', 'error');
+
+        try {
+            const res = await fetch(`${BASE_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password: pw, deviceFingerprint: 'web-admin' })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                adminToken = data.token;
+                localStorage.setItem('admin_jwt_token', data.token);
+                displayMessage('Logged in successfully', 'success');
+                adminEmailInput.value = adminPasswordInput.value = '';
+                fetchPendingVendorRequests();
+            } else {
+                displayMessage(data.message || 'Login failed', 'error');
+            }
+        } catch (err) {
+            displayMessage(`Network error: ${err.message}`, 'error');
+        }
     });
+
+    const storedToken = localStorage.getItem('admin_jwt_token');
+    if (storedToken) {
+        adminToken = storedToken;
+        displayMessage('Session restored', 'success');
+        fetchPendingVendorRequests();
+    }
+
+    // ──────────────────────────────────────────────
+    // Accordion toggles + lazy load
+    // ──────────────────────────────────────────────
+    document.getElementById('toggleRiders').addEventListener('click', () => {
+        const section = document.getElementById('ridersSection');
+        section.classList.toggle('hidden');
+        document.getElementById('toggleRiders').classList.toggle('active');
+        if (!section.classList.contains('hidden') && riderApplicantsList.children.length < 2) {
+            fetchRiderApplicants();
+        }
+    });
+
+    document.getElementById('toggleOrders').addEventListener('click', () => {
+        const section = document.getElementById('ordersSection');
+        section.classList.toggle('hidden');
+        document.getElementById('toggleOrders').classList.toggle('active');
+        if (!section.classList.contains('hidden') && allOrders.length === 0) {
+            fetchOrders();
+        }
+    });
+
+    document.getElementById('toggleDisputes').addEventListener('click', () => {
+        const section = document.getElementById('disputesSection');
+        section.classList.toggle('hidden');
+        document.getElementById('toggleDisputes').classList.toggle('active');
+        if (!section.classList.contains('hidden') && disputesList.children.length < 2) {
+            fetchDisputes();
+        }
+    });
+
+    // Filter change
+    orderFilterDropdown?.addEventListener('change', e => {
+        currentFilter = e.target.value;
+        if (allOrders.length > 0) {
+            renderOrders(applyFilter(allOrders));
+        }
+    });
+
+});
 </script>
 </body>
 </html>
