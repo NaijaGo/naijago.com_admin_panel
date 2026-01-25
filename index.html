@@ -549,6 +549,8 @@
             const orderCard = document.createElement('div');
             orderCard.className = 'card order-card';
 
+            const user = order.user || {};
+            
             const userPhoneNumber = order.user.phoneNumber || 'N/A';
 
             const createdAt = new Date(order.createdAt).toLocaleDateString('en-US', {
