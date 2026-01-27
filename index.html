@@ -313,59 +313,77 @@
         <p class="text-center text-light-gray">Login to load requests...</p>
     </div>
 
-    <!-- ────────────────────────────────────────────── -->
-    <!-- Collapsible Riders Section                     -->
-    <!-- ────────────────────────────────────────────── -->
-    <div class="mb-10">
-        <h2 class="text-4xl font-bold text-accent-cyan mb-4 accordion-header flex items-center justify-between p-4 bg-[#1C2B47]/70 rounded-xl hover:bg-[#1C2B47] transition"
-            id="toggleRiders">
-            Rider Applicants
-            <span id="riderCountBadge" class="text-sm bg-gray-700 text-white px-3 py-1 rounded-full border border-accent-cyan ml-4">Total: 0</span>
-        </h2>
-        <div id="ridersSection" class="hidden mt-6">
-            <div id="riderApplicantsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <p class="text-center text-light-gray col-span-full">Click the header to load rider applications...</p>
-            </div>
-        </div>
-    </div>
+<!-- ────────────────────────────────────────────── -->
+<!-- Green Action Buttons Section                   -->
+<!-- ────────────────────────────────────────────── -->
+<div class="mb-10 flex flex-col md:flex-row gap-4">
+    <button id="toggleRidersBtn" class="btn btn-success flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+        See Riders
+        <span id="riderCountBadge" class="text-sm bg-white text-green-800 px-3 py-1 rounded-full">0</span>
+    </button>
+    
+    <button id="toggleOrdersBtn" class="btn btn-success flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+        </svg>
+        See Orders
+    </button>
+    
+    <button id="toggleDisputesBtn" class="btn btn-success flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+        </svg>
+        Settle Disputes
+    </button>
+</div>
 
-    <!-- ────────────────────────────────────────────── -->
-    <!-- Collapsible Orders Section                     -->
-    <!-- ────────────────────────────────────────────── -->
-    <div class="mb-10">
-        <h2 class="text-4xl font-bold text-accent-cyan mb-4 accordion-header flex items-center justify-between p-4 bg-[#1C2B47]/70 rounded-xl hover:bg-[#1C2B47] transition"
-            id="toggleOrders">
-            Orders
-        </h2>
-        <div id="ordersSection" class="hidden mt-6">
-            <div class="filter-controls mb-6 flex items-center space-x-3">
-                <label for="orderFilterDropdown" class="text-light-gray font-medium">Filter by Status:</label>
-                <select id="orderFilterDropdown">
-                    <option value="all">All Orders</option>
-                    <option value="delivered">Delivered Orders</option>
-                    <option value="not_delivered">Pending Delivery</option>
-                </select>
-            </div>
-            <div id="ordersList" class="space-y-8">
-                <p class="text-center text-light-gray">Click the header to load orders...</p>
-            </div>
-        </div>
+<!-- ────────────────────────────────────────────── -->
+<!-- Riders Section (hidden by default)             -->
+<!-- ────────────────────────────────────────────── -->
+<div id="ridersSection" class="hidden mt-6">
+    <div class="mb-6 flex justify-between items-center">
+        <h2 class="text-3xl font-bold text-accent-cyan">Rider Applicants</h2>
+        <span id="riderCountDisplay" class="text-lg text-light-gray">Total: 0</span>
     </div>
+    <div id="riderApplicantsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <p class="text-center text-light-gray col-span-full">Click "See Riders" to load rider applications...</p>
+    </div>
+</div>
 
-    <!-- ────────────────────────────────────────────── -->
-    <!-- Collapsible Disputes Section                   -->
-    <!-- ────────────────────────────────────────────── -->
-    <div class="mb-10">
-        <h2 class="text-4xl font-bold text-accent-cyan mb-4 accordion-header flex items-center justify-between p-4 bg-[#1C2B47]/70 rounded-xl hover:bg-[#1C2B47] transition"
-            id="toggleDisputes">
-            Disputes
-        </h2>
-        <div id="disputesSection" class="hidden mt-6">
-            <div id="disputesList" class="space-y-8">
-                <p class="text-center text-light-gray">Click the header to load disputes...</p>
-            </div>
+<!-- ────────────────────────────────────────────── -->
+<!-- Orders Section (hidden by default)             -->
+<!-- ────────────────────────────────────────────── -->
+<div id="ordersSection" class="hidden mt-6">
+    <div class="mb-6 flex justify-between items-center">
+        <h2 class="text-3xl font-bold text-accent-cyan">Orders</h2>
+        <div class="filter-controls flex items-center space-x-3">
+            <label for="orderFilterDropdown" class="text-light-gray font-medium">Filter by Status:</label>
+            <select id="orderFilterDropdown" class="bg-[#1C2B47] border border-accent-cyan text-light-slate px-3 py-2 rounded-lg">
+                <option value="all">All Orders</option>
+                <option value="delivered">Delivered Orders</option>
+                <option value="not_delivered">Pending Delivery</option>
+            </select>
         </div>
     </div>
+    <div id="ordersList" class="space-y-8">
+        <p class="text-center text-light-gray">Click "See Orders" to load orders...</p>
+    </div>
+</div>
+
+<!-- ────────────────────────────────────────────── -->
+<!-- Disputes Section (hidden by default)           -->
+<!-- ────────────────────────────────────────────── -->
+<div id="disputesSection" class="hidden mt-6">
+    <div class="mb-6">
+        <h2 class="text-3xl font-bold text-accent-cyan">Disputes</h2>
+    </div>
+    <div id="disputesList" class="space-y-8">
+        <p class="text-center text-light-gray">Click "Settle Disputes" to load disputes...</p>
+    </div>
+</div>
 
 </div>
 
@@ -489,6 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (res.ok) {
                 riderCountBadge.textContent = `Total: ${data.length}`;
+                document.getElementById('riderCountDisplay').textContent = `Total: ${data.length}`;
                 renderRiders(data);
             } else {
                 riderApplicantsList.innerHTML = `<p class="text-center text-red-500 col-span-full">${data.message || 'Failed to load riders'}</p>`;
@@ -912,35 +931,47 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchPendingVendorRequests();
     }
 
-    // ──────────────────────────────────────────────
-    // Accordion toggles + lazy load
-    // ──────────────────────────────────────────────
-    document.getElementById('toggleRiders').addEventListener('click', () => {
-        const section = document.getElementById('ridersSection');
-        section.classList.toggle('hidden');
-        document.getElementById('toggleRiders').classList.toggle('active');
-        if (!section.classList.contains('hidden') && riderApplicantsList.children.length < 2) {
-            fetchRiderApplicants();
-        }
-    });
+            // ──────────────────────────────────────────────
+        // Green Button Toggles + lazy load
+        // ──────────────────────────────────────────────
+        document.getElementById('toggleRidersBtn').addEventListener('click', () => {
+            const section = document.getElementById('ridersSection');
+            section.classList.toggle('hidden');
+            
+            // Hide other sections when one is opened
+            document.getElementById('ordersSection').classList.add('hidden');
+            document.getElementById('disputesSection').classList.add('hidden');
+            
+            if (!section.classList.contains('hidden') && riderApplicantsList.children.length < 2) {
+                fetchRiderApplicants();
+            }
+        });
 
-    document.getElementById('toggleOrders').addEventListener('click', () => {
-        const section = document.getElementById('ordersSection');
-        section.classList.toggle('hidden');
-        document.getElementById('toggleOrders').classList.toggle('active');
-        if (!section.classList.contains('hidden') && allOrders.length === 0) {
-            fetchOrders();
-        }
-    });
+        document.getElementById('toggleOrdersBtn').addEventListener('click', () => {
+            const section = document.getElementById('ordersSection');
+            section.classList.toggle('hidden');
+            
+            // Hide other sections when one is opened
+            document.getElementById('ridersSection').classList.add('hidden');
+            document.getElementById('disputesSection').classList.add('hidden');
+            
+            if (!section.classList.contains('hidden') && allOrders.length === 0) {
+                fetchOrders();
+            }
+        });
 
-    document.getElementById('toggleDisputes').addEventListener('click', () => {
-        const section = document.getElementById('disputesSection');
-        section.classList.toggle('hidden');
-        document.getElementById('toggleDisputes').classList.toggle('active');
-        if (!section.classList.contains('hidden') && disputesList.children.length < 2) {
-            fetchDisputes();
-        }
-    });
+        document.getElementById('toggleDisputesBtn').addEventListener('click', () => {
+            const section = document.getElementById('disputesSection');
+            section.classList.toggle('hidden');
+            
+            // Hide other sections when one is opened
+            document.getElementById('ridersSection').classList.add('hidden');
+            document.getElementById('ordersSection').classList.add('hidden');
+            
+            if (!section.classList.contains('hidden') && disputesList.children.length < 2) {
+                fetchDisputes();
+            }
+        });
 
     // Filter change
     orderFilterDropdown?.addEventListener('change', e => {
