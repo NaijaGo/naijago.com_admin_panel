@@ -591,135 +591,156 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderOrders(orders) {
-        ordersList.innerHTML = '';
-        if (!orders.length) {
-            ordersList.innerHTML = '<p class="text-center text-light-gray">No orders found matching the filter criteria.</p>';
-            return;
+    ordersList.innerHTML = '';
+    if (!orders.length) {
+        ordersList.innerHTML = '<p class="text-center text-light-gray">No orders found matching the filter criteria.</p>';
+        return;
+    }
+
+    orders.forEach(order => {
+        const card = document.createElement('div');
+        card.className = 'card order-card';
+
+        const user = order.user || {};
+        const shipping = order.shippingAddress || {};
+
+        const statusLower = (order.mainOrderStatus || 'pending_payment').toLowerCase();
+        const isDelivered = ['delivered','completed'].includes(statusLower) ? 'Yes' : 'No';
+
+        let itemsHtml = '';
+        if (order.shipments?.length) {
+            order.shipments.forEach((s, i) => {
+                const v = s.vendor || {};
+                itemsHtml += `
+                    <h4 class="text-sm font-semibold mt-4 mb-2 text-accent-cyan border-b border-gray-700 pb-1">
+                        📦 Shipment ${i+1} (Vendor: ${v.businessName || 'N/A'})
+                    </h4>
+                    <p class="text-xs text-light-gray mb-1 ml-2">
+                        Vendor Phone: ${v.phoneNumber || 'N/A'} | Location: ${v.businessLocation?.formattedAddress || 'N/A'}
+                    </p>`;
+                s.items?.forEach(item => {
+                    let sizeDisplay = '';
+                    if (item.selectedSize) {
+                        if (typeof item.selectedSize === 'string') {
+                            sizeDisplay = `Size: ${item.selectedSize}`;
+                        } else if (typeof item.selectedSize === 'object') {
+                            const sizeObj = item.selectedSize;
+                            if (sizeObj.label) {
+                                sizeDisplay = `Size: ${sizeObj.label}`;
+                                if (sizeObj.length || sizeObj.width || sizeObj.height) {
+                                    const unit = sizeObj.unit || 'CM';
+                                    sizeDisplay += ` (${sizeObj.length || '0'}×${sizeObj.width || '0'}×${sizeObj.height || '0'} ${unit})`;
+                                }
+                            } else if (sizeObj.length || sizeObj.width || sizeObj.height) {
+                                const unit = sizeObj.unit || 'CM';
+                                sizeDisplay = `Dimensions: ${sizeObj.length || '0'}×${sizeObj.width || '0'}×${sizeObj.height || '0'} ${unit}`;
+                            } else {
+                                sizeDisplay = 'Custom Size';
+                            }
+                        }
+                    }
+                    
+                    itemsHtml += `
+                        <li class="text-light-gray mb-2 border-l-2 border-green-500 pl-2 ml-2">
+                            <strong class="text-light-slate">${item.name}</strong> - Qty: ${item.quantity} - ₦${item.price?.toFixed(2) || '0.00'}
+                            ${sizeDisplay ? `<br><span class="text-xs text-accent-cyan font-medium">${sizeDisplay}</span>` : ''}
+                            <br><span class="text-xs text-gray-500">Shipment ID: ${s._id} | Status: ${s.shipmentStatus}</span>
+                        </li>`;
+                });
+            });
+        } else {
+            itemsHtml = '<p class="text-red-500">No shipments linked to this order.</p>';
         }
 
-        orders.forEach(order => {
-            const card = document.createElement('div');
-            card.className = 'card order-card';
+        const currentStatus = statusLower;
 
-            const user = order.user || {};
-            const shipping = order.shippingAddress || {};
-
-            const statusLower = (order.mainOrderStatus || 'pending_payment').toLowerCase();
-            const isDelivered = ['delivered','completed'].includes(statusLower) ? 'Yes' : 'No';
-
-            let itemsHtml = '';
-            if (order.shipments?.length) {
-                order.shipments.forEach((s, i) => {
-                    const v = s.vendor || {};
-                    itemsHtml += `
-                        <h4 class="text-sm font-semibold mt-4 mb-2 text-accent-cyan border-b border-gray-700 pb-1">
-                            📦 Shipment ${i+1} (Vendor: ${v.businessName || 'N/A'})
-                        </h4>
-                        <p class="text-xs text-light-gray mb-1 ml-2">
-                            Vendor Phone: ${v.phoneNumber || 'N/A'} | Location: ${v.businessLocation?.formattedAddress || 'N/A'}
-                        </p>`;
-                    s.items?.forEach(item => {
-                        itemsHtml += `
-                            <li class="text-light-gray mb-2 border-l-2 border-green-500 pl-2 ml-2">
-                                <strong class="text-light-slate">${item.name}</strong> - Qty: ${item.quantity} - ₦${item.price?.toFixed(2) || '0.00'}
-                                <br><span class="text-xs text-gray-500">Shipment ID: ${s._id} | Status: ${s.shipmentStatus}</span>
-                            </li>`;
-                    });
-                });
-            } else {
-                itemsHtml = '<p class="text-red-500">No shipments linked to this order.</p>';
+        const isDisabled = (target) => {
+            switch (currentStatus) {
+                case 'completed': case 'cancelled': return true;
+                case 'delivered': return !['completed','cancelled'].includes(target);
+                case 'shipped': return !['delivered','completed','cancelled'].includes(target);
+                case 'partially_shipped': return !['shipped','delivered','completed','cancelled'].includes(target);
+                case 'processing': return !['partially_shipped','shipped','delivered','completed','cancelled'].includes(target);
+                case 'pending_payment': return !['processing','cancelled'].includes(target);
+                default: return !['pending_payment','processing','cancelled'].includes(target);
             }
+        };
 
-            const currentStatus = statusLower;
+        const getBtnClass = (target) => {
+            let cls = 'status-btn px-3 py-1 text-sm font-medium';
+            if (target === currentStatus) return `${cls} btn-current`;
+            if (isDisabled(target)) return `${cls} btn-disabled`;
+            if (target === 'cancelled') return `${cls} btn-danger`;
+            if (target === 'completed') return `${cls} btn-success`;
+            return `${cls} btn-primary-alt`;
+        };
 
-            const isDisabled = (target) => {
-                switch (currentStatus) {
-                    case 'completed': case 'cancelled': return true;
-                    case 'delivered': return !['completed','cancelled'].includes(target);
-                    case 'shipped': return !['delivered','completed','cancelled'].includes(target);
-                    case 'partially_shipped': return !['shipped','delivered','completed','cancelled'].includes(target);
-                    case 'processing': return !['partially_shipped','shipped','delivered','completed','cancelled'].includes(target);
-                    case 'pending_payment': return !['processing','cancelled'].includes(target);
-                    default: return !['pending_payment','processing','cancelled'].includes(target);
-                }
-            };
+        const btns = `
+            <button class="${getBtnClass('pending_payment')}" ${isDisabled('pending_payment')?'disabled':''} data-order-id="${order._id}" data-status="pending_payment">Pending Payment</button>
+            <button class="${getBtnClass('processing')}" ${isDisabled('processing')?'disabled':''} data-order-id="${order._id}" data-status="processing">Processing</button>
+            <button class="${getBtnClass('partially_shipped')}" ${isDisabled('partially_shipped')?'disabled':''} data-order-id="${order._id}" data-status="partially_shipped">Partially Shipped</button>
+            <button class="${getBtnClass('shipped')}" ${isDisabled('shipped')?'disabled':''} data-order-id="${order._id}" data-status="shipped">Shipped</button>
+            <button class="${getBtnClass('delivered')}" ${isDisabled('delivered')?'disabled':''} data-order-id="${order._id}" data-status="delivered">Delivered</button>
+            <button class="${getBtnClass('completed')}" ${isDisabled('completed')?'disabled':''} data-order-id="${order._id}" data-status="completed">Completed</button>
+            <button class="${getBtnClass('cancelled')}" ${isDisabled('cancelled')?'disabled':''} data-order-id="${order._id}" data-status="cancelled">Cancel</button>
+        `;
 
-            const getBtnClass = (target) => {
-                let cls = 'status-btn px-3 py-1 text-sm font-medium';
-                if (target === currentStatus) return `${cls} btn-current`;
-                if (isDisabled(target)) return `${cls} btn-disabled`;
-                if (target === 'cancelled') return `${cls} btn-danger`;
-                if (target === 'completed') return `${cls} btn-success`;
-                return `${cls} btn-primary-alt`;
-            };
+        card.innerHTML = `
+            <h3 class="text-2xl font-semibold text-accent-cyan mb-3">Order ID: ${order._id}</h3>
+            <p class="text-light-gray mb-1"><strong>User:</strong> ${user.firstName||'N/A'} ${user.lastName||''} (<span class="text-accent-cyan">${user.email||'N/A'}</span>)</p>
+            <p class="text-light-gray mb-1"><strong>Phone:</strong> ${user.phoneNumber||'N/A'}</p>
+            <p class="text-light-gray mb-1"><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'})}</p>
+            <p class="text-light-gray mb-1"><strong>Paid:</strong> <span class="font-bold ${order.isPaid?'text-green-400':'text-red-400'}">${order.isPaid?'Yes':'No'}</span></p>
+            <p class="text-light-gray mb-4"><strong>Delivered:</strong> <span class="font-bold ${isDelivered==='Yes'?'text-green-400':'text-red-400'}">${isDelivered}</span></p>
+            <div class="mb-2"><strong>Status:</strong> <span class="font-bold text-lg text-green-400">${order.mainOrderStatus || 'N/A'}</span></div>
+            <div class="mb-4">
+                <strong>Shipping Address:</strong><br>
+                <span class="text-light-gray">${shipping.address||'N/A'}, ${shipping.city||'N/A'}, ${shipping.postalCode||'N/A'}, ${shipping.country||'N/A'}</span>
+            </div>
+            <p class="text-light-slate text-xl font-bold mb-2">🛒 Items & Shipments:</p>
+            <ul class="list-none mb-6">${itemsHtml}</ul>
+            <div class="border-t border-gray-700 pt-4">
+                <h4 class="text-light-slate font-semibold mb-2">Update Status:</h4>
+                <div class="flex flex-wrap gap-2">${btns}</div>
+                <p class="text-xs text-light-gray mt-2">Enabled buttons follow valid order flow.</p>
+            </div>
+        `;
+        ordersList.appendChild(card);
+    });
 
-            const btns = `
-                <button class="${getBtnClass('pending_payment')}" ${isDisabled('pending_payment')?'disabled':''} data-order-id="${order._id}" data-status="pending_payment">Pending Payment</button>
-                <button class="${getBtnClass('processing')}" ${isDisabled('processing')?'disabled':''} data-order-id="${order._id}" data-status="processing">Processing</button>
-                <button class="${getBtnClass('partially_shipped')}" ${isDisabled('partially_shipped')?'disabled':''} data-order-id="${order._id}" data-status="partially_shipped">Partially Shipped</button>
-                <button class="${getBtnClass('shipped')}" ${isDisabled('shipped')?'disabled':''} data-order-id="${order._id}" data-status="shipped">Shipped</button>
-                <button class="${getBtnClass('delivered')}" ${isDisabled('delivered')?'disabled':''} data-order-id="${order._id}" data-status="delivered">Delivered</button>
-                <button class="${getBtnClass('completed')}" ${isDisabled('completed')?'disabled':''} data-order-id="${order._id}" data-status="completed">Completed</button>
-                <button class="${getBtnClass('cancelled')}" ${isDisabled('cancelled')?'disabled':''} data-order-id="${order._id}" data-status="cancelled">Cancel</button>
-            `;
+    document.querySelectorAll('.status-btn:not(.btn-current):not(.btn-disabled)').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const orderId = btn.dataset.orderId;
+            const newStatus = btn.dataset.status;
+            const container = btn.closest('.flex.flex-wrap.gap-2');
+            const siblings = container?.querySelectorAll('.status-btn') || [];
 
-            card.innerHTML = `
-                <h3 class="text-2xl font-semibold text-accent-cyan mb-3">Order ID: ${order._id}</h3>
-                <p class="text-light-gray mb-1"><strong>User:</strong> ${user.firstName||'N/A'} ${user.lastName||''} (<span class="text-accent-cyan">${user.email||'N/A'}</span>)</p>
-                <p class="text-light-gray mb-1"><strong>Phone:</strong> ${user.phoneNumber||'N/A'}</p>
-                <p class="text-light-gray mb-1"><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'})}</p>
-                <p class="text-light-gray mb-1"><strong>Paid:</strong> <span class="font-bold ${order.isPaid?'text-green-400':'text-red-400'}">${order.isPaid?'Yes':'No'}</span></p>
-                <p class="text-light-gray mb-4"><strong>Delivered:</strong> <span class="font-bold ${isDelivered==='Yes'?'text-green-400':'text-red-400'}">${isDelivered}</span></p>
-                <div class="mb-2"><strong>Status:</strong> <span class="font-bold text-lg text-green-400">${order.mainOrderStatus || 'N/A'}</span></div>
-                <div class="mb-4">
-                    <strong>Shipping Address:</strong><br>
-                    <span class="text-light-gray">${shipping.address||'N/A'}, ${shipping.city||'N/A'}, ${shipping.postalCode||'N/A'}, ${shipping.country||'N/A'}</span>
-                </div>
-                <p class="text-light-slate text-xl font-bold mb-2">🛒 Items & Shipments:</p>
-                <ul class="list-none mb-6">${itemsHtml}</ul>
-                <div class="border-t border-gray-700 pt-4">
-                    <h4 class="text-light-slate font-semibold mb-2">Update Status:</h4>
-                    <div class="flex flex-wrap gap-2">${btns}</div>
-                    <p class="text-xs text-light-gray mt-2">Enabled buttons follow valid order flow.</p>
-                </div>
-            `;
-            ordersList.appendChild(card);
-        });
+            siblings.forEach(b => b.disabled = true);
 
-        // Re-attach status button listeners
-        document.querySelectorAll('.status-btn:not(.btn-current):not(.btn-disabled)').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const orderId = btn.dataset.orderId;
-                const newStatus = btn.dataset.status;
-                const container = btn.closest('.flex.flex-wrap.gap-2');
-                const siblings = container?.querySelectorAll('.status-btn') || [];
-
-                siblings.forEach(b => b.disabled = true);
-
-                try {
-                    const res = await fetch(`${BASE_URL}/api/orders/${orderId}/status`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${adminToken}`
-                        },
-                        body: JSON.stringify({ status: newStatus })
-                    });
-                    const data = await res.json();
-                    if (res.ok) {
-                        displayMessage(`Status updated to ${newStatus.toUpperCase()}`, 'success');
-                        fetchOrders();
-                    } else {
-                        displayMessage(data.message || 'Update failed', 'error');
-                        siblings.forEach(b => b.disabled = false);
-                    }
-                } catch (err) {
-                    displayMessage(`Network error`, 'error');
+            try {
+                const res = await fetch(`${BASE_URL}/api/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    displayMessage(`Status updated to ${newStatus.toUpperCase()}`, 'success');
+                    fetchOrders();
+                } else {
+                    displayMessage(data.message || 'Update failed', 'error');
                     siblings.forEach(b => b.disabled = false);
                 }
-            });
+            } catch (err) {
+                displayMessage(`Network error`, 'error');
+                siblings.forEach(b => b.disabled = false);
+            }
         });
-    }
+    });
+}
 
     // ──────────────────────────────────────────────
     // Disputes – collapsible
