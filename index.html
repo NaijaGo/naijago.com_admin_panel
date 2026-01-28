@@ -609,6 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return orders;
     }
 
+
     function renderOrders(orders) {
     ordersList.innerHTML = '';
     if (!orders.length) {
@@ -690,7 +691,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (target === currentStatus) return `${cls} btn-current`;
             if (isDisabled(target)) return `${cls} btn-disabled`;
             if (target === 'cancelled') return `${cls} btn-danger`;
-            if (target === 'completed') return `${cls} btn-success`;
+            if (target === 'completed') return `${cls} btn-success`; // Green for completed (payout trigger)
+            if (target === 'delivered') return `${cls} btn-primary-alt`; // Different color for delivered
             return `${cls} btn-primary-alt`;
         };
 
@@ -704,6 +706,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <button class="${getBtnClass('cancelled')}" ${isDisabled('cancelled')?'disabled':''} data-order-id="${order._id}" data-status="cancelled">Cancel</button>
         `;
 
+        // SINGLE card.innerHTML assignment (not +=)
         card.innerHTML = `
             <h3 class="text-2xl font-semibold text-accent-cyan mb-3">Order ID: ${order._id}</h3>
             <p class="text-light-gray mb-1"><strong>User:</strong> ${user.firstName||'N/A'} ${user.lastName||''} (<span class="text-accent-cyan">${user.email||'N/A'}</span>)</p>
@@ -721,9 +724,14 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="border-t border-gray-700 pt-4">
                 <h4 class="text-light-slate font-semibold mb-2">Update Status:</h4>
                 <div class="flex flex-wrap gap-2">${btns}</div>
-                <p class="text-xs text-light-gray mt-2">Enabled buttons follow valid order flow.</p>
+                <p class="text-xs text-light-gray mt-2">
+                    • Enabled buttons follow valid order flow.<br>
+                    • <strong class="text-green-400">"Completed"</strong> will payout vendors & rider.<br>
+                    • "Delivered" only marks physical delivery.
+                </p>
             </div>
         `;
+        
         ordersList.appendChild(card);
     });
 
@@ -747,7 +755,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    displayMessage(`Status updated to ${newStatus.toUpperCase()}`, 'success');
+                    displayMessage(`Status updated to ${newStatus.toUpperCase()}${newStatus === 'completed' ? ' - Vendors and rider credited!' : ''}`, 'success');
                     fetchOrders();
                 } else {
                     displayMessage(data.message || 'Update failed', 'error');
@@ -760,7 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 }
-
+   
     // ──────────────────────────────────────────────
     // Disputes – collapsible
     // ──────────────────────────────────────────────
