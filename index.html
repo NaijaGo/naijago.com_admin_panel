@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         /* ────────────────────────────────────────────── */
         /* Your complete original styles – unchanged      */
@@ -20,6 +21,7 @@
             --light-gray: #A8B2D1;
             --red-pastel: #F87171;
             --green-pastel: #34D399;
+            --yellow-pastel: #FBBF24;
         }
 
         body {
@@ -30,7 +32,7 @@
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             background-color: var(--secondary-blue);
             padding: 3rem 2rem;
             border-radius: 20px;
@@ -75,6 +77,14 @@
         }
         .btn-success:hover {
             background-color: #27c181;
+        }
+
+        .btn-warning {
+            background-color: var(--yellow-pastel);
+            color: white;
+        }
+        .btn-warning:hover {
+            background-color: #f59e0b;
         }
 
         .btn-danger {
@@ -153,8 +163,12 @@
             background-color: rgba(248, 113, 129, 0.2);
             color: var(--red-pastel);
         }
+        .message.warning {
+            background-color: rgba(251, 191, 36, 0.2);
+            color: var(--yellow-pastel);
+        }
 
-        .order-card, .dispute-card, .request-card {
+        .order-card, .dispute-card, .request-card, .rider-card {
             margin-bottom: 2rem;
             padding: 2rem;
         }
@@ -215,6 +229,7 @@
 
         .btn-primary-alt { background-color: #2c5282; color: #edf2f7; }
         .btn-success { background-color: #38a169; color: white; }
+        .btn-warning { background-color: #d97706; color: white; }
         .btn-danger { background-color: #e53e3e; color: white; }
         .btn-disabled {
             background-color: #4a5568 !important;
@@ -280,6 +295,51 @@
         .accordion-header.active::after {
             transform: rotate(180deg);
         }
+
+        /* Rider status badges */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .status-pending { background-color: #fbbf24; color: #78350f; }
+        .status-approved { background-color: #10b981; color: #064e3b; }
+        .status-rejected { background-color: #ef4444; color: #7f1d1d; }
+        .status-suspended { background-color: #6b7280; color: #111827; }
+        .status-delivered { background-color: #3b82f6; color: #1e40af; }
+        .status-completed { background-color: #8b5cf6; color: #5b21b6; }
+        
+        /* Payout card */
+        .payout-card {
+            border-left: 4px solid #10b981;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), transparent);
+        }
+        .pending-payout-card {
+            border-left: 4px solid #fbbf24;
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), transparent);
+        }
+        
+        /* Real-time tracking */
+        .tracking-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .tracking-active { background-color: #10b981; box-shadow: 0 0 10px #10b981; }
+        .tracking-inactive { background-color: #6b7280; }
+        .tracking-moving { background-color: #3b82f6; box-shadow: 0 0 10px #3b82f6; animation: pulse 2s infinite; }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
     </style>
 </head>
 <body class="p-8">
@@ -313,89 +373,157 @@
         <p class="text-center text-light-gray">Login to load requests...</p>
     </div>
 
-<!-- ────────────────────────────────────────────── -->
-<!-- Green Action Buttons Section                   -->
-<!-- ────────────────────────────────────────────── -->
-<div class="mb-10 flex flex-col md:flex-row gap-4">
-    <button id="toggleRidersBtn" class="btn btn-success flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
-        See Riders
-        <span id="riderCountBadge" class="text-sm bg-white text-green-800 px-3 py-1 rounded-full">0</span>
-    </button>
-    
-    <button id="toggleOrdersBtn" class="btn btn-success flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-        </svg>
-        See Orders
-    </button>
-    
-    <button id="toggleDisputesBtn" class="btn btn-success flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-        </svg>
-        Settle Disputes
-    </button>
-</div>
-
-<!-- ────────────────────────────────────────────── -->
-<!-- Riders Section (hidden by default)             -->
-<!-- ────────────────────────────────────────────── -->
-<div id="ridersSection" class="hidden mt-6">
-    <div class="mb-6 flex justify-between items-center">
-        <h2 class="text-3xl font-bold text-accent-cyan">Rider Applicants</h2>
-        <span id="riderCountDisplay" class="text-lg text-light-gray">Total: 0</span>
+    <!-- ────────────────────────────────────────────── -->
+    <!-- Green Action Buttons Section                   -->
+    <!-- ────────────────────────────────────────────── -->
+    <div class="mb-10 flex flex-col md:flex-row gap-4">
+        <button id="toggleRidersBtn" class="btn btn-success flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            See Riders
+            <span id="riderCountBadge" class="text-sm bg-white text-green-800 px-3 py-1 rounded-full">0</span>
+        </button>
+        
+        <button id="toggleOrdersBtn" class="btn btn-success flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            See Orders
+        </button>
+        
+        <button id="toggleDisputesBtn" class="btn btn-success flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+            Settle Disputes
+        </button>
+        
+        <button id="toggleWithdrawalsBtn" class="btn btn-warning flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Pending Withdrawals
+            <span id="withdrawalCountBadge" class="text-sm bg-white text-yellow-800 px-3 py-1 rounded-full">0</span>
+        </button>
     </div>
-    <div id="riderApplicantsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <p class="text-center text-light-gray col-span-full">Click "See Riders" to load rider applications...</p>
-    </div>
-</div>
 
-<!-- ────────────────────────────────────────────── -->
-<!-- Orders Section (hidden by default)             -->
-<!-- ────────────────────────────────────────────── -->
-<div id="ordersSection" class="hidden mt-6">
-    <div class="mb-6 flex justify-between items-center">
-        <h2 class="text-3xl font-bold text-accent-cyan">Orders</h2>
-        <div class="filter-controls flex items-center space-x-3">
-            <label for="orderFilterDropdown" class="text-light-gray font-medium">Filter by Status:</label>
-            <select id="orderFilterDropdown" class="bg-[#1C2B47] border border-accent-cyan text-light-slate px-3 py-2 rounded-lg">
-                <option value="all">All Orders</option>
-                <option value="delivered">Delivered Orders</option>
-                <option value="not_delivered">Pending Delivery</option>
-            </select>
+    <!-- ────────────────────────────────────────────── -->
+    <!-- Riders Section (hidden by default)             -->
+    <!-- ────────────────────────────────────────────── -->
+    <div id="ridersSection" class="hidden mt-6">
+        <div class="mb-6 flex justify-between items-center">
+            <h2 class="text-3xl font-bold text-accent-cyan">Rider Management</h2>
+            <div class="flex items-center gap-4">
+                <span id="riderCountDisplay" class="text-lg text-light-gray">Total: 0</span>
+                <button id="refreshRidersBtn" class="btn btn-primary px-4 py-2 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                </button>
+            </div>
+        </div>
+        
+        <!-- Rider Status Filter -->
+        <div class="mb-6 flex flex-wrap gap-2">
+            <button class="status-filter-btn btn btn-primary-alt px-4 py-2 text-sm" data-status="all">All Riders</button>
+            <button class="status-filter-btn btn px-4 py-2 text-sm status-pending" data-status="pending">Pending</button>
+            <button class="status-filter-btn btn px-4 py-2 text-sm status-approved" data-status="approved">Approved</button>
+            <button class="status-filter-btn btn px-4 py-2 text-sm status-rejected" data-status="rejected">Rejected</button>
+            <button class="status-filter-btn btn px-4 py-2 text-sm status-suspended" data-status="suspended">Suspended</button>
+            <button class="status-filter-btn btn btn-warning px-4 py-2 text-sm" data-status="withdrawal_pending">Withdrawal Pending</button>
+        </div>
+        
+        <div id="riderApplicantsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <p class="text-center text-light-gray col-span-full">Click "See Riders" to load rider applications...</p>
         </div>
     </div>
-    <div id="ordersList" class="space-y-8">
-        <p class="text-center text-light-gray">Click "See Orders" to load orders...</p>
-    </div>
-</div>
 
-<!-- ────────────────────────────────────────────── -->
-<!-- Disputes Section (hidden by default)           -->
-<!-- ────────────────────────────────────────────── -->
-<div id="disputesSection" class="hidden mt-6">
-    <div class="mb-6">
-        <h2 class="text-3xl font-bold text-accent-cyan">Disputes</h2>
+    <!-- ────────────────────────────────────────────── -->
+    <!-- Orders Section (hidden by default)             -->
+    <!-- ────────────────────────────────────────────── -->
+    <div id="ordersSection" class="hidden mt-6">
+        <div class="mb-6 flex justify-between items-center">
+            <h2 class="text-3xl font-bold text-accent-cyan">Order Management</h2>
+            <div class="filter-controls flex items-center space-x-3">
+                <label for="orderFilterDropdown" class="text-light-gray font-medium">Filter by Status:</label>
+                <select id="orderFilterDropdown" class="bg-[#1C2B47] border border-accent-cyan text-light-slate px-3 py-2 rounded-lg">
+                    <option value="all">All Orders</option>
+                    <option value="pending_payment">Pending Payment</option>
+                    <option value="processing">Processing</option>
+                    <option value="out_for_delivery">Out for Delivery</option>
+                    <option value="delivered">Delivered (Ready for Payout)</option>
+                    <option value="completed">Completed (Paid)</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+        </div>
+        <div id="ordersList" class="space-y-8">
+            <p class="text-center text-light-gray">Click "See Orders" to load orders...</p>
+        </div>
     </div>
-    <div id="disputesList" class="space-y-8">
-        <p class="text-center text-light-gray">Click "Settle Disputes" to load disputes...</p>
+
+    <!-- ────────────────────────────────────────────── -->
+    <!-- Disputes Section (hidden by default)           -->
+    <!-- ────────────────────────────────────────────── -->
+    <div id="disputesSection" class="hidden mt-6">
+        <div class="mb-6">
+            <h2 class="text-3xl font-bold text-accent-cyan">Disputes</h2>
+        </div>
+        <div id="disputesList" class="space-y-8">
+            <p class="text-center text-light-gray">Click "Settle Disputes" to load disputes...</p>
+        </div>
     </div>
-</div>
+
+    <!-- ────────────────────────────────────────────── -->
+    <!-- Withdrawals Section (hidden by default)        -->
+    <!-- ────────────────────────────────────────────── -->
+    <div id="withdrawalsSection" class="hidden mt-6">
+        <div class="mb-6 flex justify-between items-center">
+            <h2 class="text-3xl font-bold text-accent-cyan">Pending Withdrawals</h2>
+            <div class="flex items-center gap-4">
+                <span id="withdrawalTotalDisplay" class="text-lg text-light-gray">Total Pending: ₦0</span>
+                <button id="refreshWithdrawalsBtn" class="btn btn-primary px-4 py-2 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                </button>
+            </div>
+        </div>
+        
+        <!-- Withdrawal Type Filter -->
+        <div class="mb-6 flex flex-wrap gap-2">
+            <button class="withdrawal-filter-btn btn btn-primary-alt px-4 py-2 text-sm" data-type="all">All Withdrawals</button>
+            <button class="withdrawal-filter-btn btn btn-warning px-4 py-2 text-sm" data-type="pending">Pending</button>
+            <button class="withdrawal-filter-btn btn btn-success px-4 py-2 text-sm" data-type="completed">Completed</button>
+            <button class="withdrawal-filter-btn btn btn-danger px-4 py-2 text-sm" data-type="failed">Failed</button>
+            <button class="withdrawal-filter-btn btn px-4 py-2 text-sm" data-type="vendor">Vendor Withdrawals</button>
+            <button class="withdrawal-filter-btn btn px-4 py-2 text-sm" data-type="rider">Rider Withdrawals</button>
+        </div>
+        
+        <div id="withdrawalsList" class="space-y-6">
+            <p class="text-center text-light-gray">Click "Pending Withdrawals" to load withdrawal requests...</p>
+        </div>
+    </div>
 
 </div>
 
 <script>
 // Wrap everything in DOMContentLoaded for safety
 document.addEventListener('DOMContentLoaded', () => {
+  
 
     const BASE_URL = 'https://naijago-backend.onrender.com';
 
     let adminToken = '';
     let currentFilter = 'all';
+    let currentRiderFilter = 'all';
+    let currentWithdrawalFilter = 'all';
     let allOrders = [];
+    let allRiders = [];
+    let allWithdrawals = [];
 
     const messageContainer     = document.getElementById('messageContainer');
     const pendingRequestsList  = document.getElementById('pendingRequestsList');
@@ -405,11 +533,103 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const riderCountBadge      = document.getElementById('riderCountBadge');
     const riderApplicantsList  = document.getElementById('riderApplicantsList');
+    const refreshRidersBtn     = document.getElementById('refreshRidersBtn');
 
     const ordersList           = document.getElementById('ordersList');
     const orderFilterDropdown  = document.getElementById('orderFilterDropdown');
 
     const disputesList         = document.getElementById('disputesList');
+
+    const withdrawalsSection   = document.getElementById('withdrawalsSection');
+    const withdrawalsList      = document.getElementById('withdrawalsList');
+    const toggleWithdrawalsBtn = document.getElementById('toggleWithdrawalsBtn');
+    const withdrawalCountBadge = document.getElementById('withdrawalCountBadge');
+    const withdrawalTotalDisplay = document.getElementById('withdrawalTotalDisplay');
+    const refreshWithdrawalsBtn = document.getElementById('refreshWithdrawalsBtn');
+
+    // Initialize Socket.io connection for real-time updates
+    let socket = null;
+    function initializeSocket() {
+        if (!adminToken) return;
+        
+        socket = io(BASE_URL, {
+            auth: { token: adminToken },
+            transports: ['websocket', 'polling']
+        });
+
+        socket.on('connect', () => {
+            console.log('Connected to real-time server');
+        });
+
+        socket.on('admin_notification', (data) => {
+            showRealTimeNotification(data);
+        });
+
+        socket.on('rider_location_update', (data) => {
+            updateRiderLocationOnMap(data);
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from real-time server');
+        });
+    }
+
+    function showRealTimeNotification(data) {
+        const notificationDiv = document.createElement('div');
+        notificationDiv.className = 'fixed top-4 right-4 z-50 card p-4 max-w-sm animate-slide-in';
+        notificationDiv.style.minWidth = '300px';
+        
+        let icon = '📢';
+        let bgColor = 'bg-blue-900';
+        if (data.type === 'order_ready_for_completion') {
+            icon = '💰';
+            bgColor = 'bg-green-900';
+        } else if (data.type === 'rider_withdrawal_request') {
+            icon = '🏧';
+            bgColor = 'bg-yellow-900';
+        } else if (data.type === 'delivery_cancelled') {
+            icon = '❌';
+            bgColor = 'bg-red-900';
+        }
+        
+        notificationDiv.innerHTML = `
+            <div class="flex items-start gap-3">
+                <span class="text-2xl">${icon}</span>
+                <div class="flex-1">
+                    <h4 class="font-bold text-accent-cyan">${data.type?.replace(/_/g, ' ').toUpperCase() || 'Notification'}</h4>
+                    <p class="text-sm mt-1">${data.message}</p>
+                    <p class="text-xs text-gray-400 mt-2">${new Date().toLocaleTimeString()}</p>
+                </div>
+                <button class="text-gray-400 hover:text-white" onclick="this.parentElement.parentElement.remove()">×</button>
+            </div>
+        `;
+        
+        document.body.appendChild(notificationDiv);
+        
+        // Auto-remove after 10 seconds
+        setTimeout(() => {
+            if (notificationDiv.parentNode) {
+                notificationDiv.remove();
+            }
+        }, 10000);
+    }
+
+    function updateRiderLocationOnMap(data) {
+        // This would update a map if you have one
+        console.log('Rider location updated:', data);
+        // You could update rider cards with real-time location
+        const riderCards = document.querySelectorAll(`[data-rider-id="${data.riderId}"]`);
+        riderCards.forEach(card => {
+            const locationEl = card.querySelector('.rider-location');
+            if (locationEl) {
+                locationEl.innerHTML = `
+                    <span class="tracking-dot tracking-moving"></span>
+                    Live: ${data.location.lat.toFixed(4)}, ${data.location.lng.toFixed(4)}
+                `;
+                locationEl.title = data.location.address || 'Location updated just now';
+            }
+        });
+    }
 
     function displayMessage(message, type) {
         messageContainer.innerHTML = `<div class="message ${type}">${message}</div>`;
@@ -492,7 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ──────────────────────────────────────────────
-    // Riders – collapsible
+    // Riders Management – Enhanced with payout info
     // ──────────────────────────────────────────────
     async function fetchRiderApplicants() {
         if (!adminToken) {
@@ -506,8 +726,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await res.json();
             if (res.ok) {
-                riderCountBadge.textContent = `Total: ${data.length}`;
-                document.getElementById('riderCountDisplay').textContent = `Total: ${data.length}`;
+                // Also fetch all riders for stats
+                const allRidersRes = await fetch(`${BASE_URL}/api/admin/riders`, {
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                });
+                if (allRidersRes.ok) {
+                    allRiders = await allRidersRes.json();
+                }
+                
+                riderCountBadge.textContent = `${data.length} pending`;
+                document.getElementById('riderCountDisplay').textContent = `Total: ${allRiders?.length || data.length}`;
                 renderRiders(data);
             } else {
                 riderApplicantsList.innerHTML = `<p class="text-center text-red-500 col-span-full">${data.message || 'Failed to load riders'}</p>`;
@@ -517,23 +745,72 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function getStatusBadge(status) {
+        const statusMap = {
+            'pending': 'status-pending',
+            'approved': 'status-approved',
+            'rejected': 'status-rejected',
+            'suspended': 'status-suspended'
+        };
+        return `<span class="status-badge ${statusMap[status] || 'status-pending'}">${status}</span>`;
+    }
+
     function renderRiders(riders) {
         riderApplicantsList.innerHTML = '';
         if (!riders.length) {
-            riderApplicantsList.innerHTML = '<p class="text-center text-light-gray col-span-full">No pending rider applications.</p>';
+            riderApplicantsList.innerHTML = '<p class="text-center text-light-gray col-span-full">No rider applications matching filter.</p>';
             return;
         }
-        riders.forEach(r => {
+        
+        // Apply filter
+        let filteredRiders = riders;
+        if (currentRiderFilter !== 'all') {
+            if (currentRiderFilter === 'withdrawal_pending') {
+                filteredRiders = riders.filter(r => 
+                    r.withdrawalHistory?.some(w => w.status === 'pending')
+                );
+            } else {
+                filteredRiders = riders.filter(r => r.status === currentRiderFilter);
+            }
+        }
+        
+        filteredRiders.forEach(r => {
+            const hasPendingWithdrawal = r.withdrawalHistory?.some(w => w.status === 'pending');
+            const pendingWithdrawal = hasPendingWithdrawal ? 
+                r.withdrawalHistory.find(w => w.status === 'pending') : null;
+            
             const card = document.createElement('div');
-            card.className = 'card p-6 border-l-4 border-accent-cyan flex flex-col justify-between';
+            card.className = `card p-6 border-l-4 ${hasPendingWithdrawal ? 'border-yellow-500 pending-payout-card' : 'border-accent-cyan'} flex flex-col justify-between`;
+            card.setAttribute('data-rider-id', r._id);
             card.innerHTML = `
                 <div>
-                    <h3 class="text-xl font-bold text-light-slate mb-1">${r.fullName}</h3>
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="text-xl font-bold text-light-slate mb-1">${r.fullName}</h3>
+                        ${getStatusBadge(r.status)}
+                    </div>
                     <p class="text-xs text-gray-400 mb-3 italic">ID: ${r._id}</p>
                     <div class="text-sm text-light-gray mb-4 space-y-1">
                         <p><strong class="text-accent-cyan">Email:</strong> ${r.email}</p>
-                        <p><strong class="text-accent-cyan">Plate Number:</strong> ${r.plateNumber}</p>
+                        <p><strong class="text-accent-cyan">Phone:</strong> ${r.phoneNumber}</p>
+                        <p><strong class="text-accent-cyan">Plate:</strong> ${r.plateNumber}</p>
+                        <p><strong class="text-accent-cyan">Vehicle:</strong> ${r.vehicleType} ${r.vehicleBrand ? `(${r.vehicleBrand})` : ''}</p>
+                        <p class="rider-location">
+                            ${r.currentLocation?.lat ? 
+                                `<span class="tracking-dot ${r.isAvailable && r.isActive ? 'tracking-active' : 'tracking-inactive'}"></span>
+                                ${r.currentLocation.lat.toFixed(4)}, ${r.currentLocation.lng.toFixed(4)}` : 
+                                '<span class="tracking-dot tracking-inactive"></span> Location not set'}
+                        </p>
                     </div>
+                    
+                    ${hasPendingWithdrawal ? `
+                    <div class="bg-yellow-900 bg-opacity-30 p-3 rounded-lg mb-4 border border-yellow-700">
+                        <p class="text-sm font-bold text-yellow-300 mb-1">💰 PENDING WITHDRAWAL</p>
+                        <p class="text-xs text-yellow-200">Amount: ₦${pendingWithdrawal.amount.toFixed(2)}</p>
+                        <p class="text-xs text-yellow-200">Method: ${pendingWithdrawal.paymentMethod}</p>
+                        <p class="text-xs text-yellow-200">Requested: ${new Date(pendingWithdrawal.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    ` : ''}
+                    
                     <div class="bg-black bg-opacity-30 p-3 rounded-lg mb-6 border border-gray-800">
                         <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Verification Docs</p>
                         ${r.documents?.ninFront ? `<a href="${r.documents.ninFront}" target="_blank" class="block text-accent-cyan hover:text-white text-xs mb-1 underline">View NIN Front</a>` : '<span class="block text-gray-600 text-xs mb-1">No NIN Front</span>'}
@@ -541,21 +818,82 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${r.documents?.platePhoto ? `<a href="${r.documents.platePhoto}" target="_blank" class="block text-accent-cyan hover:text-white text-xs mb-1 underline">View Plate Photo</a>` : '<span class="block text-gray-600 text-xs mb-1">No Plate Photo</span>'}
                         ${r.documents?.selfie ? `<a href="${r.documents.selfie}" target="_blank" class="block text-accent-cyan hover:text-white text-xs mb-1 underline">View Selfie</a>` : '<span class="block text-gray-600 text-xs mb-1">No Selfie</span>'}
                     </div>
+                    
+                    <!-- Rider Stats -->
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <div class="bg-gray-900 p-2 rounded text-center">
+                            <p class="text-xs text-gray-400">Deliveries</p>
+                            <p class="font-bold">${r.completedDeliveries || 0}</p>
+                        </div>
+                        <div class="bg-gray-900 p-2 rounded text-center">
+                            <p class="text-xs text-gray-400">Earnings</p>
+                            <p class="font-bold">₦${(r.totalEarnings || 0).toFixed(2)}</p>
+                        </div>
+                        <div class="bg-gray-900 p-2 rounded text-center">
+                            <p class="text-xs text-gray-400">Wallet</p>
+                            <p class="font-bold">₦${(r.walletBalance || 0).toFixed(2)}</p>
+                        </div>
+                        <div class="bg-gray-900 p-2 rounded text-center">
+                            <p class="text-xs text-gray-400">Rating</p>
+                            <p class="font-bold">${r.totalRatings > 0 ? (r.rating / r.totalRatings).toFixed(1) : '0'}/5</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex gap-3 mt-auto">
-                    <button class="btn btn-success flex-1 py-2 text-sm font-bold approve-rider-btn" data-id="${r._id}">APPROVE</button>
-                    <button class="btn btn-danger flex-1 py-2 text-sm font-bold reject-rider-btn" data-id="${r._id}">REJECT</button>
+                <div class="flex flex-col gap-3 mt-auto">
+                    ${r.status === 'pending' ? `
+                        <button class="btn btn-success w-full py-2 text-sm font-bold approve-rider-btn" data-id="${r._id}">APPROVE RIDER</button>
+                        <button class="btn btn-danger w-full py-2 text-sm font-bold reject-rider-btn" data-id="${r._id}">REJECT</button>
+                    ` : r.status === 'approved' ? `
+                        <button class="btn btn-warning w-full py-2 text-sm font-bold suspend-rider-btn" data-id="${r._id}">SUSPEND</button>
+                        ${hasPendingWithdrawal ? `
+                            <button class="btn btn-success w-full py-2 text-sm font-bold process-withdrawal-btn" data-id="${r._id}" data-amount="${pendingWithdrawal.amount}" data-reference="${pendingWithdrawal.reference}">
+                                PROCESS WITHDRAWAL (₦${pendingWithdrawal.amount.toFixed(2)})
+                            </button>
+                        ` : ''}
+                    ` : r.status === 'suspended' ? `
+                        <button class="btn btn-success w-full py-2 text-sm font-bold reactivate-rider-btn" data-id="${r._id}">REACTIVATE</button>
+                    ` : ''}
+                    
+                    <!-- View Payout History Button -->
+                    <button class="btn btn-primary-alt w-full py-2 text-sm font-bold view-payouts-btn" data-id="${r._id}">
+                        VIEW PAYOUT HISTORY
+                    </button>
                 </div>
             `;
             riderApplicantsList.appendChild(card);
         });
 
+        // Event listeners for rider actions
         document.querySelectorAll('.approve-rider-btn').forEach(b => b.onclick = () => updateRiderStatus(b.dataset.id, 'approved'));
         document.querySelectorAll('.reject-rider-btn').forEach(b => b.onclick = () => updateRiderStatus(b.dataset.id, 'rejected'));
+        document.querySelectorAll('.suspend-rider-btn').forEach(b => b.onclick = () => updateRiderStatus(b.dataset.id, 'suspended'));
+        document.querySelectorAll('.reactivate-rider-btn').forEach(b => b.onclick = () => updateRiderStatus(b.dataset.id, 'approved'));
+        document.querySelectorAll('.process-withdrawal-btn').forEach(b => b.onclick = (e) => processRiderWithdrawal(e.target.dataset.id, e.target.dataset.amount, e.target.dataset.reference));
+        document.querySelectorAll('.view-payouts-btn').forEach(b => b.onclick = () => viewRiderPayouts(b.dataset.id));
+        
+        // Add rider status filter listeners
+        document.querySelectorAll('.status-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentRiderFilter = btn.dataset.status;
+                document.querySelectorAll('.status-filter-btn').forEach(b => {
+                    b.classList.remove('bg-accent-cyan', 'text-primary-blue');
+                    b.classList.add('btn-primary-alt');
+                });
+                btn.classList.remove('btn-primary-alt');
+                btn.classList.add('bg-accent-cyan', 'text-primary-blue');
+                renderRiders(allRiders || []);
+            });
+        });
     }
 
     async function updateRiderStatus(riderId, status) {
-        if (!confirm(`Are you sure you want to ${status} this rider?`)) return;
+        let message = `Are you sure you want to ${status} this rider?`;
+        if (status === 'suspended') {
+            message = 'Are you sure you want to suspend this rider? They will not be able to claim new orders.';
+        }
+        
+        if (!confirm(message)) return;
+        
         try {
             const res = await fetch(`${BASE_URL}/api/admin/riders/${riderId}/status`, {
                 method: 'PUT',
@@ -577,8 +915,92 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function processRiderWithdrawal(riderId, amount, reference) {
+        if (!confirm(`Process withdrawal of ₦${amount} for this rider?`)) return;
+        
+        try {
+            // First get rider bank details
+            const riderRes = await fetch(`${BASE_URL}/api/admin/riders/${riderId}`, {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            const rider = await riderRes.json();
+            
+            if (!rider.bankAccount?.verified) {
+                if (!confirm('Rider bank account not verified. Do you want to verify and process anyway?')) {
+                    return;
+                }
+            }
+            
+            // Process through Flutterwave or mark as completed
+            const res = await fetch(`${BASE_URL}/api/admin/withdrawals/${reference}/process`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify({ status: 'completed' })
+            });
+            
+            const data = await res.json();
+            if (res.ok) {
+                displayMessage(`Withdrawal processed successfully! ₦${amount} sent to rider.`, 'success');
+                fetchRiderApplicants();
+                fetchPendingWithdrawals();
+            } else {
+                displayMessage(data.message || 'Failed to process withdrawal', 'error');
+            }
+        } catch (err) {
+            displayMessage(`Error: ${err.message}`, 'error');
+        }
+    }
+
+    async function viewRiderPayouts(riderId) {
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/riders/${riderId}/payouts`, {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            const payouts = await res.json();
+            
+            // Show modal with payout history
+            const modalHtml = `
+                <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div class="bg-secondary-blue rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-accent-cyan">Rider Payout History</h3>
+                            <button class="text-gray-400 hover:text-white text-2xl" onclick="this.closest('.fixed').remove()">&times;</button>
+                        </div>
+                        <div class="space-y-3">
+                            ${payouts.length > 0 ? payouts.map(p => `
+                                <div class="card p-4">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <p class="font-semibold">Order: ${p.orderId || 'N/A'}</p>
+                                            <p class="text-sm text-gray-400">${new Date(p.createdAt).toLocaleString()}</p>
+                                        </div>
+                                        <span class="font-bold text-green-400">₦${p.amount.toFixed(2)}</span>
+                                    </div>
+                                    <p class="text-sm mt-2">${p.description || 'Delivery payout'}</p>
+                                    <div class="flex gap-2 mt-2">
+                                        <span class="status-badge ${p.status === 'completed' ? 'status-approved' : 'status-pending'}">${p.status}</span>
+                                        ${p.distance ? `<span class="text-xs bg-gray-800 px-2 py-1 rounded">${p.distance}km</span>` : ''}
+                                    </div>
+                                </div>
+                            `).join('') : '<p class="text-center text-gray-400">No payout history found.</p>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const modalDiv = document.createElement('div');
+            modalDiv.innerHTML = modalHtml;
+            document.body.appendChild(modalDiv);
+        } catch (err) {
+            displayMessage('Failed to load payout history', 'error');
+        }
+    }
+
     // ──────────────────────────────────────────────
-    // Orders – collapsible + filter
+    // Orders Management – Enhanced with payout system
     // ──────────────────────────────────────────────
     async function fetchOrders() {
         if (!adminToken) {
@@ -603,171 +1025,231 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function applyFilter(orders) {
-        const delivered = ['delivered', 'completed'];
-        if (currentFilter === 'delivered') return orders.filter(o => delivered.includes((o.mainOrderStatus || '').toLowerCase()));
-        if (currentFilter === 'not_delivered') return orders.filter(o => !delivered.includes((o.mainOrderStatus || '').toLowerCase()));
-        return orders;
+        if (currentFilter === 'all') return orders;
+        return orders.filter(o => o.mainOrderStatus === currentFilter);
     }
-
 
     function renderOrders(orders) {
-    ordersList.innerHTML = '';
-    if (!orders.length) {
-        ordersList.innerHTML = '<p class="text-center text-light-gray">No orders found matching the filter criteria.</p>';
-        return;
-    }
-
-    orders.forEach(order => {
-        const card = document.createElement('div');
-        card.className = 'card order-card';
-
-        const user = order.user || {};
-        const shipping = order.shippingAddress || {};
-
-        const statusLower = (order.mainOrderStatus || 'pending_payment').toLowerCase();
-        const isDelivered = ['delivered','completed'].includes(statusLower) ? 'Yes' : 'No';
-
-        let itemsHtml = '';
-        if (order.shipments?.length) {
-            order.shipments.forEach((s, i) => {
-                const v = s.vendor || {};
-                itemsHtml += `
-                    <h4 class="text-sm font-semibold mt-4 mb-2 text-accent-cyan border-b border-gray-700 pb-1">
-                        📦 Shipment ${i+1} (Vendor: ${v.businessName || 'N/A'})
-                    </h4>
-                    <p class="text-xs text-light-gray mb-1 ml-2">
-                        Vendor Phone: ${v.phoneNumber || 'N/A'} | Location: ${v.businessLocation?.formattedAddress || 'N/A'}
-                    </p>`;
-                s.items?.forEach(item => {
-                    let sizeDisplay = '';
-                    if (item.selectedSize) {
-                        if (typeof item.selectedSize === 'string') {
-                            sizeDisplay = `Size: ${item.selectedSize}`;
-                        } else if (typeof item.selectedSize === 'object') {
-                            const sizeObj = item.selectedSize;
-                            if (sizeObj.label) {
-                                sizeDisplay = `Size: ${sizeObj.label}`;
-                                if (sizeObj.length || sizeObj.width || sizeObj.height) {
-                                    const unit = sizeObj.unit || 'CM';
-                                    sizeDisplay += ` (${sizeObj.length || '0'}×${sizeObj.width || '0'}×${sizeObj.height || '0'} ${unit})`;
-                                }
-                            } else if (sizeObj.length || sizeObj.width || sizeObj.height) {
-                                const unit = sizeObj.unit || 'CM';
-                                sizeDisplay = `Dimensions: ${sizeObj.length || '0'}×${sizeObj.width || '0'}×${sizeObj.height || '0'} ${unit}`;
-                            } else {
-                                sizeDisplay = 'Custom Size';
-                            }
-                        }
-                    }
-                    
-                    itemsHtml += `
-                        <li class="text-light-gray mb-2 border-l-2 border-green-500 pl-2 ml-2">
-                            <strong class="text-light-slate">${item.name}</strong> - Qty: ${item.quantity} - ₦${item.price?.toFixed(2) || '0.00'}
-                            ${sizeDisplay ? `<br><span class="text-xs text-accent-cyan font-medium">${sizeDisplay}</span>` : ''}
-                            <br><span class="text-xs text-gray-500">Shipment ID: ${s._id} | Status: ${s.shipmentStatus}</span>
-                        </li>`;
-                });
-            });
-        } else {
-            itemsHtml = '<p class="text-red-500">No shipments linked to this order.</p>';
+        ordersList.innerHTML = '';
+        if (!orders.length) {
+            ordersList.innerHTML = '<p class="text-center text-light-gray">No orders found matching the filter criteria.</p>';
+            return;
         }
 
-        const currentStatus = statusLower;
-
-        const isDisabled = (target) => {
-            switch (currentStatus) {
-                case 'completed': case 'cancelled': return true;
-                case 'delivered': return !['completed','cancelled'].includes(target);
-                case 'shipped': return !['delivered','completed','cancelled'].includes(target);
-                case 'partially_shipped': return !['shipped','delivered','completed','cancelled'].includes(target);
-                case 'processing': return !['partially_shipped','shipped','delivered','completed','cancelled'].includes(target);
-                case 'pending_payment': return !['processing','cancelled'].includes(target);
-                default: return !['pending_payment','processing','cancelled'].includes(target);
+        orders.forEach(order => {
+            const card = document.createElement('div');
+            card.className = 'card order-card';
+            
+            if (order.mainOrderStatus === 'delivered') {
+                card.classList.add('pending-payout-card');
+            } else if (order.mainOrderStatus === 'completed') {
+                card.classList.add('payout-card');
             }
-        };
 
-        const getBtnClass = (target) => {
-            let cls = 'status-btn px-3 py-1 text-sm font-medium';
-            if (target === currentStatus) return `${cls} btn-current`;
-            if (isDisabled(target)) return `${cls} btn-disabled`;
-            if (target === 'cancelled') return `${cls} btn-danger`;
-            if (target === 'completed') return `${cls} btn-success`; // Green for completed (payout trigger)
-            if (target === 'delivered') return `${cls} btn-primary-alt`; // Different color for delivered
-            return `${cls} btn-primary-alt`;
-        };
+            const user = order.user || {};
+            const shipping = order.shippingAddress || {};
+            const rider = order.rider ? { _id: order.rider } : null;
 
-        const btns = `
-            <button class="${getBtnClass('pending_payment')}" ${isDisabled('pending_payment')?'disabled':''} data-order-id="${order._id}" data-status="pending_payment">Pending Payment</button>
-            <button class="${getBtnClass('processing')}" ${isDisabled('processing')?'disabled':''} data-order-id="${order._id}" data-status="processing">Processing</button>
-            <button class="${getBtnClass('partially_shipped')}" ${isDisabled('partially_shipped')?'disabled':''} data-order-id="${order._id}" data-status="partially_shipped">Partially Shipped</button>
-            <button class="${getBtnClass('shipped')}" ${isDisabled('shipped')?'disabled':''} data-order-id="${order._id}" data-status="shipped">Shipped</button>
-            <button class="${getBtnClass('delivered')}" ${isDisabled('delivered')?'disabled':''} data-order-id="${order._id}" data-status="delivered">Delivered</button>
-            <button class="${getBtnClass('completed')}" ${isDisabled('completed')?'disabled':''} data-order-id="${order._id}" data-status="completed">Completed</button>
-            <button class="${getBtnClass('cancelled')}" ${isDisabled('cancelled')?'disabled':''} data-order-id="${order._id}" data-status="cancelled">Cancel</button>
-        `;
-
-        // SINGLE card.innerHTML assignment (not +=)
-        card.innerHTML = `
-            <h3 class="text-2xl font-semibold text-accent-cyan mb-3">Order ID: ${order._id}</h3>
-            <p class="text-light-gray mb-1"><strong>User:</strong> ${user.firstName||'N/A'} ${user.lastName||''} (<span class="text-accent-cyan">${user.email||'N/A'}</span>)</p>
-            <p class="text-light-gray mb-1"><strong>Phone:</strong> ${user.phoneNumber||'N/A'}</p>
-            <p class="text-light-gray mb-1"><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'})}</p>
-            <p class="text-light-gray mb-1"><strong>Paid:</strong> <span class="font-bold ${order.isPaid?'text-green-400':'text-red-400'}">${order.isPaid?'Yes':'No'}</span></p>
-            <p class="text-light-gray mb-4"><strong>Delivered:</strong> <span class="font-bold ${isDelivered==='Yes'?'text-green-400':'text-red-400'}">${isDelivered}</span></p>
-            <div class="mb-2"><strong>Status:</strong> <span class="font-bold text-lg text-green-400">${order.mainOrderStatus || 'N/A'}</span></div>
-            <div class="mb-4">
-                <strong>Shipping Address:</strong><br>
-                <span class="text-light-gray">${shipping.address||'N/A'}, ${shipping.city||'N/A'}, ${shipping.postalCode||'N/A'}, ${shipping.country||'N/A'}</span>
-            </div>
-            <p class="text-light-slate text-xl font-bold mb-2">🛒 Items & Shipments:</p>
-            <ul class="list-none mb-6">${itemsHtml}</ul>
-            <div class="border-t border-gray-700 pt-4">
-                <h4 class="text-light-slate font-semibold mb-2">Update Status:</h4>
-                <div class="flex flex-wrap gap-2">${btns}</div>
-                <p class="text-xs text-light-gray mt-2">
-                    • Enabled buttons follow valid order flow.<br>
-                    • <strong class="text-green-400">"Completed"</strong> will payout vendors & rider.<br>
-                    • "Delivered" only marks physical delivery.
-                </p>
-            </div>
-        `;
-        
-        ordersList.appendChild(card);
-    });
-
-    document.querySelectorAll('.status-btn:not(.btn-current):not(.btn-disabled)').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const orderId = btn.dataset.orderId;
-            const newStatus = btn.dataset.status;
-            const container = btn.closest('.flex.flex-wrap.gap-2');
-            const siblings = container?.querySelectorAll('.status-btn') || [];
-
-            siblings.forEach(b => b.disabled = true);
-
-            try {
-                const res = await fetch(`${BASE_URL}/api/orders/${orderId}/status`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${adminToken}`
-                    },
-                    body: JSON.stringify({ status: newStatus })
+            const statusLower = (order.mainOrderStatus || 'pending_payment').toLowerCase();
+            
+            // Calculate potential rider payout (150/km per shipment)
+            let totalRiderPayout = 0;
+            let totalVendorPayout = 0;
+            
+            if (order.shipments?.length) {
+                order.shipments.forEach(shipment => {
+                    if (shipment.vendorLocation && order.userLocation) {
+                        const distance = calculateDistance(
+                            shipment.vendorLocation.latitude,
+                            shipment.vendorLocation.longitude,
+                            order.userLocation.latitude,
+                            order.userLocation.longitude
+                        );
+                        totalRiderPayout += distance * 150;
+                    }
+                    // Vendor gets subtotal - platformFee
+                    totalVendorPayout += (shipment.subtotal || 0) - (shipment.platformFee || 0);
                 });
-                const data = await res.json();
-                if (res.ok) {
-                    displayMessage(`Status updated to ${newStatus.toUpperCase()}${newStatus === 'completed' ? ' - Vendors and rider credited!' : ''}`, 'success');
-                    fetchOrders();
-                } else {
-                    displayMessage(data.message || 'Update failed', 'error');
+            }
+
+            let itemsHtml = '';
+            if (order.shipments?.length) {
+                order.shipments.forEach((s, i) => {
+                    const v = s.vendor || {};
+                    itemsHtml += `
+                        <h4 class="text-sm font-semibold mt-4 mb-2 text-accent-cyan border-b border-gray-700 pb-1">
+                            📦 Shipment ${i+1} (Vendor: ${v.businessName || 'N/A'})
+                        </h4>
+                        <p class="text-xs text-light-gray mb-1 ml-2">
+                            Vendor Phone: ${v.phoneNumber || 'N/A'} | Location: ${v.businessLocation?.formattedAddress || 'N/A'}
+                        </p>
+                        <p class="text-xs text-yellow-400 mb-2 ml-2">
+                            Vendor Payout: ₦${((s.subtotal || 0) - (s.platformFee || 0)).toFixed(2)} | Platform Fee: ₦${(s.platformFee || 0).toFixed(2)}
+                        </p>`;
+                    s.items?.forEach(item => {
+                        let sizeDisplay = '';
+                        if (item.selectedSize) {
+                            if (typeof item.selectedSize === 'string') {
+                                sizeDisplay = `Size: ${item.selectedSize}`;
+                            } else if (typeof item.selectedSize === 'object') {
+                                const sizeObj = item.selectedSize;
+                                if (sizeObj.label) {
+                                    sizeDisplay = `Size: ${sizeObj.label}`;
+                                    if (sizeObj.length || sizeObj.width || sizeObj.height) {
+                                        const unit = sizeObj.unit || 'CM';
+                                        sizeDisplay += ` (${sizeObj.length || '0'}×${sizeObj.width || '0'}×${sizeObj.height || '0'} ${unit})`;
+                                    }
+                                } else if (sizeObj.length || sizeObj.width || sizeObj.height) {
+                                    const unit = sizeObj.unit || 'CM';
+                                    sizeDisplay = `Dimensions: ${sizeObj.length || '0'}×${sizeObj.width || '0'}×${sizeObj.height || '0'} ${unit}`;
+                                } else {
+                                    sizeDisplay = 'Custom Size';
+                                }
+                            }
+                        }
+                        
+                        itemsHtml += `
+                            <li class="text-light-gray mb-2 border-l-2 border-green-500 pl-2 ml-2">
+                                <strong class="text-light-slate">${item.name}</strong> - Qty: ${item.quantity} - ₦${item.price?.toFixed(2) || '0.00'}
+                                ${sizeDisplay ? `<br><span class="text-xs text-accent-cyan font-medium">${sizeDisplay}</span>` : ''}
+                                <br><span class="text-xs text-gray-500">Shipment ID: ${s._id} | Status: ${s.shipmentStatus}</span>
+                            </li>`;
+                    });
+                });
+            } else {
+                itemsHtml = '<p class="text-red-500">No shipments linked to this order.</p>';
+            }
+
+            const currentStatus = statusLower;
+
+            const isDisabled = (target) => {
+                switch (currentStatus) {
+                    case 'completed': case 'cancelled': return true;
+                    case 'delivered': return !['completed','cancelled'].includes(target);
+                    case 'out_for_delivery': return !['delivered','completed','cancelled'].includes(target);
+                    case 'shipped': return !['out_for_delivery','delivered','completed','cancelled'].includes(target);
+                    case 'partially_shipped': return !['shipped','out_for_delivery','delivered','completed','cancelled'].includes(target);
+                    case 'processing': return !['partially_shipped','shipped','out_for_delivery','delivered','completed','cancelled'].includes(target);
+                    case 'pending_payment': return !['processing','cancelled'].includes(target);
+                    default: return !['pending_payment','processing','cancelled'].includes(target);
+                }
+            };
+
+            const getBtnClass = (target) => {
+                let cls = 'status-btn px-3 py-1 text-sm font-medium';
+                if (target === currentStatus) return `${cls} btn-current`;
+                if (isDisabled(target)) return `${cls} btn-disabled`;
+                if (target === 'cancelled') return `${cls} btn-danger`;
+                if (target === 'completed') return `${cls} btn-success`;
+                if (target === 'delivered') return `${cls} btn-warning`;
+                return `${cls} btn-primary-alt`;
+            };
+
+            const btns = `
+                <button class="${getBtnClass('pending_payment')}" ${isDisabled('pending_payment')?'disabled':''} data-order-id="${order._id}" data-status="pending_payment">Pending Payment</button>
+                <button class="${getBtnClass('processing')}" ${isDisabled('processing')?'disabled':''} data-order-id="${order._id}" data-status="processing">Processing</button>
+                <button class="${getBtnClass('partially_shipped')}" ${isDisabled('partially_shipped')?'disabled':''} data-order-id="${order._id}" data-status="partially_shipped">Partially Shipped</button>
+                <button class="${getBtnClass('shipped')}" ${isDisabled('shipped')?'disabled':''} data-order-id="${order._id}" data-status="shipped">Shipped</button>
+                <button class="${getBtnClass('out_for_delivery')}" ${isDisabled('out_for_delivery')?'disabled':''} data-order-id="${order._id}" data-status="out_for_delivery">Out for Delivery</button>
+                <button class="${getBtnClass('delivered')}" ${isDisabled('delivered')?'disabled':''} data-order-id="${order._id}" data-status="delivered">Mark Delivered</button>
+                <button class="${getBtnClass('completed')}" ${isDisabled('completed')?'disabled':''} data-order-id="${order._id}" data-status="completed">Complete & Pay</button>
+                <button class="${getBtnClass('cancelled')}" ${isDisabled('cancelled')?'disabled':''} data-order-id="${order._id}" data-status="cancelled">Cancel</button>
+            `;
+
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-3">
+                    <h3 class="text-2xl font-semibold text-accent-cyan">Order ID: ${order._id}</h3>
+                    ${order.rider ? `<span class="status-badge status-delivered">Rider Assigned</span>` : ''}
+                </div>
+                <p class="text-light-gray mb-1"><strong>User:</strong> ${user.firstName||'N/A'} ${user.lastName||''} (<span class="text-accent-cyan">${user.email||'N/A'}</span>)</p>
+                <p class="text-light-gray mb-1"><strong>Phone:</strong> ${user.phoneNumber||'N/A'}</p>
+                <p class="text-light-gray mb-1"><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'})}</p>
+                <p class="text-light-gray mb-1"><strong>Paid:</strong> <span class="font-bold ${order.isPaid?'text-green-400':'text-red-400'}">${order.isPaid?'Yes':'No'}</span></p>
+                ${rider ? `<p class="text-light-gray mb-1"><strong>Rider:</strong> ${order.riderName || 'Assigned'} (${order.riderPhone || 'No phone'})</p>` : ''}
+                
+                <!-- Payout Information Box -->
+                ${order.mainOrderStatus === 'delivered' || order.mainOrderStatus === 'completed' ? `
+                <div class="${order.mainOrderStatus === 'delivered' ? 'bg-yellow-900 bg-opacity-30' : 'bg-green-900 bg-opacity-30'} p-4 rounded-lg my-4 border ${order.mainOrderStatus === 'delivered' ? 'border-yellow-700' : 'border-green-700'}">
+                    <h4 class="font-bold ${order.mainOrderStatus === 'delivered' ? 'text-yellow-300' : 'text-green-300'} mb-2">
+                        ${order.mainOrderStatus === 'delivered' ? '💰 READY FOR PAYOUT' : '✅ PAYOUT COMPLETED'}
+                    </h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-300">Total Vendor Payout:</p>
+                            <p class="text-xl font-bold ${order.mainOrderStatus === 'delivered' ? 'text-yellow-300' : 'text-green-300'}">₦${totalVendorPayout.toFixed(2)}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-300">Total Rider Payout:</p>
+                            <p class="text-xl font-bold ${order.mainOrderStatus === 'delivered' ? 'text-yellow-300' : 'text-green-300'}">₦${totalRiderPayout.toFixed(2)}</p>
+                        </div>
+                    </div>
+                    ${order.mainOrderStatus === 'delivered' ? `
+                    <p class="text-xs text-yellow-200 mt-2">Click "Complete & Pay" to process payouts to vendor(s) and rider simultaneously.</p>
+                    ` : `
+                    <p class="text-xs text-green-200 mt-2">Payouts completed on ${order.vendorPaidAt ? new Date(order.vendorPaidAt).toLocaleString() : new Date(order.deliveredAt).toLocaleString()}</p>
+                    `}
+                </div>
+                ` : ''}
+                
+                <div class="mb-2"><strong>Status:</strong> <span class="font-bold text-lg ${order.mainOrderStatus === 'delivered' ? 'text-yellow-400' : order.mainOrderStatus === 'completed' ? 'text-green-400' : 'text-blue-400'}">${order.mainOrderStatus || 'N/A'}</span></div>
+                <div class="mb-4">
+                    <strong>Shipping Address:</strong><br>
+                    <span class="text-light-gray">${shipping.address||'N/A'}, ${shipping.city||'N/A'}, ${shipping.postalCode||'N/A'}, ${shipping.country||'N/A'}</span>
+                </div>
+                <p class="text-light-slate text-xl font-bold mb-2">🛒 Items & Shipments:</p>
+                <ul class="list-none mb-6">${itemsHtml}</ul>
+                <div class="border-t border-gray-700 pt-4">
+                    <h4 class="text-light-slate font-semibold mb-2">Update Status:</h4>
+                    <div class="flex flex-wrap gap-2">${btns}</div>
+                    <p class="text-xs text-light-gray mt-2">
+                        • Enabled buttons follow valid order flow.<br>
+                        • <strong class="text-yellow-400">"Mark Delivered"</strong> = Physical delivery confirmed.<br>
+                        • <strong class="text-green-400">"Complete & Pay"</strong> = Process payouts to vendor(s) and rider simultaneously (150/km).<br>
+                        • All payouts happen at once when status is changed to "completed".
+                    </p>
+                </div>
+            `;
+            
+            ordersList.appendChild(card);
+        });
+
+        document.querySelectorAll('.status-btn:not(.btn-current):not(.btn-disabled)').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const orderId = btn.dataset.orderId;
+                const newStatus = btn.dataset.status;
+                const container = btn.closest('.flex.flex-wrap.gap-2');
+                const siblings = container?.querySelectorAll('.status-btn') || [];
+
+                siblings.forEach(b => b.disabled = true);
+
+                try {
+                    const res = await fetch(`${BASE_URL}/api/orders/${orderId}/status`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${adminToken}`
+                        },
+                        body: JSON.stringify({ status: newStatus })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        if (newStatus === 'completed') {
+                            displayMessage(`✅ Order completed! Vendors and rider have been paid simultaneously.`, 'success');
+                        } else {
+                            displayMessage(`Status updated to ${newStatus.toUpperCase()}`, 'success');
+                        }
+                        fetchOrders();
+                    } else {
+                        displayMessage(data.message || 'Update failed', 'error');
+                        siblings.forEach(b => b.disabled = false);
+                    }
+                } catch (err) {
+                    displayMessage(`Network error`, 'error');
                     siblings.forEach(b => b.disabled = false);
                 }
-            } catch (err) {
-                displayMessage(`Network error`, 'error');
-                siblings.forEach(b => b.disabled = false);
-            }
+            });
         });
-    });
-}
+    }
    
     // ──────────────────────────────────────────────
     // Disputes – collapsible
@@ -904,6 +1386,243 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ──────────────────────────────────────────────
+    // Withdrawals Management
+    // ──────────────────────────────────────────────
+    async function fetchPendingWithdrawals() {
+        if (!adminToken) {
+            withdrawalsList.innerHTML = '<p class="text-center text-red-500">Please login to view withdrawals.</p>';
+            return;
+        }
+        withdrawalsList.innerHTML = '<p class="text-center text-light-gray">Loading withdrawal requests...</p>';
+        try {
+            // Fetch vendor withdrawals
+            const vendorRes = await fetch(`${BASE_URL}/api/admin/vendors/withdrawals`, {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            
+            // Fetch rider withdrawals
+            const riderRes = await fetch(`${BASE_URL}/api/admin/riders/withdrawals`, {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            
+            let vendorWithdrawals = [];
+            let riderWithdrawals = [];
+            
+            if (vendorRes.ok) {
+                const data = await vendorRes.json();
+                vendorWithdrawals = data.map(w => ({ ...w, type: 'vendor' }));
+            }
+            
+            if (riderRes.ok) {
+                const data = await riderRes.json();
+                riderWithdrawals = data.map(w => ({ ...w, type: 'rider' }));
+            }
+            
+            allWithdrawals = [...vendorWithdrawals, ...riderWithdrawals];
+            
+            // Calculate totals
+            const pendingWithdrawals = allWithdrawals.filter(w => w.status === 'pending');
+            const totalPending = pendingWithdrawals.reduce((sum, w) => sum + (w.amount || 0), 0);
+            
+            withdrawalCountBadge.textContent = pendingWithdrawals.length;
+            withdrawalTotalDisplay.textContent = `Total Pending: ₦${totalPending.toFixed(2)}`;
+            
+            renderWithdrawals(allWithdrawals);
+            
+        } catch (err) {
+            withdrawalsList.innerHTML = `<p class="text-center text-red-500">Network error: ${err.message}</p>`;
+        }
+    }
+
+    function renderWithdrawals(withdrawals) {
+        withdrawalsList.innerHTML = '';
+        
+        // Apply filter
+        let filteredWithdrawals = withdrawals;
+        if (currentWithdrawalFilter !== 'all') {
+            if (currentWithdrawalFilter === 'vendor' || currentWithdrawalFilter === 'rider') {
+                filteredWithdrawals = withdrawals.filter(w => w.type === currentWithdrawalFilter);
+            } else {
+                filteredWithdrawals = withdrawals.filter(w => w.status === currentWithdrawalFilter);
+            }
+        }
+        
+        if (!filteredWithdrawals.length) {
+            withdrawalsList.innerHTML = '<p class="text-center text-light-gray">No withdrawal requests matching filter.</p>';
+            return;
+        }
+        
+        filteredWithdrawals.forEach(w => {
+            const card = document.createElement('div');
+            card.className = `card p-5 ${w.status === 'pending' ? 'pending-payout-card' : 'payout-card'}`;
+            
+            const userType = w.type === 'vendor' ? 'Vendor' : 'Rider';
+            const userIcon = w.type === 'vendor' ? '🏪' : '🏍️';
+            
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="text-xl font-semibold text-accent-cyan">${userIcon} ${userType} Withdrawal</h3>
+                        <p class="text-sm text-gray-400">Reference: ${w.reference || 'N/A'}</p>
+                    </div>
+                    <span class="status-badge ${w.status === 'pending' ? 'status-pending' : w.status === 'completed' ? 'status-approved' : 'status-rejected'}">
+                        ${w.status}
+                    </span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <p class="text-sm text-gray-400">Amount</p>
+                        <p class="text-2xl font-bold ${w.status === 'pending' ? 'text-yellow-400' : 'text-green-400'}">₦${w.amount?.toFixed(2) || '0.00'}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-400">User</p>
+                        <p class="font-semibold">${w.userName || w.fullName || 'N/A'}</p>
+                        <p class="text-xs text-gray-400">${w.email || 'N/A'}</p>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-900 bg-opacity-50 p-3 rounded mb-4">
+                    <p class="text-sm font-semibold text-gray-300 mb-2">Payment Details</p>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                            <p class="text-gray-400">Method</p>
+                            <p>${w.paymentMethod || 'Bank Transfer'}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-400">Bank</p>
+                            <p>${w.accountDetails?.bankName || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-400">Account No.</p>
+                            <p>${w.accountDetails?.accountNumber || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-400">Account Name</p>
+                            <p>${w.accountDetails?.accountName || 'N/A'}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center text-sm text-gray-400">
+                    <div>
+                        <p>Requested: ${new Date(w.createdAt).toLocaleString()}</p>
+                        ${w.completedAt ? `<p>Processed: ${new Date(w.completedAt).toLocaleString()}</p>` : ''}
+                    </div>
+                    <div class="flex gap-2">
+                        ${w.status === 'pending' ? `
+                            <button class="btn btn-success px-4 py-2 text-sm process-withdrawal-btn" 
+                                data-id="${w._id || w.reference}" 
+                                data-type="${w.type}"
+                                data-amount="${w.amount}">
+                                Process
+                            </button>
+                            <button class="btn btn-danger px-4 py-2 text-sm reject-withdrawal-btn" 
+                                data-id="${w._id || w.reference}"
+                                data-type="${w.type}">
+                                Reject
+                            </button>
+                        ` : ''}
+                        ${w.status === 'completed' ? `
+                            <button class="btn btn-primary-alt px-4 py-2 text-sm" disabled>
+                                ✅ Processed
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            withdrawalsList.appendChild(card);
+        });
+        
+        // Add event listeners
+        document.querySelectorAll('.process-withdrawal-btn').forEach(btn => {
+            btn.addEventListener('click', () => processWithdrawal(
+                btn.dataset.id, 
+                btn.dataset.type, 
+                parseFloat(btn.dataset.amount)
+            ));
+        });
+        
+        document.querySelectorAll('.reject-withdrawal-btn').forEach(btn => {
+            btn.addEventListener('click', () => rejectWithdrawal(btn.dataset.id, btn.dataset.type));
+        });
+        
+        // Add withdrawal filter listeners
+        document.querySelectorAll('.withdrawal-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentWithdrawalFilter = btn.dataset.type;
+                document.querySelectorAll('.withdrawal-filter-btn').forEach(b => {
+                    b.classList.remove('bg-accent-cyan', 'text-primary-blue');
+                    b.classList.add('btn-primary-alt');
+                });
+                btn.classList.remove('btn-primary-alt');
+                btn.classList.add('bg-accent-cyan', 'text-primary-blue');
+                renderWithdrawals(allWithdrawals);
+            });
+        });
+    }
+
+    async function processWithdrawal(withdrawalId, userType, amount) {
+        if (!confirm(`Process withdrawal of ₦${amount.toFixed(2)} for this ${userType}?`)) return;
+        
+        try {
+            const endpoint = userType === 'vendor' 
+                ? `${BASE_URL}/api/admin/vendors/withdrawals/${withdrawalId}/process`
+                : `${BASE_URL}/api/admin/riders/withdrawals/${withdrawalId}/process`;
+            
+            const res = await fetch(endpoint, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify({ status: 'completed' })
+            });
+            
+            const data = await res.json();
+            if (res.ok) {
+                displayMessage(`Withdrawal processed successfully! ₦${amount.toFixed(2)} sent.`, 'success');
+                fetchPendingWithdrawals();
+            } else {
+                displayMessage(data.message || 'Failed to process withdrawal', 'error');
+            }
+        } catch (err) {
+            displayMessage(`Error: ${err.message}`, 'error');
+        }
+    }
+
+    async function rejectWithdrawal(withdrawalId, userType) {
+        const reason = prompt('Enter reason for rejection:');
+        if (!reason) return;
+        
+        try {
+            const endpoint = userType === 'vendor' 
+                ? `${BASE_URL}/api/admin/vendors/withdrawals/${withdrawalId}/reject`
+                : `${BASE_URL}/api/admin/riders/withdrawals/${withdrawalId}/reject`;
+            
+            const res = await fetch(endpoint, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify({ status: 'failed', reason })
+            });
+            
+            const data = await res.json();
+            if (res.ok) {
+                displayMessage(`Withdrawal rejected.`, 'success');
+                fetchPendingWithdrawals();
+            } else {
+                displayMessage(data.message || 'Failed to reject withdrawal', 'error');
+            }
+        } catch (err) {
+            displayMessage(`Error: ${err.message}`, 'error');
+        }
+    }
+
+    // ──────────────────────────────────────────────
     // Login & auto-load token
     // ──────────────────────────────────────────────
     loginAdminBtn.addEventListener('click', async () => {
@@ -923,6 +1642,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('admin_jwt_token', data.token);
                 displayMessage('Logged in successfully', 'success');
                 adminEmailInput.value = adminPasswordInput.value = '';
+                
+                // Initialize socket connection
+                initializeSocket();
+                
+                // Load initial data
                 fetchPendingVendorRequests();
             } else {
                 displayMessage(data.message || 'Login failed', 'error');
@@ -936,50 +1660,72 @@ document.addEventListener('DOMContentLoaded', () => {
     if (storedToken) {
         adminToken = storedToken;
         displayMessage('Session restored', 'success');
+        initializeSocket();
         fetchPendingVendorRequests();
     }
 
-            // ──────────────────────────────────────────────
-        // Green Button Toggles + lazy load
-        // ──────────────────────────────────────────────
-        document.getElementById('toggleRidersBtn').addEventListener('click', () => {
-            const section = document.getElementById('ridersSection');
-            section.classList.toggle('hidden');
-            
-            // Hide other sections when one is opened
-            document.getElementById('ordersSection').classList.add('hidden');
-            document.getElementById('disputesSection').classList.add('hidden');
-            
-            if (!section.classList.contains('hidden') && riderApplicantsList.children.length < 2) {
-                fetchRiderApplicants();
-            }
-        });
+    // ──────────────────────────────────────────────
+    // Green Button Toggles + lazy load
+    // ──────────────────────────────────────────────
+    document.getElementById('toggleRidersBtn').addEventListener('click', () => {
+        const section = document.getElementById('ridersSection');
+        section.classList.toggle('hidden');
+        
+        // Hide other sections when one is opened
+        document.getElementById('ordersSection').classList.add('hidden');
+        document.getElementById('disputesSection').classList.add('hidden');
+        document.getElementById('withdrawalsSection').classList.add('hidden');
+        
+        if (!section.classList.contains('hidden') && riderApplicantsList.children.length < 2) {
+            fetchRiderApplicants();
+        }
+    });
 
-        document.getElementById('toggleOrdersBtn').addEventListener('click', () => {
-            const section = document.getElementById('ordersSection');
-            section.classList.toggle('hidden');
-            
-            // Hide other sections when one is opened
-            document.getElementById('ridersSection').classList.add('hidden');
-            document.getElementById('disputesSection').classList.add('hidden');
-            
-            if (!section.classList.contains('hidden') && allOrders.length === 0) {
-                fetchOrders();
-            }
-        });
+    document.getElementById('toggleOrdersBtn').addEventListener('click', () => {
+        const section = document.getElementById('ordersSection');
+        section.classList.toggle('hidden');
+        
+        // Hide other sections when one is opened
+        document.getElementById('ridersSection').classList.add('hidden');
+        document.getElementById('disputesSection').classList.add('hidden');
+        document.getElementById('withdrawalsSection').classList.add('hidden');
+        
+        if (!section.classList.contains('hidden') && allOrders.length === 0) {
+            fetchOrders();
+        }
+    });
 
-        document.getElementById('toggleDisputesBtn').addEventListener('click', () => {
-            const section = document.getElementById('disputesSection');
-            section.classList.toggle('hidden');
-            
-            // Hide other sections when one is opened
-            document.getElementById('ridersSection').classList.add('hidden');
-            document.getElementById('ordersSection').classList.add('hidden');
-            
-            if (!section.classList.contains('hidden') && disputesList.children.length < 2) {
-                fetchDisputes();
-            }
-        });
+    document.getElementById('toggleDisputesBtn').addEventListener('click', () => {
+        const section = document.getElementById('disputesSection');
+        section.classList.toggle('hidden');
+        
+        // Hide other sections when one is opened
+        document.getElementById('ridersSection').classList.add('hidden');
+        document.getElementById('ordersSection').classList.add('hidden');
+        document.getElementById('withdrawalsSection').classList.add('hidden');
+        
+        if (!section.classList.contains('hidden') && disputesList.children.length < 2) {
+            fetchDisputes();
+        }
+    });
+
+    document.getElementById('toggleWithdrawalsBtn').addEventListener('click', () => {
+        const section = document.getElementById('withdrawalsSection');
+        section.classList.toggle('hidden');
+        
+        // Hide other sections when one is opened
+        document.getElementById('ridersSection').classList.add('hidden');
+        document.getElementById('ordersSection').classList.add('hidden');
+        document.getElementById('disputesSection').classList.add('hidden');
+        
+        if (!section.classList.contains('hidden')) {
+            fetchPendingWithdrawals();
+        }
+    });
+
+    // Refresh buttons
+    refreshRidersBtn?.addEventListener('click', fetchRiderApplicants);
+    refreshWithdrawalsBtn?.addEventListener('click', fetchPendingWithdrawals);
 
     // Filter change
     orderFilterDropdown?.addEventListener('change', e => {
@@ -988,6 +1734,20 @@ document.addEventListener('DOMContentLoaded', () => {
             renderOrders(applyFilter(allOrders));
         }
     });
+
+    // Helper function to calculate distance (same as backend)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Radius of the Earth in kilometers
+        const dLat = (lat2 - lat1) * (Math.PI / 180);
+        const dLon = (lon2 - lon1) * (Math.PI / 180);
+        const a = 
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = R * c; // Distance in km
+        return parseFloat(distance.toFixed(2));
+    }
 
 });
 </script>
