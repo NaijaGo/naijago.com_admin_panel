@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NaijaGo Admin Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <style>
+        :root {
+            --primary-blue: #0A192F;
+            --secondary-blue: #1C2B47;
+            --accent-cyan: #64FFDA;
+            --light-slate: #CCD6F6;
+            --light-gray: #A8B2D1;
+            --red-pastel: #F87171;
+            --green-pastel: #34D399;
+            --yellow-pastel: #FBBF24;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background:
+                radial-gradient(circle at top, rgba(100, 255, 218, 0.12), transparent 32%),
+                linear-gradient(135deg, #09111f 0%, #10233f 55%, #0A192F 100%);
+            color: var(--light-slate);
+            min-height: 100vh;
+        }
+
+        .login-shell {
+            width: min(1040px, 100%);
+            margin: 0 auto;
+        }
+
+        .card {
+            background-color: rgba(28, 43, 71, 0.94);
+            border: 1px solid rgba(100, 255, 218, 0.18);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(14px);
+        }
+
+        .input-field {
+            width: 100%;
+            background-color: rgba(10, 25, 47, 0.88);
+            border: 1px solid rgba(100, 255, 218, 0.28);
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: var(--light-slate);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.14);
+        }
+
+        .input-field::placeholder {
+            color: var(--light-gray);
+        }
+
+        .btn {
+            width: 100%;
+            border: none;
+            border-radius: 12px;
+            padding: 14px 18px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: wait;
+            transform: none;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-cyan);
+            color: var(--primary-blue);
+        }
+
+        .message {
+            padding: 14px 16px;
+            border-radius: 14px;
+            font-weight: 500;
+        }
+
+        .message.success {
+            background-color: rgba(52, 211, 153, 0.14);
+            color: var(--green-pastel);
+        }
+
+        .message.error {
+            background-color: rgba(248, 113, 113, 0.14);
+            color: var(--red-pastel);
+        }
+
+        .message.warning {
+            background-color: rgba(251, 191, 36, 0.14);
+            color: var(--yellow-pastel);
+        }
+
+        .accent-line {
+            width: 96px;
+            height: 4px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(100, 255, 218, 0.15), var(--accent-cyan));
+        }
+    </style>
+</head>
+<body class="px-6 py-10 md:px-10 md:py-14">
+    <main class="login-shell grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+        <section class="space-y-6">
+            <p class="text-sm font-semibold uppercase tracking-[0.35em] text-cyan-300">NaijaGo Admin Access</p>
+            <h1 class="text-5xl font-black leading-tight md:text-6xl">
+                Separate login,
+                <span class="text-cyan-300">dedicated panel.</span>
+            </h1>
+            <div class="accent-line"></div>
+            <p class="max-w-2xl text-lg leading-8 text-slate-300">
+                The admin workspace is now split into a dedicated sign-in screen and a protected dashboard. Sign in here to continue to the panel.
+            </p>
+            <div class="grid gap-4 sm:grid-cols-3">
+                <div class="card p-5">
+                    <p class="text-sm uppercase tracking-[0.25em] text-cyan-300">Secure Entry</p>
+                    <p class="mt-3 text-sm text-slate-300">Only authenticated admins are redirected into the dashboard.</p>
+                </div>
+                <div class="card p-5">
+                    <p class="text-sm uppercase tracking-[0.25em] text-cyan-300">Cleaner UX</p>
+                    <p class="mt-3 text-sm text-slate-300">Auth is no longer mixed into vendor, order, dispute, and payout management.</p>
+                </div>
+                <div class="card p-5">
+                    <p class="text-sm uppercase tracking-[0.25em] text-cyan-300">Fast Return</p>
+                    <p class="mt-3 text-sm text-slate-300">Existing sessions skip this page and go straight to the panel.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="card p-8 md:p-10">
+            <div class="mb-8">
+                <p class="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-300">Admin Login</p>
+                <h2 class="mt-3 text-3xl font-extrabold">Sign in to NaijaGo</h2>
+                <p class="mt-3 text-sm leading-6 text-slate-300">
+                    Use your admin account to open the control panel.
+                </p>
+            </div>
+
+            <div id="messageContainer" class="mb-6"></div>
+
+            <form id="adminLoginForm" class="space-y-5">
+                <div>
+                    <label for="adminEmail" class="mb-2 block text-sm font-semibold text-slate-300">Admin Email</label>
+                    <input type="email" id="adminEmail" class="input-field" placeholder="Enter admin email" autocomplete="email" />
+                </div>
+
+                <div>
+                    <label for="adminPassword" class="mb-2 block text-sm font-semibold text-slate-300">Admin Password</label>
+                    <input type="password" id="adminPassword" class="input-field" placeholder="Enter admin password" autocomplete="current-password" />
+                </div>
+
+                <button id="loginAdminBtn" type="submit" class="btn btn-primary">Login to Panel</button>
+            </form>
+        </section>
+    </main>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const BASE_URL = 'https://naijago-backend.onrender.com';
+        const PANEL_URL = './index.html';
+
+        if (localStorage.getItem('admin_jwt_token')) {
+            window.location.replace(PANEL_URL);
+            return;
+        }
+
+        const messageContainer = document.getElementById('messageContainer');
+        const adminLoginForm = document.getElementById('adminLoginForm');
+        const adminEmailInput = document.getElementById('adminEmail');
+        const adminPasswordInput = document.getElementById('adminPassword');
+        const loginAdminBtn = document.getElementById('loginAdminBtn');
+        const reason = new URLSearchParams(window.location.search).get('reason');
+
+        function displayMessage(message, type) {
+            if (!messageContainer) return;
+            messageContainer.innerHTML = `<div class="message ${type}">${message}</div>`;
+        }
+
+        if (reason === 'logout') {
+            displayMessage('You have been logged out successfully.', 'success');
+        } else if (reason === 'expired') {
+            displayMessage('Your admin session expired. Please sign in again.', 'warning');
+        }
+
+        adminLoginForm?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const email = adminEmailInput.value.trim();
+            const password = adminPasswordInput.value.trim();
+
+            if (!email || !password) {
+                displayMessage('Email and password are required.', 'error');
+                return;
+            }
+
+            loginAdminBtn.disabled = true;
+            loginAdminBtn.textContent = 'Signing in...';
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, deviceFingerprint: 'web-admin' })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    displayMessage(data.message || 'Login failed. Please try again.', 'error');
+                    return;
+                }
+
+                localStorage.setItem('admin_jwt_token', data.token);
+                displayMessage('Login successful. Redirecting to panel...', 'success');
+                adminLoginForm.reset();
+                setTimeout(() => window.location.replace(PANEL_URL), 500);
+            } catch (error) {
+                displayMessage(`Network error: ${error.message}`, 'error');
+            } finally {
+                loginAdminBtn.disabled = false;
+                loginAdminBtn.textContent = 'Login to Panel';
+            }
+        });
+    });
+    </script>
+</body>
+</html>

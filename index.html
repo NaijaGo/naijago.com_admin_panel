@@ -1,0 +1,2171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NaijaGo Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <!-- Using local Tailwind CSS to avoid CDN warning -->
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        /* ────────────────────────────────────────────── */
+        /* Your complete original styles – unchanged      */
+        /* ────────────────────────────────────────────── */
+        :root {
+            --primary-blue: #0A192F;
+            --secondary-blue: #1C2B47;
+            --accent-cyan: #64FFDA;
+            --light-slate: #CCD6F6;
+            --light-gray: #A8B2D1;
+            --red-pastel: #F87171;
+            --green-pastel: #34D399;
+            --yellow-pastel: #FBBF24;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--primary-blue);
+            color: var(--light-slate);
+            transition: background-color 0.5s ease-in-out;
+        }
+
+        .container {
+            max-width: 1200px;
+            background-color: var(--secondary-blue);
+            padding: 3rem 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            animation: fade-in 1s ease-in-out;
+        }
+
+        .card {
+            background-color: var(--primary-blue);
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn {
+            font-weight: 600;
+            border-radius: 8px;
+            transition: transform 0.2s ease, background-color 0.3s ease;
+            text-transform: uppercase;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background-color: var(--accent-cyan);
+            color: var(--primary-blue);
+        }
+        .btn-primary:hover {
+            background-color: #52e3c3;
+        }
+
+        .btn-success {
+            background-color: var(--green-pastel);
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #27c181;
+        }
+
+        .btn-warning {
+            background-color: var(--yellow-pastel);
+            color: white;
+        }
+        .btn-warning:hover {
+            background-color: #f59e0b;
+        }
+
+        .btn-danger {
+            background-color: var(--red-pastel);
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #e45b5b;
+        }
+
+        .btn-shipped, .btn-delivered, .btn-resolved {
+            border-radius: 20px;
+            font-weight: 500;
+            padding: 8px 20px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .btn-shipped { background-color: #3b82f6; }
+        .btn-delivered, .btn-resolved { background-color: #10b981; }
+
+        .btn-shipped:hover:not(:disabled) { background-color: #2563eb; }
+        .btn-delivered:hover:not(:disabled), .btn-resolved:hover:not(:disabled) { background-color: #059669; }
+
+        .btn-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .input-field {
+            background-color: var(--secondary-blue);
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: var(--light-slate);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 2px rgba(100, 255, 218, 0.2);
+        }
+        .input-field::placeholder {
+            color: var(--light-gray);
+        }
+
+        #orderFilterDropdown {
+            appearance: none;
+            background-color: var(--primary-blue);
+            border: 1px solid var(--accent-cyan);
+            color: var(--light-slate);
+            padding: 10px 30px 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            outline: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364FFDA' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            transition: border-color 0.3s;
+        }
+        #orderFilterDropdown:hover {
+            border-color: #52e3c3;
+        }
+
+        .message {
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 1.5rem;
+            font-weight: 500;
+            animation: slide-down 0.5s ease-out;
+        }
+        .message.success {
+            background-color: rgba(52, 211, 153, 0.2);
+            color: var(--green-pastel);
+        }
+        .message.error {
+            background-color: rgba(248, 113, 129, 0.2);
+            color: var(--red-pastel);
+        }
+        .message.warning {
+            background-color: rgba(251, 191, 36, 0.2);
+            color: var(--yellow-pastel);
+        }
+
+        .order-card, .dispute-card, .request-card, .rider-card {
+            margin-bottom: 2rem;
+            padding: 2rem;
+        }
+
+        .space-y-6 > * + * { margin-top: 1.5rem; }
+        .space-y-8 > * + * { margin-top: 2rem; }
+
+        .chat-container {
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: rgba(100, 255, 218, 0.05);
+            margin-bottom: 1.5rem;
+        }
+        .chat-message {
+            margin-bottom: 12px;
+            padding: 10px 16px;
+            border-radius: 16px;
+            max-width: 80%;
+            word-wrap: break-word;
+            animation: slide-in 0.4s ease-out;
+        }
+        .chat-message.admin {
+            background-color: #3b82f6;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-message.user {
+            background-color: #4B5563;
+            color: white;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+        .dispute-attachments img {
+            max-width: 150px;
+            border-radius: 8px;
+            margin-right: 12px;
+            margin-bottom: 12px;
+            transition: transform 0.3s ease;
+        }
+        .dispute-attachments img:hover {
+            transform: scale(1.05);
+        }
+
+        .status-btn {
+            transition: all 0.2s;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+        .status-btn:hover:not(:disabled) {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-primary-alt { background-color: #2c5282; color: #edf2f7; }
+        .btn-success { background-color: #38a169; color: white; }
+        .btn-warning { background-color: #d97706; color: white; }
+        .btn-danger { background-color: #e53e3e; color: white; }
+        .btn-disabled {
+            background-color: #4a5568 !important;
+            color: #a0aec0 !important;
+            cursor: not-allowed !important;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        .btn-current {
+            background-color: #4299e1;
+            color: white;
+            font-weight: bold;
+            border: 2px solid #63b3ed;
+            cursor: default;
+        }
+        .btn-current:hover { transform: none; }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .shimmer-text {
+            background: linear-gradient(90deg, #1C2B47, #3b82f6, #1C2B47);
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 3s infinite linear;
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slide-down {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slide-in {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track {
+            background: var(--secondary-blue);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-cyan);
+            border-radius: 10px;
+        }
+
+        /* Accordion header style */
+        .accordion-header {
+            cursor: pointer;
+            user-select: none;
+        }
+        .accordion-header::after {
+            content: '▼';
+            float: right;
+            transition: transform 0.3s;
+        }
+        .accordion-header.active::after {
+            transform: rotate(180deg);
+        }
+
+        /* Rider status badges */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .status-pending { background-color: #fbbf24; color: #78350f; }
+        .status-approved { background-color: #10b981; color: #064e3b; }
+        .status-rejected { background-color: #ef4444; color: #7f1d1d; }
+        .status-suspended { background-color: #6b7280; color: #111827; }
+        .status-delivered { background-color: #3b82f6; color: #1e40af; }
+        .status-completed { background-color: #8b5cf6; color: #5b21b6; }
+        
+        /* Payout card */
+        .payout-card {
+            border-left: 4px solid #10b981;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), transparent);
+        }
+        .pending-payout-card {
+            border-left: 4px solid #fbbf24;
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), transparent);
+        }
+        
+        /* Real-time tracking */
+        .tracking-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .tracking-active { background-color: #10b981; box-shadow: 0 0 10px #10b981; }
+        .tracking-inactive { background-color: #6b7280; }
+        .tracking-moving { background-color: #3b82f6; box-shadow: 0 0 10px #3b82f6; animation: pulse 2s infinite; }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        
+        /* Animation for notifications */
+        .animate-slide-in {
+            animation: slide-in 0.5s ease-out;
+        }
+
+        .analytics-card {
+            position: relative;
+            overflow: hidden;
+        }
+        .analytics-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(100, 255, 218, 0.08), transparent 60%);
+            pointer-events: none;
+        }
+        .analytics-card > * {
+            position: relative;
+        }
+        .analytics-value {
+            font-size: clamp(1.9rem, 2.8vw, 2.6rem);
+            line-height: 1;
+            font-weight: 800;
+        }
+        .analytics-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .analytics-pill.high {
+            background-color: rgba(248, 113, 113, 0.14);
+            color: #fca5a5;
+        }
+        .analytics-pill.medium {
+            background-color: rgba(251, 191, 36, 0.14);
+            color: #fcd34d;
+        }
+        .analytics-pill.good {
+            background-color: rgba(52, 211, 153, 0.14);
+            color: #6ee7b7;
+        }
+        .analytics-track {
+            width: 100%;
+            height: 10px;
+            border-radius: 999px;
+            background-color: rgba(255, 255, 255, 0.06);
+            overflow: hidden;
+        }
+        .analytics-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(100, 255, 218, 0.45), rgba(59, 130, 246, 0.95));
+        }
+        .analytics-group + .analytics-group {
+            margin-top: 1.75rem;
+            padding-top: 1.75rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .insight-item {
+            border-left: 3px solid transparent;
+            background-color: rgba(10, 25, 47, 0.65);
+        }
+        .insight-item.high {
+            border-left-color: var(--red-pastel);
+        }
+        .insight-item.medium {
+            border-left-color: var(--yellow-pastel);
+        }
+        .insight-item.good {
+            border-left-color: var(--green-pastel);
+        }
+    </style>
+</head>
+<body class="p-8">
+
+<div class="container mx-auto">
+
+    <div class="flex flex-col gap-6 mb-10 md:flex-row md:items-center md:justify-between">
+        <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.35em] text-accent-cyan mb-2">Protected Admin Workspace</p>
+            <h1 class="text-5xl font-extrabold text-light-slate shimmer-text">
+                NaijaGo Admin Panel
+            </h1>
+            <p class="text-light-gray mt-3 max-w-2xl">
+                Authenticated admin tools now live on a dedicated panel page. Use the logout action when you are done managing the platform.
+            </p>
+        </div>
+        <button id="logoutAdminBtn" class="btn btn-danger px-6 py-3 rounded-lg text-sm self-start md:self-auto">
+            Logout
+        </button>
+    </div>
+
+    <div class="bg-blue-800 bg-opacity-30 border-l-4 border-accent-cyan text-light-slate p-5 rounded-lg mb-8" role="alert">
+        <p class="font-bold">Admin Session</p>
+        <p class="text-sm">This page is reserved for signed-in administrators and automatically redirects guests to the dedicated login page.</p>
+    </div>
+
+    <div id="messageContainer" class="mb-4"></div>
+
+    <div class="mb-16">
+        <div class="flex flex-col gap-4 mb-8 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.35em] text-accent-cyan mb-2">Decision Support</p>
+                <h2 class="text-4xl font-bold text-light-slate">Operational Analytics</h2>
+                <p class="text-light-gray mt-3 max-w-3xl">
+                    A live snapshot of onboarding, fulfillment, disputes, company health, and payout pressure so the admin team can decide what needs attention first.
+                </p>
+            </div>
+            <button id="refreshAnalyticsBtn" class="btn btn-primary px-6 py-3 rounded-lg text-sm">
+                Refresh Insights
+            </button>
+        </div>
+
+        <div id="analyticsMeta" class="bg-blue-900 bg-opacity-20 border border-cyan-400 border-opacity-20 text-light-gray rounded-xl px-5 py-4 mb-6">
+            Loading the latest decision signals...
+        </div>
+
+        <div id="analyticsCards" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div class="card analytics-card p-6">
+                <p class="text-sm uppercase tracking-[0.25em] text-light-gray">Preparing Overview</p>
+                <p class="analytics-value text-accent-cyan mt-4">--</p>
+                <p class="text-sm text-light-gray mt-3">Fetching operational data for the decision dashboard.</p>
+            </div>
+        </div>
+
+        <div class="grid gap-6 mt-6 xl:grid-cols-[1.2fr_0.8fr]">
+            <div class="card p-6">
+                <div class="flex items-center justify-between gap-4 mb-6">
+                    <div>
+                        <p class="text-sm font-semibold uppercase tracking-[0.3em] text-accent-cyan mb-2">Operational Mix</p>
+                        <h3 class="text-2xl font-bold text-light-slate">Status Breakdown</h3>
+                    </div>
+                    <span class="analytics-pill medium">Live Snapshot</span>
+                </div>
+                <div id="analyticsBreakdown" class="space-y-6">
+                    <p class="text-light-gray">Order, company, dispute, and withdrawal distributions will populate here as data loads.</p>
+                </div>
+            </div>
+
+            <div class="card p-6">
+                <div class="flex items-center justify-between gap-4 mb-6">
+                    <div>
+                        <p class="text-sm font-semibold uppercase tracking-[0.3em] text-accent-cyan mb-2">Decision Signals</p>
+                        <h3 class="text-2xl font-bold text-light-slate">What Needs Action</h3>
+                    </div>
+                    <span id="analyticsPriorityBadge" class="analytics-pill medium">Monitoring</span>
+                </div>
+                <div id="analyticsInsights" class="space-y-4">
+                    <div class="insight-item medium rounded-xl p-4">
+                        <p class="font-semibold text-light-slate">Building your operational brief.</p>
+                        <p class="text-sm text-light-gray mt-2">This section will call out the queues and risks that deserve attention first.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ────────────────────────────────────────────── -->
+    <!-- Pending Vendor Requests – always visible       -->
+    <!-- ────────────────────────────────────────────── -->
+    <h2 class="text-4xl font-bold text-accent-cyan mb-8">Pending Vendor Requests</h2>
+    <div id="pendingRequestsList" class="space-y-8 mb-16">
+        <p class="text-center text-light-gray">Restoring admin session...</p>
+    </div>
+
+    <!-- ────────────────────────────────────────────── -->
+    <!-- Green Action Buttons Section                   -->
+    <!-- ────────────────────────────────────────────── -->
+    <div class="mb-10 flex flex-col md:flex-row gap-4">
+        <button id="toggleCompaniesBtn" class="btn btn-primary flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            Company Management
+        </button>
+        
+        <button id="toggleOrdersBtn" class="btn btn-success flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            See Orders
+        </button>
+        
+        <button id="toggleDisputesBtn" class="btn btn-success flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+            Settle Disputes
+        </button>
+        
+        <button id="toggleWithdrawalsBtn" class="btn btn-warning flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Pending Withdrawals
+            <span id="withdrawalCountBadge" class="text-sm bg-white text-yellow-800 px-3 py-1 rounded-full">0</span>
+        </button>
+    </div>
+
+    <!-- ────────────────────────────────────────────── -->
+    <!-- Companies Section (hidden by default)         -->
+    <!-- ────────────────────────────────────────────── -->
+    <div id="companiesSection" class="hidden mt-6">
+        <div class="mb-6 flex justify-between items-center">
+            <h2 class="text-3xl font-bold text-accent-cyan">Company Management</h2>
+            <div class="flex items-center gap-4">
+                <button id="refreshCompaniesBtn" class="btn btn-primary px-4 py-2 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                </button>
+            </div>
+        </div>
+        
+        <!-- Company Filter -->
+        <div class="mb-6 flex flex-wrap gap-2">
+            <button class="company-filter-btn btn btn-primary-alt px-4 py-2 text-sm" data-status="all">All Companies</button>
+            <button class="company-filter-btn btn px-4 py-2 text-sm status-approved" data-status="active">Active</button>
+            <button class="company-filter-btn btn px-4 py-2 text-sm status-pending" data-status="pending">Pending</button>
+            <button class="company-filter-btn btn px-4 py-2 text-sm status-suspended" data-status="suspended">Suspended</button>
+        </div>
+        
+        <div id="companiesList" class="space-y-6">
+            <p class="text-center text-light-gray">Click "Company Management" to load companies...</p>
+        </div>
+    </div>
+
+    <!-- ────────────────────────────────────────────── -->
+    <!-- Orders Section (hidden by default)             -->
+    <!-- ────────────────────────────────────────────── -->
+    <div id="ordersSection" class="hidden mt-6">
+        <div class="mb-6 flex justify-between items-center">
+            <h2 class="text-3xl font-bold text-accent-cyan">Order Management</h2>
+            <div class="filter-controls flex items-center space-x-3">
+                <label for="orderFilterDropdown" class="text-light-gray font-medium">Filter by Status:</label>
+                <select id="orderFilterDropdown" class="bg-[#1C2B47] border border-accent-cyan text-light-slate px-3 py-2 rounded-lg">
+                    <option value="all">All Orders</option>
+                    <option value="pending_payment">Pending Payment</option>
+                    <option value="processing">Processing</option>
+                    <option value="out_for_delivery">Out for Delivery</option>
+                    <option value="delivered">Delivered (Ready for Payout)</option>
+                    <option value="completed">Completed (Paid)</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+        </div>
+        <div id="ordersList" class="space-y-8">
+            <p class="text-center text-light-gray">Click "See Orders" to load orders...</p>
+        </div>
+    </div>
+
+    <!-- ────────────────────────────────────────────── -->
+    <!-- Disputes Section (hidden by default)           -->
+    <!-- ────────────────────────────────────────────── -->
+    <div id="disputesSection" class="hidden mt-6">
+        <div class="mb-6">
+            <h2 class="text-3xl font-bold text-accent-cyan">Disputes</h2>
+        </div>
+        <div id="disputesList" class="space-y-8">
+            <p class="text-center text-light-gray">Click "Settle Disputes" to load disputes...</p>
+        </div>
+    </div>
+
+    <!-- ────────────────────────────────────────────── -->
+    <!-- Withdrawals Section (hidden by default)        -->
+    <!-- ────────────────────────────────────────────── -->
+    <div id="withdrawalsSection" class="hidden mt-6">
+        <div class="mb-6 flex justify-between items-center">
+            <h2 class="text-3xl font-bold text-accent-cyan">Pending Withdrawals</h2>
+            <div class="flex items-center gap-4">
+                <span id="withdrawalTotalDisplay" class="text-lg text-light-gray">Total Pending: ₦0</span>
+                <button id="refreshWithdrawalsBtn" class="btn btn-primary px-4 py-2 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                </button>
+            </div>
+        </div>
+        
+        <!-- Withdrawal Type Filter -->
+        <div class="mb-6 flex flex-wrap gap-2">
+            <button class="withdrawal-filter-btn btn btn-primary-alt px-4 py-2 text-sm" data-type="all">All Withdrawals</button>
+            <button class="withdrawal-filter-btn btn btn-warning px-4 py-2 text-sm" data-type="pending">Pending</button>
+            <button class="withdrawal-filter-btn btn btn-success px-4 py-2 text-sm" data-type="completed">Completed</button>
+            <button class="withdrawal-filter-btn btn btn-danger px-4 py-2 text-sm" data-type="failed">Failed</button>
+            <button class="withdrawal-filter-btn btn px-4 py-2 text-sm" data-type="vendor">Vendor Withdrawals</button>
+            <button class="withdrawal-filter-btn btn px-4 py-2 text-sm" data-type="rider">Rider Withdrawals</button>
+        </div>
+        
+        <div id="withdrawalsList" class="space-y-6">
+            <p class="text-center text-light-gray">Click "Pending Withdrawals" to load withdrawal requests...</p>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// Wrap everything in DOMContentLoaded for safety
+document.addEventListener('DOMContentLoaded', () => {
+    const BASE_URL = 'https://naijago-backend.onrender.com';
+    //const BASE_URL = 'http://localhost:5000'; 
+
+    let adminToken = '';
+    let currentFilter = 'all';
+    let currentRiderFilter = 'all';
+    let currentWithdrawalFilter = 'all';
+    let currentCompanyFilter = 'all';
+    let allOrders = [];
+    let allRiders = [];
+    let allWithdrawals = [];
+    let allCompanies = [];
+    let allDisputes = [];
+    let pendingVendorRequests = [];
+    let isAnalyticsRefreshing = false;
+    let analyticsLastUpdated = null;
+
+    // DOM Elements - only get those that exist
+    const messageContainer     = document.getElementById('messageContainer');
+    const pendingRequestsList  = document.getElementById('pendingRequestsList');
+    const logoutAdminBtn       = document.getElementById('logoutAdminBtn');
+    const analyticsCards       = document.getElementById('analyticsCards');
+    const analyticsBreakdown   = document.getElementById('analyticsBreakdown');
+    const analyticsInsights    = document.getElementById('analyticsInsights');
+    const analyticsMeta        = document.getElementById('analyticsMeta');
+    const analyticsPriorityBadge = document.getElementById('analyticsPriorityBadge');
+    const refreshAnalyticsBtn  = document.getElementById('refreshAnalyticsBtn');
+
+    const ordersList           = document.getElementById('ordersList');
+    const orderFilterDropdown  = document.getElementById('orderFilterDropdown');
+
+    const disputesList         = document.getElementById('disputesList');
+
+    const withdrawalsList      = document.getElementById('withdrawalsList');
+    const withdrawalCountBadge = document.getElementById('withdrawalCountBadge');
+    const withdrawalTotalDisplay = document.getElementById('withdrawalTotalDisplay');
+    const refreshWithdrawalsBtn = document.getElementById('refreshWithdrawalsBtn');
+    const storedToken = localStorage.getItem('admin_jwt_token');
+
+    if (!storedToken) {
+        redirectToLogin();
+        return;
+    }
+
+    adminToken = storedToken;
+
+    // Initialize Socket.io connection for real-time updates
+    let socket = null;
+    function initializeSocket() {
+        if (!adminToken) return;
+        
+        socket = io(BASE_URL, {
+            auth: { token: adminToken },
+            transports: ['websocket', 'polling']
+        });
+
+        socket.on('connect', () => {
+            console.log('Connected to real-time server');
+        });
+
+        socket.on('admin_notification', (data) => {
+            showRealTimeNotification(data);
+        });
+
+        socket.on('rider_location_update', (data) => {
+            updateRiderLocationOnMap(data);
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from real-time server');
+        });
+    }
+
+    function showRealTimeNotification(data) {
+        const notificationDiv = document.createElement('div');
+        notificationDiv.className = 'fixed top-4 right-4 z-50 card p-4 max-w-sm animate-slide-in';
+        notificationDiv.style.minWidth = '300px';
+        
+        let icon = '📢';
+        let bgColor = 'bg-blue-900';
+        if (data.type === 'order_ready_for_completion') {
+            icon = '💰';
+            bgColor = 'bg-green-900';
+        } else if (data.type === 'rider_withdrawal_request') {
+            icon = '🏧';
+            bgColor = 'bg-yellow-900';
+        } else if (data.type === 'delivery_cancelled') {
+            icon = '❌';
+            bgColor = 'bg-red-900';
+        }
+        
+        notificationDiv.innerHTML = `
+            <div class="flex items-start gap-3">
+                <span class="text-2xl">${icon}</span>
+                <div class="flex-1">
+                    <h4 class="font-bold text-accent-cyan">${data.type?.replace(/_/g, ' ').toUpperCase() || 'Notification'}</h4>
+                    <p class="text-sm mt-1">${data.message}</p>
+                    <p class="text-xs text-gray-400 mt-2">${new Date().toLocaleTimeString()}</p>
+                </div>
+                <button class="text-gray-400 hover:text-white" onclick="this.parentElement.parentElement.remove()">×</button>
+            </div>
+        `;
+        
+        document.body.appendChild(notificationDiv);
+        
+        // Auto-remove after 10 seconds
+        setTimeout(() => {
+            if (notificationDiv.parentNode) {
+                notificationDiv.remove();
+            }
+        }, 10000);
+    }
+
+    function updateRiderLocationOnMap(data) {
+        console.log('Rider location updated:', data);
+        const riderCards = document.querySelectorAll(`[data-rider-id="${data.riderId}"]`);
+        riderCards.forEach(card => {
+            const locationEl = card.querySelector('.rider-location');
+            if (locationEl) {
+                locationEl.innerHTML = `
+                    <span class="tracking-dot tracking-moving"></span>
+                    Live: ${data.location.lat.toFixed(4)}, ${data.location.lng.toFixed(4)}
+                `;
+                locationEl.title = data.location.address || 'Location updated just now';
+            }
+        });
+    }
+
+    function displayMessage(message, type) {
+        if (!messageContainer) return;
+        messageContainer.innerHTML = `<div class="message ${type}">${message}</div>`;
+        setTimeout(() => { messageContainer.innerHTML = ''; }, 6000);
+    }
+
+    function clearAdminSession() {
+        adminToken = '';
+        localStorage.removeItem('admin_jwt_token');
+        if (socket) {
+            socket.disconnect();
+            socket = null;
+        }
+    }
+
+    function redirectToLogin(reason = '') {
+        const suffix = reason ? `?reason=${encodeURIComponent(reason)}` : '';
+        window.location.replace(`./login.html${suffix}`);
+    }
+
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('en-NG', {
+            style: 'currency',
+            currency: 'NGN',
+            maximumFractionDigits: 0
+        }).format(Number(amount) || 0);
+    }
+
+    function formatCompactNumber(value) {
+        return new Intl.NumberFormat('en-NG', {
+            notation: 'compact',
+            maximumFractionDigits: 1
+        }).format(Number(value) || 0);
+    }
+
+    function formatPercent(value) {
+        return `${Math.round(Number(value) || 0)}%`;
+    }
+
+    function countBy(items, selector) {
+        return (items || []).reduce((acc, item) => {
+            const key = selector(item) || 'unknown';
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {});
+    }
+
+    function getOrderStatusCounts() {
+        return countBy(allOrders, order => (order.mainOrderStatus || 'pending_payment').toLowerCase());
+    }
+
+    function getCompanyStatusCounts() {
+        return countBy(allCompanies, company => (company.status || 'unknown').toLowerCase());
+    }
+
+    function getDisputeStatusCounts() {
+        return countBy(allDisputes, dispute => (dispute.status || 'open').toLowerCase());
+    }
+
+    function getWithdrawalStatusCounts() {
+        return countBy(allWithdrawals, withdrawal => (withdrawal.status || 'pending').toLowerCase());
+    }
+
+    function createBreakdownRows(items, total) {
+        if (!items.length || total === 0) {
+            return '<p class="text-sm text-light-gray">No records available for this slice yet.</p>';
+        }
+
+        return items.map(item => {
+            const ratio = total > 0 ? Math.max(6, Math.round((item.value / total) * 100)) : 0;
+            return `
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between gap-3 text-sm">
+                        <span class="text-light-slate font-semibold">${item.label}</span>
+                        <span class="text-light-gray">${item.value} <span class="text-xs text-gray-400">(${formatPercent((item.value / total) * 100)})</span></span>
+                    </div>
+                    <div class="analytics-track">
+                        <div class="analytics-fill" style="width: ${ratio}%"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderAnalyticsCards(metrics) {
+        if (!analyticsCards) return;
+
+        analyticsCards.innerHTML = metrics.map(metric => `
+            <div class="card analytics-card p-6">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <p class="text-sm uppercase tracking-[0.24em] text-light-gray">${metric.label}</p>
+                        <p class="analytics-value text-accent-cyan mt-4">${metric.value}</p>
+                    </div>
+                    <span class="analytics-pill ${metric.tone}">${metric.badge}</span>
+                </div>
+                <p class="text-sm text-light-gray mt-4">${metric.detail}</p>
+            </div>
+        `).join('');
+    }
+
+    function renderAnalyticsBreakdown(sections) {
+        if (!analyticsBreakdown) return;
+
+        analyticsBreakdown.innerHTML = sections.map(section => `
+            <div class="analytics-group">
+                <div class="flex items-center justify-between gap-3 mb-4">
+                    <h4 class="text-lg font-semibold text-light-slate">${section.title}</h4>
+                    <span class="text-xs uppercase tracking-[0.25em] text-gray-400">${section.total} items</span>
+                </div>
+                <div class="space-y-4">
+                    ${createBreakdownRows(section.items, section.total)}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderAnalyticsInsights(insights) {
+        if (!analyticsInsights) return;
+        if (!analyticsPriorityBadge) return;
+
+        const highestPriority = insights.some(item => item.tone === 'high')
+            ? { label: 'Attention', tone: 'high' }
+            : insights.some(item => item.tone === 'medium')
+                ? { label: 'Watchlist', tone: 'medium' }
+                : { label: 'Stable', tone: 'good' };
+
+        analyticsPriorityBadge.className = `analytics-pill ${highestPriority.tone}`;
+        analyticsPriorityBadge.textContent = highestPriority.label;
+
+        analyticsInsights.innerHTML = insights.map(item => `
+            <div class="insight-item ${item.tone} rounded-xl p-4">
+                <div class="flex items-center justify-between gap-3">
+                    <p class="font-semibold text-light-slate">${item.title}</p>
+                    <span class="analytics-pill ${item.tone}">${item.badge}</span>
+                </div>
+                <p class="text-sm text-light-gray mt-3">${item.detail}</p>
+            </div>
+        `).join('');
+    }
+
+    function updateAnalyticsView() {
+        const orderStatusCounts = getOrderStatusCounts();
+        const companyStatusCounts = getCompanyStatusCounts();
+        const disputeStatusCounts = getDisputeStatusCounts();
+        const withdrawalStatusCounts = getWithdrawalStatusCounts();
+
+        const totalOrders = allOrders.length;
+        const totalCompanies = allCompanies.length;
+        const totalDisputes = allDisputes.length;
+        const totalWithdrawals = allWithdrawals.length;
+        const inFlightOrders = (orderStatusCounts.processing || 0) + (orderStatusCounts.out_for_delivery || 0);
+        const payoutReadyOrders = orderStatusCounts.delivered || 0;
+        const completedOrders = orderStatusCounts.completed || 0;
+        const completionRate = totalOrders ? (completedOrders / totalOrders) * 100 : 0;
+        const activeCompanies = companyStatusCounts.active || 0;
+        const pendingCompanies = companyStatusCounts.pending || 0;
+        const suspendedCompanies = companyStatusCounts.suspended || 0;
+        const resolvedDisputes = disputeStatusCounts.resolved || 0;
+        const openDisputes = Math.max(totalDisputes - resolvedDisputes, 0);
+        const pendingWithdrawals = allWithdrawals.filter(withdrawal => withdrawal.status === 'pending');
+        const pendingWithdrawalAmount = pendingWithdrawals.reduce((sum, withdrawal) => sum + (withdrawal.amount || 0), 0);
+        const pendingSettlementAmount = allCompanies.reduce((sum, company) => sum + (company.stats?.pendingSettlement || 0), 0);
+        const totalActiveRiders = allCompanies.reduce((sum, company) => sum + (company.stats?.activeRiders || 0), 0);
+
+        const metrics = [
+            {
+                label: 'Vendor Reviews',
+                value: pendingVendorRequests.length,
+                badge: pendingVendorRequests.length > 8 ? 'Backlog' : pendingVendorRequests.length > 0 ? 'Open' : 'Clear',
+                tone: pendingVendorRequests.length > 8 ? 'high' : pendingVendorRequests.length > 0 ? 'medium' : 'good',
+                detail: pendingVendorRequests.length > 0
+                    ? `${pendingVendorRequests.length} vendor applications still need an onboarding decision.`
+                    : 'No vendor applications are waiting for approval right now.'
+            },
+            {
+                label: 'Orders In Flight',
+                value: inFlightOrders,
+                badge: inFlightOrders > 20 ? 'Busy' : inFlightOrders > 0 ? 'Active' : 'Quiet',
+                tone: inFlightOrders > 20 ? 'high' : inFlightOrders > 0 ? 'medium' : 'good',
+                detail: `${payoutReadyOrders} delivered orders are waiting for payout completion, with ${totalOrders} total orders tracked.`
+            },
+            {
+                label: 'Completion Rate',
+                value: formatPercent(completionRate),
+                badge: completionRate >= 60 ? 'Healthy' : completionRate >= 35 ? 'Watch' : 'Risk',
+                tone: completionRate >= 60 ? 'good' : completionRate >= 35 ? 'medium' : 'high',
+                detail: `${completedOrders} completed orders out of ${totalOrders || 0} total, measuring how much demand is being fully closed out.`
+            },
+            {
+                label: 'Company Health',
+                value: `${activeCompanies}/${totalCompanies || 0}`,
+                badge: suspendedCompanies > 0 ? 'Mixed' : pendingCompanies > 0 ? 'Growing' : 'Stable',
+                tone: suspendedCompanies > 0 ? 'medium' : pendingCompanies > 0 ? 'good' : 'good',
+                detail: `${activeCompanies} active companies, ${pendingCompanies} pending companies, and ${suspendedCompanies} suspended companies.`
+            },
+            {
+                label: 'Open Disputes',
+                value: openDisputes,
+                badge: openDisputes > 5 ? 'Escalated' : openDisputes > 0 ? 'Pending' : 'Clear',
+                tone: openDisputes > 5 ? 'high' : openDisputes > 0 ? 'medium' : 'good',
+                detail: `${resolvedDisputes} disputes are already resolved, while ${openDisputes} still need admin attention.`
+            },
+            {
+                label: 'Payout Exposure',
+                value: formatCurrency(pendingWithdrawalAmount),
+                badge: pendingWithdrawals.length > 5 ? 'Queue' : pendingWithdrawals.length > 0 ? 'Open' : 'Clear',
+                tone: pendingWithdrawals.length > 5 ? 'high' : pendingWithdrawals.length > 0 ? 'medium' : 'good',
+                detail: `${pendingWithdrawals.length} pending withdrawal requests plus ${formatCurrency(pendingSettlementAmount)} in company settlements to watch.`
+            }
+        ];
+
+        const breakdownSections = [
+            {
+                title: 'Order Status Mix',
+                total: totalOrders,
+                items: [
+                    { label: 'Pending Payment', value: orderStatusCounts.pending_payment || 0 },
+                    { label: 'Processing', value: orderStatusCounts.processing || 0 },
+                    { label: 'Out for Delivery', value: orderStatusCounts.out_for_delivery || 0 },
+                    { label: 'Delivered', value: orderStatusCounts.delivered || 0 },
+                    { label: 'Completed', value: orderStatusCounts.completed || 0 },
+                    { label: 'Cancelled', value: orderStatusCounts.cancelled || 0 }
+                ].filter(item => item.value > 0)
+            },
+            {
+                title: 'Company Status Mix',
+                total: totalCompanies,
+                items: [
+                    { label: 'Active', value: activeCompanies },
+                    { label: 'Pending', value: pendingCompanies },
+                    { label: 'Suspended', value: suspendedCompanies }
+                ].filter(item => item.value > 0)
+            },
+            {
+                title: 'Dispute and Withdrawal Load',
+                total: totalDisputes + totalWithdrawals,
+                items: [
+                    { label: 'Open Disputes', value: openDisputes },
+                    { label: 'Resolved Disputes', value: resolvedDisputes },
+                    { label: 'Pending Withdrawals', value: withdrawalStatusCounts.pending || 0 },
+                    { label: 'Completed Withdrawals', value: withdrawalStatusCounts.completed || 0 },
+                    { label: 'Failed Withdrawals', value: withdrawalStatusCounts.failed || 0 }
+                ].filter(item => item.value > 0)
+            }
+        ];
+
+        const insights = [];
+
+        if (pendingVendorRequests.length > 8) {
+            insights.push({
+                title: 'Vendor onboarding queue is building up',
+                badge: 'High',
+                tone: 'high',
+                detail: `${pendingVendorRequests.length} vendor requests are waiting. Clearing this queue can expand supply before demand shifts elsewhere.`
+            });
+        }
+
+        if (openDisputes > 0) {
+            insights.push({
+                title: 'Dispute backlog can affect trust',
+                badge: openDisputes > 5 ? 'High' : 'Medium',
+                tone: openDisputes > 5 ? 'high' : 'medium',
+                detail: `${openDisputes} disputes remain unresolved. Resolving them quickly reduces refund pressure and support churn.`
+            });
+        }
+
+        if (pendingWithdrawals.length > 0 || pendingSettlementAmount > 0) {
+            insights.push({
+                title: 'Cash-out pressure needs review',
+                badge: pendingWithdrawalAmount > 250000 ? 'High' : 'Medium',
+                tone: pendingWithdrawalAmount > 250000 ? 'high' : 'medium',
+                detail: `${pendingWithdrawals.length} withdrawal requests and ${formatCurrency(pendingSettlementAmount)} in pending settlements could affect liquidity planning.`
+            });
+        }
+
+        if (completionRate < 45 && totalOrders >= 5) {
+            insights.push({
+                title: 'Fulfillment throughput is under target',
+                badge: 'Medium',
+                tone: 'medium',
+                detail: `Only ${formatPercent(completionRate)} of tracked orders are fully completed. Inspect cancellations, delivery delays, and payout blockers.`
+            });
+        }
+
+        if (activeCompanies > 0) {
+            insights.push({
+                title: 'Active supply base available',
+                badge: 'Good',
+                tone: 'good',
+                detail: `${activeCompanies} active companies and ${formatCompactNumber(totalActiveRiders)} active riders give you room to push campaigns or clear order backlog.`
+            });
+        }
+
+        if (!insights.length) {
+            insights.push({
+                title: 'No major operational pressure detected',
+                badge: 'Good',
+                tone: 'good',
+                detail: 'The main queues are currently light. This is a good window to focus on growth experiments or service quality improvements.'
+            });
+        }
+
+        renderAnalyticsCards(metrics);
+        renderAnalyticsBreakdown(breakdownSections);
+        renderAnalyticsInsights(insights.slice(0, 4));
+
+        if (analyticsMeta) {
+            const parts = [
+                `Tracking ${totalOrders} orders`,
+                `${totalCompanies} companies`,
+                `${totalDisputes} disputes`,
+                `${pendingVendorRequests.length} vendor reviews`
+            ];
+
+            const refreshedText = analyticsLastUpdated
+                ? `Last refreshed ${analyticsLastUpdated.toLocaleTimeString()}`
+                : 'Live metrics update as data loads';
+
+            analyticsMeta.textContent = `${parts.join(' | ')} | ${refreshedText}`;
+        }
+    }
+
+    async function refreshAnalyticsView() {
+        if (isAnalyticsRefreshing) return;
+
+        isAnalyticsRefreshing = true;
+
+        if (refreshAnalyticsBtn) {
+            refreshAnalyticsBtn.disabled = true;
+            refreshAnalyticsBtn.textContent = 'Refreshing...';
+        }
+
+        if (analyticsMeta) {
+            analyticsMeta.textContent = 'Refreshing operational data and decision signals...';
+        }
+
+        await Promise.allSettled([
+            fetchPendingVendorRequests(),
+            fetchOrders(),
+            fetchDisputes(),
+            fetchPendingWithdrawals(),
+            fetchCompanies()
+        ]);
+
+        analyticsLastUpdated = new Date();
+        isAnalyticsRefreshing = false;
+        updateAnalyticsView();
+
+        if (refreshAnalyticsBtn) {
+            refreshAnalyticsBtn.disabled = false;
+            refreshAnalyticsBtn.textContent = 'Refresh Insights';
+        }
+    }
+
+    // ──────────────────────────────────────────────
+    // Vendor Requests (always visible)
+    // ──────────────────────────────────────────────
+    async function fetchPendingVendorRequests() {
+        if (!adminToken) {
+            pendingRequestsList.innerHTML = '<p class="text-center text-light-gray">Please login as admin to load requests.</p>';
+            return;
+        }
+        pendingRequestsList.innerHTML = '<p class="text-center text-light-gray">Loading pending requests...</p>';
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/vendor-requests`, {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            const data = await res.json();
+            if (res.status === 401 || res.status === 403) {
+                displayMessage('Session expired. Redirecting to login...', 'warning');
+                clearAdminSession();
+                setTimeout(() => redirectToLogin('expired'), 1200);
+                return;
+            }
+            if (res.ok) {
+                pendingVendorRequests = data || [];
+                renderPendingRequests(data);
+                updateAnalyticsView();
+            } else {
+                displayMessage(data.message || 'Failed to fetch requests', 'error');
+                pendingRequestsList.innerHTML = '<p class="text-center text-red-500">Error loading requests</p>';
+            }
+        } catch (err) {
+            displayMessage(`Network error: ${err.message}`, 'error');
+            pendingRequestsList.innerHTML = '<p class="text-center text-red-500">Connection failed</p>';
+        }
+    }
+
+    function renderPendingRequests(requests) {
+        pendingRequestsList.innerHTML = '';
+        if (!requests?.length) {
+            pendingRequestsList.innerHTML = '<p class="text-center text-light-gray">No pending vendor requests.</p>';
+            return;
+        }
+        requests.forEach(r => {
+            const card = document.createElement('div');
+            card.className = 'card p-6 request-card';
+            card.innerHTML = `
+                <h3 class="text-xl font-semibold text-accent-cyan mb-2">${r.firstName} ${r.lastName}</h3>
+                <p class="text-light-gray text-sm mb-1"><strong>Email:</strong> ${r.email}</p>
+                <p class="text-light-gray text-sm mb-1"><strong>Phone:</strong> ${r.phoneNumber}</p>
+                <p class="text-light-gray text-sm mb-1"><strong>Business:</strong> ${r.businessName || 'N/A'}</p>
+                <p class="text-light-gray text-sm mb-4"><strong>Categories:</strong> ${r.businessCategories?.join(', ') || 'N/A'}</p>
+                <p class="text-light-gray text-sm mb-4"><strong>Status:</strong> <span class="text-orange-400 font-bold">${r.vendorStatus?.toUpperCase() || 'NONE'}</span></p>
+                <div class="flex justify-end gap-4 mt-4">
+                    <button class="btn btn-success px-6 py-2 approve-btn" data-user-id="${r._id}">Approve</button>
+                    <button class="btn btn-danger px-6 py-2 reject-btn" data-user-id="${r._id}">Reject</button>
+                </div>
+            `;
+            pendingRequestsList.appendChild(card);
+        });
+        document.querySelectorAll('.approve-btn').forEach(b => b.onclick = () => updateVendorStatus(b.dataset.userId, 'approved'));
+        document.querySelectorAll('.reject-btn').forEach(b => b.onclick = () => updateVendorStatus(b.dataset.userId, 'rejected'));
+    }
+
+    async function updateVendorStatus(userId, status) {
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/vendor-status/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify({ status })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                displayMessage(`Request ${status}!`, 'success');
+                fetchPendingVendorRequests();
+            } else {
+                displayMessage(data.message || 'Failed to update status', 'error');
+            }
+        } catch (err) {
+            displayMessage(`Error: ${err.message}`, 'error');
+        }
+    }
+
+    // ──────────────────────────────────────────────
+    // Orders Management – Enhanced with payout system
+    // ──────────────────────────────────────────────
+    async function fetchOrders() {
+        if (!adminToken) {
+            ordersList.innerHTML = '<p class="text-center text-red-500">Please login as admin to view orders.</p>';
+            return;
+        }
+        ordersList.innerHTML = '<p class="text-center text-light-gray">Loading orders...</p>';
+        try {
+            const res = await fetch(`${BASE_URL}/api/orders`, {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                allOrders = data;
+                renderOrders(applyFilter(allOrders));
+                updateAnalyticsView();
+            } else {
+                ordersList.innerHTML = `<p class="text-center text-red-500">${data.message || 'Failed to fetch orders'}</p>`;
+            }
+        } catch (err) {
+            ordersList.innerHTML = `<p class="text-center text-red-500">Network error: ${err.message}</p>`;
+        }
+    }
+
+    function applyFilter(orders) {
+        if (currentFilter === 'all') return orders;
+        return orders.filter(o => o.mainOrderStatus === currentFilter);
+    }
+
+    function renderOrders(orders) {
+        ordersList.innerHTML = '';
+        if (!orders.length) {
+            ordersList.innerHTML = '<p class="text-center text-light-gray">No orders found matching the filter criteria.</p>';
+            return;
+        }
+
+        orders.forEach(order => {
+            const card = document.createElement('div');
+            card.className = 'card order-card';
+            
+            if (order.mainOrderStatus === 'delivered') {
+                card.classList.add('pending-payout-card');
+            } else if (order.mainOrderStatus === 'completed') {
+                card.classList.add('payout-card');
+            }
+
+            const user = order.user || {};
+            const shipping = order.shippingAddress || {};
+            const rider = order.rider ? { _id: order.rider } : null;
+
+            const statusLower = (order.mainOrderStatus || 'pending_payment').toLowerCase();
+            
+            // Calculate potential rider payout (150/km per shipment)
+            let totalRiderPayout = 0;
+            let totalVendorPayout = 0;
+            
+            if (order.shipments?.length) {
+                order.shipments.forEach(shipment => {
+                    if (shipment.vendorLocation && order.userLocation) {
+                        const distance = calculateDistance(
+                            shipment.vendorLocation.latitude,
+                            shipment.vendorLocation.longitude,
+                            order.userLocation.latitude,
+                            order.userLocation.longitude
+                        );
+                        totalRiderPayout += distance * 150;
+                    }
+                    // Vendor gets subtotal - platformFee
+                    totalVendorPayout += (shipment.subtotal || 0) - (shipment.platformFee || 0);
+                });
+            }
+
+            let itemsHtml = '';
+            if (order.shipments?.length) {
+                order.shipments.forEach((s, i) => {
+                    const v = s.vendor || {};
+                    itemsHtml += `
+                        <h4 class="text-sm font-semibold mt-4 mb-2 text-accent-cyan border-b border-gray-700 pb-1">
+                            📦 Shipment ${i+1} (Vendor: ${v.businessName || 'N/A'})
+                        </h4>
+                        <p class="text-xs text-light-gray mb-1 ml-2">
+                            Vendor Phone: ${v.phoneNumber || 'N/A'} | Location: ${v.businessLocation?.formattedAddress || 'N/A'}
+                        </p>
+                        <p class="text-xs text-yellow-400 mb-2 ml-2">
+                            Vendor Payout: ₦${((s.subtotal || 0) - (s.platformFee || 0)).toFixed(2)} | Platform Fee: ₦${(s.platformFee || 0).toFixed(2)}
+                        </p>`;
+                    s.items?.forEach(item => {
+                        let sizeDisplay = '';
+                        if (item.selectedSize) {
+                            if (typeof item.selectedSize === 'string') {
+                                sizeDisplay = `Size: ${item.selectedSize}`;
+                            } else if (typeof item.selectedSize === 'object') {
+                                const sizeObj = item.selectedSize;
+                                if (sizeObj.label) {
+                                    sizeDisplay = `Size: ${sizeObj.label}`;
+                                    if (sizeObj.length || sizeObj.width || sizeObj.height) {
+                                        const unit = sizeObj.unit || 'CM';
+                                        sizeDisplay += ` (${sizeObj.length || '0'}×${sizeObj.width || '0'}×${sizeObj.height || '0'} ${unit})`;
+                                    }
+                                } else if (sizeObj.length || sizeObj.width || sizeObj.height) {
+                                    const unit = sizeObj.unit || 'CM';
+                                    sizeDisplay = `Dimensions: ${sizeObj.length || '0'}×${sizeObj.width || '0'}×${sizeObj.height || '0'} ${unit}`;
+                                } else {
+                                    sizeDisplay = 'Custom Size';
+                                }
+                            }
+                        }
+                        
+                        itemsHtml += `
+                            <li class="text-light-gray mb-2 border-l-2 border-green-500 pl-2 ml-2">
+                                <strong class="text-light-slate">${item.name}</strong> - Qty: ${item.quantity} - ₦${item.price?.toFixed(2) || '0.00'}
+                                ${sizeDisplay ? `<br><span class="text-xs text-accent-cyan font-medium">${sizeDisplay}</span>` : ''}
+                                <br><span class="text-xs text-gray-500">Shipment ID: ${s._id} | Status: ${s.shipmentStatus}</span>
+                            </li>`;
+                    });
+                });
+            } else {
+                itemsHtml = '<p class="text-red-500">No shipments linked to this order.</p>';
+            }
+
+            const currentStatus = statusLower;
+
+            const isDisabled = (target) => {
+                switch (currentStatus) {
+                    case 'completed': case 'cancelled': return true;
+                    case 'delivered': return !['completed','cancelled'].includes(target);
+                    case 'out_for_delivery': return !['delivered','completed','cancelled'].includes(target);
+                    case 'shipped': return !['out_for_delivery','delivered','completed','cancelled'].includes(target);
+                    case 'partially_shipped': return !['shipped','out_for_delivery','delivered','completed','cancelled'].includes(target);
+                    case 'processing': return !['partially_shipped','shipped','out_for_delivery','delivered','completed','cancelled'].includes(target);
+                    case 'pending_payment': return !['processing','cancelled'].includes(target);
+                    default: return !['pending_payment','processing','cancelled'].includes(target);
+                }
+            };
+
+            const getBtnClass = (target) => {
+                let cls = 'status-btn px-3 py-1 text-sm font-medium';
+                if (target === currentStatus) return `${cls} btn-current`;
+                if (isDisabled(target)) return `${cls} btn-disabled`;
+                if (target === 'cancelled') return `${cls} btn-danger`;
+                if (target === 'completed') return `${cls} btn-success`;
+                if (target === 'delivered') return `${cls} btn-warning`;
+                return `${cls} btn-primary-alt`;
+            };
+
+            const btns = `
+                <button class="${getBtnClass('pending_payment')}" ${isDisabled('pending_payment')?'disabled':''} data-order-id="${order._id}" data-status="pending_payment">Pending Payment</button>
+                <button class="${getBtnClass('processing')}" ${isDisabled('processing')?'disabled':''} data-order-id="${order._id}" data-status="processing">Processing</button>
+                <button class="${getBtnClass('partially_shipped')}" ${isDisabled('partially_shipped')?'disabled':''} data-order-id="${order._id}" data-status="partially_shipped">Partially Shipped</button>
+                <button class="${getBtnClass('shipped')}" ${isDisabled('shipped')?'disabled':''} data-order-id="${order._id}" data-status="shipped">Shipped</button>
+                <button class="${getBtnClass('out_for_delivery')}" ${isDisabled('out_for_delivery')?'disabled':''} data-order-id="${order._id}" data-status="out_for_delivery">Out for Delivery</button>
+                <button class="${getBtnClass('delivered')}" ${isDisabled('delivered')?'disabled':''} data-order-id="${order._id}" data-status="delivered">Mark Delivered</button>
+                <button class="${getBtnClass('completed')}" ${isDisabled('completed')?'disabled':''} data-order-id="${order._id}" data-status="completed">Complete & Pay</button>
+                <button class="${getBtnClass('cancelled')}" ${isDisabled('cancelled')?'disabled':''} data-order-id="${order._id}" data-status="cancelled">Cancel</button>
+            `;
+
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-3">
+                    <h3 class="text-2xl font-semibold text-accent-cyan">Order ID: ${order._id}</h3>
+                    ${order.rider ? `<span class="status-badge status-delivered">Rider Assigned</span>` : ''}
+                </div>
+                <p class="text-light-gray mb-1"><strong>User:</strong> ${user.firstName||'N/A'} ${user.lastName||''} (<span class="text-accent-cyan">${user.email||'N/A'}</span>)</p>
+                <p class="text-light-gray mb-1"><strong>Phone:</strong> ${user.phoneNumber||'N/A'}</p>
+                <p class="text-light-gray mb-1"><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'})}</p>
+                <p class="text-light-gray mb-1"><strong>Paid:</strong> <span class="font-bold ${order.isPaid?'text-green-400':'text-red-400'}">${order.isPaid?'Yes':'No'}</span></p>
+                ${rider ? `<p class="text-light-gray mb-1"><strong>Rider:</strong> ${order.riderName || 'Assigned'} (${order.riderPhone || 'No phone'})</p>` : ''}
+                
+                <!-- Payout Information Box -->
+                ${order.mainOrderStatus === 'delivered' || order.mainOrderStatus === 'completed' ? `
+                <div class="${order.mainOrderStatus === 'delivered' ? 'bg-yellow-900 bg-opacity-30' : 'bg-green-900 bg-opacity-30'} p-4 rounded-lg my-4 border ${order.mainOrderStatus === 'delivered' ? 'border-yellow-700' : 'border-green-700'}">
+                    <h4 class="font-bold ${order.mainOrderStatus === 'delivered' ? 'text-yellow-300' : 'text-green-300'} mb-2">
+                        ${order.mainOrderStatus === 'delivered' ? '💰 READY FOR PAYOUT' : '✅ PAYOUT COMPLETED'}
+                    </h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-300">Total Vendor Payout:</p>
+                            <p class="text-xl font-bold ${order.mainOrderStatus === 'delivered' ? 'text-yellow-300' : 'text-green-300'}">₦${totalVendorPayout.toFixed(2)}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-300">Total Rider Payout:</p>
+                            <p class="text-xl font-bold ${order.mainOrderStatus === 'delivered' ? 'text-yellow-300' : 'text-green-300'}">₦${totalRiderPayout.toFixed(2)}</p>
+                        </div>
+                    </div>
+                    ${order.mainOrderStatus === 'delivered' ? `
+                    <p class="text-xs text-yellow-200 mt-2">Click "Complete & Pay" to process payouts to vendor(s) and rider simultaneously.</p>
+                    ` : `
+                    <p class="text-xs text-green-200 mt-2">Payouts completed on ${order.vendorPaidAt ? new Date(order.vendorPaidAt).toLocaleString() : new Date(order.deliveredAt).toLocaleString()}</p>
+                    `}
+                </div>
+                ` : ''}
+                
+                <div class="mb-2"><strong>Status:</strong> <span class="font-bold text-lg ${order.mainOrderStatus === 'delivered' ? 'text-yellow-400' : order.mainOrderStatus === 'completed' ? 'text-green-400' : 'text-blue-400'}">${order.mainOrderStatus || 'N/A'}</span></div>
+                <div class="mb-4">
+                    <strong>Shipping Address:</strong><br>
+                    <span class="text-light-gray">${shipping.address||'N/A'}, ${shipping.city||'N/A'}, ${shipping.postalCode||'N/A'}, ${shipping.country||'N/A'}</span>
+                </div>
+                <p class="text-light-slate text-xl font-bold mb-2">🛒 Items & Shipments:</p>
+                <ul class="list-none mb-6">${itemsHtml}</ul>
+                <div class="border-t border-gray-700 pt-4">
+                    <h4 class="text-light-slate font-semibold mb-2">Update Status:</h4>
+                    <div class="flex flex-wrap gap-2">${btns}</div>
+                    <p class="text-xs text-light-gray mt-2">
+                        • Enabled buttons follow valid order flow.<br>
+                        • <strong class="text-yellow-400">"Mark Delivered"</strong> = Physical delivery confirmed.<br>
+                        • <strong class="text-green-400">"Complete & Pay"</strong> = Process payouts to vendor(s) and rider simultaneously (150/km).<br>
+                        • All payouts happen at once when status is changed to "completed".
+                    </p>
+                </div>
+            `;
+            
+            ordersList.appendChild(card);
+        });
+
+        document.querySelectorAll('.status-btn:not(.btn-current):not(.btn-disabled)').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const orderId = btn.dataset.orderId;
+                const newStatus = btn.dataset.status;
+                const container = btn.closest('.flex.flex-wrap.gap-2');
+                const siblings = container?.querySelectorAll('.status-btn') || [];
+
+                siblings.forEach(b => b.disabled = true);
+
+                try {
+                    const res = await fetch(`${BASE_URL}/api/orders/${orderId}/status`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${adminToken}`
+                        },
+                        body: JSON.stringify({ status: newStatus })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        if (newStatus === 'completed') {
+                            displayMessage(`✅ Order completed! Vendors and rider have been paid simultaneously.`, 'success');
+                        } else {
+                            displayMessage(`Status updated to ${newStatus.toUpperCase()}`, 'success');
+                        }
+                        fetchOrders();
+                    } else {
+                        displayMessage(data.message || 'Update failed', 'error');
+                        siblings.forEach(b => b.disabled = false);
+                    }
+                } catch (err) {
+                    displayMessage(`Network error`, 'error');
+                    siblings.forEach(b => b.disabled = false);
+                }
+            });
+        });
+    }
+   
+    // ──────────────────────────────────────────────
+    // Disputes – collapsible
+    // ──────────────────────────────────────────────
+    async function fetchDisputes() {
+        if (!adminToken) {
+            disputesList.innerHTML = '<p class="text-center text-red-500">Please login to view disputes.</p>';
+            return;
+        }
+        disputesList.innerHTML = '<p class="text-center text-light-gray">Loading disputes...</p>';
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/disputes`, {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                allDisputes = data;
+                renderDisputes(data);
+                updateAnalyticsView();
+            } else {
+                disputesList.innerHTML = `<p class="text-center text-red-500">${data.message || 'Failed to load disputes'}</p>`;
+            }
+        } catch (err) {
+            disputesList.innerHTML = `<p class="text-center text-red-500">Network error</p>`;
+        }
+    }
+
+    function renderDisputes(disputes) {
+        disputesList.innerHTML = '';
+        if (!disputes.length) {
+            disputesList.innerHTML = '<p class="text-center text-light-gray">No disputes found.</p>';
+            return;
+        }
+
+        disputes.forEach(d => {
+            const card = document.createElement('div');
+            card.className = 'card dispute-card';
+
+            const attHtml = d.attachments?.length
+                ? d.attachments.map(u => `<img src="${u}" alt="Attachment" class="inline-block">`).join('')
+                : '<p class="text-gray-500">No attachments</p>';
+
+            const msgHtml = (d.messages || []).map(m => {
+                const name = m.senderType === 'Admin' ? 'Admin' : `${d.user?.firstName || 'User'} ${d.user?.lastName || ''}`;
+                const align = m.senderType === 'Admin' ? 'ml-auto' : 'mr-auto';
+                const bg = m.senderType === 'Admin' ? 'bg-blue-600' : 'bg-gray-600';
+                return `<div class="chat-message ${align} ${bg}"><strong>${name}:</strong> ${m.text}</div>`;
+            }).join('');
+
+            const isResolved = d.status?.toLowerCase() === 'resolved';
+
+            card.innerHTML = `
+                <h3 class="text-2xl font-semibold text-accent-cyan mb-3">Dispute ID: ${d._id}</h3>
+                <p class="mb-1"><strong>User:</strong> ${d.user?.firstName || 'N/A'} ${d.user?.lastName || ''} (<span class="text-accent-cyan">${d.user?.email || 'N/A'}</span>)</p>
+                <p class="mb-1"><strong>Order ID:</strong> ${d.order?._id || 'N/A'}</p>
+                <p class="mb-1"><strong>Status:</strong> <span class="font-bold text-lg text-red-400">${d.status}</span></p>
+                <p class="mb-4"><strong>Reason:</strong> ${d.reason || 'N/A'}</p>
+                <h4 class="font-semibold mt-4 mb-2">Attachments:</h4>
+                <div class="dispute-attachments flex flex-wrap">${attHtml}</div>
+                <h4 class="font-semibold mt-6 mb-3">Chat History:</h4>
+                <div class="chat-container flex flex-col">${msgHtml}</div>
+                <form class="send-message-form mt-4" data-dispute-id="${d._id}">
+                    <textarea class="input-field w-full mb-3" rows="3" placeholder="Reply..."></textarea>
+                    <button type="submit" class="btn btn-primary py-2 px-6">Send Reply</button>
+                </form>
+                <div class="mt-6">
+                    <button class="btn btn-success ${isResolved ? 'opacity-50 cursor-not-allowed' : ''}" ${isResolved ? 'disabled' : ''} data-dispute-id="${d._id}" data-status="resolved">
+                        Mark as Resolved
+                    </button>
+                </div>
+            `;
+            disputesList.appendChild(card);
+        });
+
+        document.querySelectorAll('.send-message-form').forEach(form => {
+            form.addEventListener('submit', async e => {
+                e.preventDefault();
+                const id = form.dataset.disputeId;
+                const ta = form.querySelector('textarea');
+                const text = ta.value.trim();
+                if (!text) return;
+                await sendDisputeMessage(id, text);
+                ta.value = '';
+            });
+        });
+
+        document.querySelectorAll('[data-dispute-id][data-status="resolved"]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                await updateDisputeStatus(btn.dataset.disputeId, 'resolved');
+            });
+        });
+    }
+
+    async function sendDisputeMessage(id, text) {
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/disputes/${id}/message`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify({ text })
+            });
+            if (res.ok) {
+                displayMessage('Reply sent', 'success');
+                fetchDisputes();
+            } else {
+                const data = await res.json();
+                displayMessage(data.message || 'Failed to send reply', 'error');
+            }
+        } catch (err) {
+            displayMessage('Network error', 'error');
+        }
+    }
+
+    async function updateDisputeStatus(id, status) {
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/disputes/${id}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify({ status })
+            });
+            if (res.ok) {
+                displayMessage(`Dispute ${status}!`, 'success');
+                fetchDisputes();
+            } else {
+                const data = await res.json();
+                displayMessage(data.message || 'Failed', 'error');
+            }
+        } catch (err) {
+            displayMessage('Network error', 'error');
+        }
+    }
+
+    // ──────────────────────────────────────────────
+    // Withdrawals Management
+    // ──────────────────────────────────────────────
+    async function fetchPendingWithdrawals() {
+        if (!adminToken) {
+            withdrawalsList.innerHTML = '<p class="text-center text-red-500">Please login to view withdrawals.</p>';
+            return;
+        }
+        withdrawalsList.innerHTML = '<p class="text-center text-light-gray">Loading withdrawal requests...</p>';
+        try {
+            // Fetch vendor withdrawals
+            const vendorRes = await fetch(`${BASE_URL}/api/admin/vendors/withdrawals`, {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            
+            // Fetch rider withdrawals
+            const riderRes = await fetch(`${BASE_URL}/api/admin/riders/withdrawals`, {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            
+            let vendorWithdrawals = [];
+            let riderWithdrawals = [];
+            
+            if (vendorRes.ok) {
+                const data = await vendorRes.json();
+                vendorWithdrawals = data.map(w => ({ ...w, type: 'vendor' }));
+            }
+            
+            if (riderRes.ok) {
+                const data = await riderRes.json();
+                riderWithdrawals = data.map(w => ({ ...w, type: 'rider' }));
+            }
+            
+            allWithdrawals = [...vendorWithdrawals, ...riderWithdrawals];
+            
+            // Calculate totals
+            const pendingWithdrawals = allWithdrawals.filter(w => w.status === 'pending');
+            const totalPending = pendingWithdrawals.reduce((sum, w) => sum + (w.amount || 0), 0);
+            
+            if (withdrawalCountBadge) {
+                withdrawalCountBadge.textContent = pendingWithdrawals.length;
+            }
+            if (withdrawalTotalDisplay) {
+                withdrawalTotalDisplay.textContent = `Total Pending: ₦${totalPending.toFixed(2)}`;
+            }
+            
+            renderWithdrawals(allWithdrawals);
+            updateAnalyticsView();
+            
+        } catch (err) {
+            withdrawalsList.innerHTML = `<p class="text-center text-red-500">Network error: ${err.message}</p>`;
+        }
+    }
+
+    // ──────────────────────────────────────────────
+    // Company Management Functions
+    // ──────────────────────────────────────────────
+    async function fetchCompanies() {
+        if (!adminToken) {
+            document.getElementById('companiesList').innerHTML = '<p class="text-center text-red-500">Please login to view companies.</p>';
+            return;
+        }
+        
+        try {
+            const res = await fetch(`${BASE_URL}/api/companyadmin/companies`, {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                allCompanies = data;
+                renderCompanies(data);
+                updateAnalyticsView();
+            } else {
+                document.getElementById('companiesList').innerHTML = `<p class="text-center text-red-500">${data.message || 'Failed to load companies'}</p>`;
+            }
+        } catch (err) {
+            document.getElementById('companiesList').innerHTML = `<p class="text-center text-red-500">Network error</p>`;
+        }
+    }
+
+    function renderCompanies(companies) {
+        const container = document.getElementById('companiesList');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        // Apply filter
+        let filteredCompanies = companies;
+        if (currentCompanyFilter !== 'all') {
+            filteredCompanies = companies.filter(c => c.status === currentCompanyFilter);
+        }
+        
+        if (!filteredCompanies.length) {
+            container.innerHTML = '<p class="text-center text-light-gray">No companies found.</p>';
+            return;
+        }
+        
+        filteredCompanies.forEach(company => {
+            const card = document.createElement('div');
+            card.className = 'card p-6';
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="text-xl font-semibold text-accent-cyan">${company.companyName}</h3>
+                        <p class="text-sm text-gray-400">RC: ${company.rcNumber || 'N/A'}</p>
+                    </div>
+                    <span class="status-badge ${company.status === 'active' ? 'status-approved' : company.status === 'pending' ? 'status-pending' : 'status-suspended'}">
+                        ${company.status}
+                    </span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <p class="text-sm text-gray-400">Contact</p>
+                        <p class="font-semibold">${company.contactPerson}</p>
+                        <p class="text-xs text-gray-400">${company.email}</p>
+                        <p class="text-xs text-gray-400">${company.phoneNumber}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-400">Riders</p>
+                        <p class="font-bold text-lg">${company.stats?.totalRiders || 0} total</p>
+                        <p class="text-xs text-gray-400">${company.stats?.activeRiders || 0} active</p>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-900 bg-opacity-50 p-3 rounded mb-4">
+                    <p class="text-sm font-semibold text-gray-300 mb-2">Financials</p>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                            <p class="text-gray-400">Total Earnings</p>
+                            <p class="font-bold text-green-400">₦${(company.stats?.totalEarnings || 0).toFixed(2)}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-400">Pending Settlement</p>
+                            <p class="font-bold text-yellow-400">₦${(company.stats?.pendingSettlement || 0).toFixed(2)}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center text-sm">
+                    <div class="text-gray-400">
+                        <p>Created: ${new Date(company.createdAt).toLocaleDateString()}</p>
+                        ${company.lastLogin ? `<p>Last login: ${new Date(company.lastLogin).toLocaleDateString()}</p>` : ''}
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="btn btn-primary-alt px-3 py-1 text-sm view-company-btn" data-id="${company._id}">View</button>
+                        <button class="btn btn-warning px-3 py-1 text-sm edit-company-btn" data-id="${company._id}">Edit</button>
+                        ${company.status === 'active' ? 
+                            `<button class="btn btn-danger px-3 py-1 text-sm suspend-company-btn" data-id="${company._id}">Suspend</button>` : 
+                            `<button class="btn btn-success px-3 py-1 text-sm activate-company-btn" data-id="${company._id}">Activate</button>`
+                        }
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+        
+        // Add event listeners
+        document.querySelectorAll('.view-company-btn').forEach(btn => {
+            btn.addEventListener('click', () => viewCompanyDetails(btn.dataset.id));
+        });
+        
+        document.querySelectorAll('.suspend-company-btn').forEach(btn => {
+            btn.addEventListener('click', () => updateCompanyStatus(btn.dataset.id, 'suspended'));
+        });
+        
+        document.querySelectorAll('.activate-company-btn').forEach(btn => {
+            btn.addEventListener('click', () => updateCompanyStatus(btn.dataset.id, 'active'));
+        });
+        
+        // Add company filter listeners
+        document.querySelectorAll('.company-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentCompanyFilter = btn.dataset.status;
+                document.querySelectorAll('.company-filter-btn').forEach(b => {
+                    b.classList.remove('bg-accent-cyan', 'text-primary-blue');
+                    b.classList.add('btn-primary-alt');
+                });
+                btn.classList.remove('btn-primary-alt');
+                btn.classList.add('bg-accent-cyan', 'text-primary-blue');
+                renderCompanies(allCompanies);
+            });
+        });
+    }
+
+    async function viewCompanyDetails(companyId) {
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/companies/${companyId}`, {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            const company = await res.json();
+            
+            // Show modal with company details
+            const modalHtml = `
+                <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div class="bg-secondary-blue rounded-lg p-6 max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-accent-cyan">Company Details</h3>
+                            <button class="text-gray-400 hover:text-white text-2xl" onclick="this.closest('.fixed').remove()">&times;</button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="font-semibold text-accent-cyan mb-2">Company Info</h4>
+                                <p><strong>Name:</strong> ${company.companyName}</p>
+                                <p><strong>Contact:</strong> ${company.contactPerson}</p>
+                                <p><strong>Email:</strong> ${company.email}</p>
+                                <p><strong>Phone:</strong> ${company.phoneNumber}</p>
+                                <p><strong>Address:</strong> ${company.officeAddress}</p>
+                            </div>
+                            
+                            <div>
+                                <h4 class="font-semibold text-accent-cyan mb-2">Bank Details</h4>
+                                ${company.bankAccount ? `
+                                    <p><strong>Bank:</strong> ${company.bankAccount.bankName || 'N/A'}</p>
+                                    <p><strong>Account:</strong> ${company.bankAccount.accountNumber || 'N/A'}</p>
+                                    <p><strong>Name:</strong> ${company.bankAccount.accountName || 'N/A'}</p>
+                                ` : '<p class="text-gray-400">No bank details provided</p>'}
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <h4 class="font-semibold text-accent-cyan mb-2">Recent Settlements</h4>
+                            <!-- Add settlement history here -->
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const modalDiv = document.createElement('div');
+            modalDiv.innerHTML = modalHtml;
+            document.body.appendChild(modalDiv);
+        } catch (err) {
+            displayMessage('Failed to load company details', 'error');
+        }
+    }
+
+    async function updateCompanyStatus(companyId, status) {
+        if (!confirm(`Are you sure you want to ${status} this company?`)) return;
+        
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/companies/${companyId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify({ status })
+            });
+            
+            if (res.ok) {
+                displayMessage(`Company ${status} successfully`, 'success');
+                fetchCompanies();
+            } else {
+                const data = await res.json();
+                displayMessage(data.message || 'Failed to update company', 'error');
+            }
+        } catch (err) {
+            displayMessage('Network error', 'error');
+        }
+    }
+
+    function renderWithdrawals(withdrawals) {
+        if (!withdrawalsList) return;
+        
+        withdrawalsList.innerHTML = '';
+        
+        // Apply filter
+        let filteredWithdrawals = withdrawals;
+        if (currentWithdrawalFilter !== 'all') {
+            if (currentWithdrawalFilter === 'vendor' || currentWithdrawalFilter === 'rider') {
+                filteredWithdrawals = withdrawals.filter(w => w.type === currentWithdrawalFilter);
+            } else {
+                filteredWithdrawals = withdrawals.filter(w => w.status === currentWithdrawalFilter);
+            }
+        }
+        
+        if (!filteredWithdrawals.length) {
+            withdrawalsList.innerHTML = '<p class="text-center text-light-gray">No withdrawal requests matching filter.</p>';
+            return;
+        }
+        
+        filteredWithdrawals.forEach(w => {
+            const card = document.createElement('div');
+            card.className = `card p-5 ${w.status === 'pending' ? 'pending-payout-card' : 'payout-card'}`;
+            
+            const userType = w.type === 'vendor' ? 'Vendor' : 'Rider';
+            const userIcon = w.type === 'vendor' ? '🏪' : '🏍️';
+            
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="text-xl font-semibold text-accent-cyan">${userIcon} ${userType} Withdrawal</h3>
+                        <p class="text-sm text-gray-400">Reference: ${w.reference || 'N/A'}</p>
+                    </div>
+                    <span class="status-badge ${w.status === 'pending' ? 'status-pending' : w.status === 'completed' ? 'status-approved' : 'status-rejected'}">
+                        ${w.status}
+                    </span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <p class="text-sm text-gray-400">Amount</p>
+                        <p class="text-2xl font-bold ${w.status === 'pending' ? 'text-yellow-400' : 'text-green-400'}">₦${w.amount?.toFixed(2) || '0.00'}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-400">User</p>
+                        <p class="font-semibold">${w.userName || w.fullName || 'N/A'}</p>
+                        <p class="text-xs text-gray-400">${w.email || 'N/A'}</p>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-900 bg-opacity-50 p-3 rounded mb-4">
+                    <p class="text-sm font-semibold text-gray-300 mb-2">Payment Details</p>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                            <p class="text-gray-400">Method</p>
+                            <p>${w.paymentMethod || 'Bank Transfer'}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-400">Bank</p>
+                            <p>${w.accountDetails?.bankName || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-400">Account No.</p>
+                            <p>${w.accountDetails?.accountNumber || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-400">Account Name</p>
+                            <p>${w.accountDetails?.accountName || 'N/A'}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center text-sm text-gray-400">
+                    <div>
+                        <p>Requested: ${new Date(w.createdAt).toLocaleString()}</p>
+                        ${w.completedAt ? `<p>Processed: ${new Date(w.completedAt).toLocaleString()}</p>` : ''}
+                    </div>
+                    <div class="flex gap-2">
+                        ${w.status === 'pending' ? `
+                            <button class="btn btn-success px-4 py-2 text-sm process-withdrawal-btn" 
+                                data-id="${w._id || w.reference}" 
+                                data-type="${w.type}"
+                                data-amount="${w.amount}">
+                                Process
+                            </button>
+                            <button class="btn btn-danger px-4 py-2 text-sm reject-withdrawal-btn" 
+                                data-id="${w._id || w.reference}"
+                                data-type="${w.type}">
+                                Reject
+                            </button>
+                        ` : ''}
+                        ${w.status === 'completed' ? `
+                            <button class="btn btn-primary-alt px-4 py-2 text-sm" disabled>
+                                ✅ Processed
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            withdrawalsList.appendChild(card);
+        });
+        
+        // Add event listeners
+        document.querySelectorAll('.process-withdrawal-btn').forEach(btn => {
+            btn.addEventListener('click', () => processWithdrawal(
+                btn.dataset.id, 
+                btn.dataset.type, 
+                parseFloat(btn.dataset.amount)
+            ));
+        });
+        
+        document.querySelectorAll('.reject-withdrawal-btn').forEach(btn => {
+            btn.addEventListener('click', () => rejectWithdrawal(btn.dataset.id, btn.dataset.type));
+        });
+        
+        // Add withdrawal filter listeners
+        document.querySelectorAll('.withdrawal-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentWithdrawalFilter = btn.dataset.type;
+                document.querySelectorAll('.withdrawal-filter-btn').forEach(b => {
+                    b.classList.remove('bg-accent-cyan', 'text-primary-blue');
+                    b.classList.add('btn-primary-alt');
+                });
+                btn.classList.remove('btn-primary-alt');
+                btn.classList.add('bg-accent-cyan', 'text-primary-blue');
+                renderWithdrawals(allWithdrawals);
+            });
+        });
+    }
+
+    async function processWithdrawal(withdrawalId, userType, amount) {
+        if (!confirm(`Process withdrawal of ₦${amount.toFixed(2)} for this ${userType}?`)) return;
+        
+        try {
+            const endpoint = userType === 'vendor' 
+                ? `${BASE_URL}/api/admin/vendors/withdrawals/${withdrawalId}/process`
+                : `${BASE_URL}/api/admin/riders/withdrawals/${withdrawalId}/process`;
+            
+            const res = await fetch(endpoint, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify({ status: 'completed' })
+            });
+            
+            const data = await res.json();
+            if (res.ok) {
+                displayMessage(`Withdrawal processed successfully! ₦${amount.toFixed(2)} sent.`, 'success');
+                fetchPendingWithdrawals();
+            } else {
+                displayMessage(data.message || 'Failed to process withdrawal', 'error');
+            }
+        } catch (err) {
+            displayMessage(`Error: ${err.message}`, 'error');
+        }
+    }
+
+    async function rejectWithdrawal(withdrawalId, userType) {
+        const reason = prompt('Enter reason for rejection:');
+        if (!reason) return;
+        
+        try {
+            const endpoint = userType === 'vendor' 
+                ? `${BASE_URL}/api/admin/vendors/withdrawals/${withdrawalId}/reject`
+                : `${BASE_URL}/api/admin/riders/withdrawals/${withdrawalId}/reject`;
+            
+            const res = await fetch(endpoint, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify({ status: 'failed', reason })
+            });
+            
+            const data = await res.json();
+            if (res.ok) {
+                displayMessage(`Withdrawal rejected.`, 'success');
+                fetchPendingWithdrawals();
+            } else {
+                displayMessage(data.message || 'Failed to reject withdrawal', 'error');
+            }
+        } catch (err) {
+            displayMessage(`Error: ${err.message}`, 'error');
+        }
+    }
+
+    // ──────────────────────────────────────────────
+    // Protected panel bootstrapping
+    // ──────────────────────────────────────────────
+    if (logoutAdminBtn) {
+        logoutAdminBtn.addEventListener('click', () => {
+            clearAdminSession();
+            redirectToLogin('logout');
+        });
+    }
+
+    updateAnalyticsView();
+    displayMessage('Session restored', 'success');
+    initializeSocket();
+    refreshAnalyticsView();
+
+    // ──────────────────────────────────────────────
+    // Green Button Toggles + lazy load
+    // ──────────────────────────────────────────────
+    document.getElementById('toggleCompaniesBtn')?.addEventListener('click', () => {
+        const section = document.getElementById('companiesSection');
+        section.classList.toggle('hidden');
+        
+        // Hide other sections when one is opened
+        ['ordersSection', 'disputesSection', 'withdrawalsSection'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
+        
+        if (!section.classList.contains('hidden')) {
+            fetchCompanies();
+        }
+    });
+
+    document.getElementById('toggleOrdersBtn')?.addEventListener('click', () => {
+        const section = document.getElementById('ordersSection');
+        section.classList.toggle('hidden');
+        
+        // Hide other sections when one is opened
+        ['companiesSection', 'disputesSection', 'withdrawalsSection'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
+        
+        if (!section.classList.contains('hidden') && allOrders.length === 0) {
+            fetchOrders();
+        }
+    });
+
+    document.getElementById('toggleDisputesBtn')?.addEventListener('click', () => {
+        const section = document.getElementById('disputesSection');
+        section.classList.toggle('hidden');
+        
+        // Hide other sections when one is opened
+        ['companiesSection', 'ordersSection', 'withdrawalsSection'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
+        
+        if (!section.classList.contains('hidden')) {
+            fetchDisputes();
+        }
+    });
+
+    document.getElementById('toggleWithdrawalsBtn')?.addEventListener('click', () => {
+        const section = document.getElementById('withdrawalsSection');
+        section.classList.toggle('hidden');
+        
+        // Hide other sections when one is opened
+        ['companiesSection', 'ordersSection', 'disputesSection'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
+        
+        if (!section.classList.contains('hidden')) {
+            fetchPendingWithdrawals();
+        }
+    });
+
+    // Refresh buttons
+    refreshAnalyticsBtn?.addEventListener('click', refreshAnalyticsView);
+    document.getElementById('refreshCompaniesBtn')?.addEventListener('click', fetchCompanies);
+    if (refreshWithdrawalsBtn) {
+        refreshWithdrawalsBtn.addEventListener('click', fetchPendingWithdrawals);
+    }
+
+    // Filter change
+    if (orderFilterDropdown) {
+        orderFilterDropdown.addEventListener('change', e => {
+            currentFilter = e.target.value;
+            if (allOrders.length > 0) {
+                renderOrders(applyFilter(allOrders));
+            }
+        });
+    }
+
+    // Helper function to calculate distance (same as backend)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Radius of the Earth in kilometers
+        const dLat = (lat2 - lat1) * (Math.PI / 180);
+        const dLon = (lon2 - lon1) * (Math.PI / 180);
+        const a = 
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = R * c; // Distance in km
+        return parseFloat(distance.toFixed(2));
+    }
+
+});
+</script>
+</body>
+</html>
