@@ -456,13 +456,32 @@
                     A live snapshot of onboarding, fulfillment, disputes, company health, and payout pressure so the admin team can decide what needs attention first.
                 </p>
             </div>
-            <button id="refreshAnalyticsBtn" class="btn btn-primary px-6 py-3 rounded-lg text-sm">
-                Refresh Insights
-            </button>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <label class="block">
+                    <span class="block text-xs font-semibold uppercase tracking-[0.25em] text-light-gray mb-2">Analytics Range</span>
+                    <select id="analyticsRangeSelect" class="input-field min-w-[190px]">
+                        <option value="today">Today</option>
+                        <option value="7d">Last 7 Days</option>
+                        <option value="30d" selected>Last 30 Days</option>
+                        <option value="month">Month to Date</option>
+                        <option value="all">All Time</option>
+                    </select>
+                </label>
+                <button id="refreshAnalyticsBtn" class="btn btn-primary px-6 py-3 rounded-lg text-sm">
+                    Refresh Insights
+                </button>
+                <button id="exportAnalyticsBtn" class="btn btn-primary-alt px-6 py-3 rounded-lg text-sm">
+                    Export CSV
+                </button>
+            </div>
         </div>
 
         <div id="analyticsMeta" class="bg-blue-900 bg-opacity-20 border border-cyan-400 border-opacity-20 text-light-gray rounded-xl px-5 py-4 mb-6">
             Loading the latest decision signals...
+        </div>
+
+        <div id="analyticsAlerts" class="flex flex-wrap gap-3 mb-6">
+            <span class="analytics-pill medium">Scanning warnings...</span>
         </div>
 
         <div id="analyticsCards" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -516,12 +535,34 @@
     <!-- ────────────────────────────────────────────── -->
     <!-- Green Action Buttons Section                   -->
     <!-- ────────────────────────────────────────────── -->
-    <div class="mb-10 flex flex-col md:flex-row gap-4">
+    <div class="mb-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <button id="toggleCompaniesBtn" class="btn btn-primary flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
             Company Management
+        </button>
+
+        <button id="toggleReferralSettingsBtn" class="btn btn-primary-alt flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 2v8m0 0v2m0-2c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Referral Rewards
+        </button>
+
+        <button id="toggleDeliveryFeeSettingsBtn" class="btn btn-primary-alt flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-2.761 0-5 1.79-5 4 0 1.39.89 2.614 2.25 3.33V18l2.24-1.12c.49.08 1 .12 1.51.12 2.76 0 5-1.79 5-4s-2.24-4-5-4z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12a7 7 0 1014 0 7 7 0 10-14 0z" />
+            </svg>
+            Delivery Fees
+        </button>
+
+        <button id="toggleCarouselSlidesBtn" class="btn btn-primary-alt flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2zm0 0l5 4 5-4M7 10h10M7 14h6" />
+            </svg>
+            Carousel Slides
         </button>
         
         <button id="toggleOrdersBtn" class="btn btn-success flex-1 py-4 text-lg font-bold flex items-center justify-center gap-3">
@@ -545,6 +586,308 @@
             Pending Withdrawals
             <span id="withdrawalCountBadge" class="text-sm bg-white text-yellow-800 px-3 py-1 rounded-full">0</span>
         </button>
+    </div>
+
+    <!-- ────────────────────────────────────────────── -->
+    <!-- Referral Settings Section (hidden by default) -->
+    <!-- ────────────────────────────────────────────── -->
+    <div id="referralSettingsSection" class="hidden mt-6">
+        <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h2 class="text-3xl font-bold text-accent-cyan">Referral Reward Settings</h2>
+                <p class="text-light-gray mt-2 max-w-3xl">
+                    Control how much a user earns after a referred customer completes a first paid order.
+                </p>
+            </div>
+            <button id="refreshReferralSettingsBtn" class="btn btn-primary px-4 py-2 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+            </button>
+        </div>
+
+        <div class="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+            <div class="card p-6">
+                <p class="text-sm font-semibold uppercase tracking-[0.3em] text-accent-cyan">Current Reward</p>
+                <p id="currentReferralRewardDisplay" class="text-4xl font-extrabold text-light-slate mt-4">--</p>
+
+                <div class="grid gap-4 mt-6 sm:grid-cols-2">
+                    <div class="rounded-xl bg-blue-900 bg-opacity-20 border border-cyan-400 border-opacity-10 p-4">
+                        <p class="text-xs uppercase tracking-[0.25em] text-light-gray">Config Source</p>
+                        <p id="referralSettingsSource" class="mt-2 text-lg font-semibold text-light-slate">Loading...</p>
+                    </div>
+                    <div class="rounded-xl bg-blue-900 bg-opacity-20 border border-cyan-400 border-opacity-10 p-4">
+                        <p class="text-xs uppercase tracking-[0.25em] text-light-gray">Last Updated</p>
+                        <p id="referralSettingsUpdatedAt" class="mt-2 text-lg font-semibold text-light-slate">Loading...</p>
+                    </div>
+                    <div class="rounded-xl bg-blue-900 bg-opacity-20 border border-cyan-400 border-opacity-10 p-4 sm:col-span-2">
+                        <p class="text-xs uppercase tracking-[0.25em] text-light-gray">Last Updated By</p>
+                        <p id="referralSettingsUpdatedBy" class="mt-2 text-lg font-semibold text-light-slate">Loading...</p>
+                    </div>
+                </div>
+
+                <form id="referralSettingsForm" class="mt-8 space-y-4">
+                    <div>
+                        <label for="referralRewardAmountInput" class="block text-sm font-semibold text-light-gray mb-2">
+                            Reward Amount per Referral
+                        </label>
+                        <input
+                            id="referralRewardAmountInput"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            class="input-field w-full"
+                            placeholder="Enter reward amount in naira"
+                        />
+                    </div>
+                    <p class="text-sm text-light-gray">
+                        This amount is granted after the referred customer completes a first paid order.
+                    </p>
+                    <button id="saveReferralSettingsBtn" type="submit" class="btn btn-success w-full px-5 py-3">
+                        Save Referral Reward
+                    </button>
+                </form>
+            </div>
+
+            <div class="card p-6">
+                <div class="flex items-center justify-between gap-4 mb-6">
+                    <div>
+                        <p class="text-sm font-semibold uppercase tracking-[0.3em] text-accent-cyan mb-2">Audit Trail</p>
+                        <h3 class="text-2xl font-bold text-light-slate">Reward Change History</h3>
+                    </div>
+                    <span class="analytics-pill medium">Tracked</span>
+                </div>
+                <div id="referralAuditTrail" class="space-y-4">
+                    <p class="text-light-gray">Open "Referral Rewards" to load the current change history.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ────────────────────────────────────────────── -->
+    <!-- Delivery Fee Settings Section                 -->
+    <!-- ────────────────────────────────────────────── -->
+    <div id="deliveryFeeSettingsSection" class="hidden mt-6">
+        <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h2 class="text-3xl font-bold text-accent-cyan">Delivery Fee Settings</h2>
+                <p class="text-light-gray mt-2 max-w-3xl">
+                    Control Abuja delivery fees by zone. Orders that do not match a configured Abuja area will keep using the fallback distance pricing rule.
+                </p>
+            </div>
+            <button id="refreshDeliveryFeeSettingsBtn" class="btn btn-primary px-4 py-2 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+            </button>
+        </div>
+
+        <div class="grid gap-6 xl:grid-cols-[0.82fr_1.18fr]">
+            <div class="card p-6">
+                <p class="text-sm font-semibold uppercase tracking-[0.3em] text-accent-cyan">Current Coverage</p>
+                <p id="deliveryFeeCoverageDisplay" class="text-4xl font-extrabold text-light-slate mt-4">--</p>
+
+                <div class="grid gap-4 mt-6 sm:grid-cols-2">
+                    <div class="rounded-xl bg-blue-900 bg-opacity-20 border border-cyan-400 border-opacity-10 p-4">
+                        <p class="text-xs uppercase tracking-[0.25em] text-light-gray">Config Source</p>
+                        <p id="deliveryFeeSettingsSource" class="mt-2 text-lg font-semibold text-light-slate">Loading...</p>
+                    </div>
+                    <div class="rounded-xl bg-blue-900 bg-opacity-20 border border-cyan-400 border-opacity-10 p-4">
+                        <p class="text-xs uppercase tracking-[0.25em] text-light-gray">Fallback Rule</p>
+                        <p id="deliveryFeeFallbackDisplay" class="mt-2 text-lg font-semibold text-light-slate">Loading...</p>
+                    </div>
+                    <div class="rounded-xl bg-blue-900 bg-opacity-20 border border-cyan-400 border-opacity-10 p-4">
+                        <p class="text-xs uppercase tracking-[0.25em] text-light-gray">Minimum Delivery Fee</p>
+                        <p id="deliveryFeeMinimumDisplay" class="mt-2 text-lg font-semibold text-light-slate">Loading...</p>
+                    </div>
+                    <div class="rounded-xl bg-blue-900 bg-opacity-20 border border-cyan-400 border-opacity-10 p-4">
+                        <p class="text-xs uppercase tracking-[0.25em] text-light-gray">Last Updated</p>
+                        <p id="deliveryFeeSettingsUpdatedAt" class="mt-2 text-lg font-semibold text-light-slate">Loading...</p>
+                    </div>
+                    <div class="rounded-xl bg-blue-900 bg-opacity-20 border border-cyan-400 border-opacity-10 p-4 sm:col-span-2">
+                        <p class="text-xs uppercase tracking-[0.25em] text-light-gray">Last Updated By</p>
+                        <p id="deliveryFeeSettingsUpdatedBy" class="mt-2 text-lg font-semibold text-light-slate">Loading...</p>
+                    </div>
+                </div>
+
+                <div class="mt-8 rounded-xl border border-cyan-400 border-opacity-10 bg-blue-950 bg-opacity-30 p-5">
+                    <p class="text-sm font-semibold uppercase tracking-[0.25em] text-accent-cyan">Abuja Launch Notes</p>
+                    <p class="text-sm text-light-gray mt-3 leading-7">
+                        Start by tuning Abuja zone prices below. Central districts, residential growth corridors, and satellite towns can each carry different fees while the rest of the country still follows the fallback rate.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card p-6">
+                <form id="deliveryFeeSettingsForm" class="space-y-6">
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label for="deliveryFallbackRateInput" class="block text-sm font-semibold text-light-gray mb-2">
+                                Fallback Rate Per KM
+                            </label>
+                            <input
+                                id="deliveryFallbackRateInput"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                class="input-field w-full"
+                                placeholder="Enter fallback rate per kilometre"
+                            />
+                        </div>
+                        <div>
+                            <label for="deliveryMinimumFeeInput" class="block text-sm font-semibold text-light-gray mb-2">
+                                Minimum Delivery Fee
+                            </label>
+                            <input
+                                id="deliveryMinimumFeeInput"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                class="input-field w-full"
+                                placeholder="Enter minimum delivery fee"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between gap-4 mb-4">
+                            <div>
+                                <p class="text-sm font-semibold uppercase tracking-[0.3em] text-accent-cyan mb-2">Abuja Zones</p>
+                                <h3 class="text-2xl font-bold text-light-slate">Zone Fee Editor</h3>
+                            </div>
+                            <span class="analytics-pill medium">Location Based</span>
+                        </div>
+                        <div id="deliveryFeeZoneGroups" class="space-y-6">
+                            <p class="text-light-gray">Open "Delivery Fees" to load the Abuja delivery fee table.</p>
+                        </div>
+                    </div>
+
+                    <button id="saveDeliveryFeeSettingsBtn" type="submit" class="btn btn-success w-full px-5 py-3">
+                        Save Delivery Fees
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ────────────────────────────────────────────── -->
+    <!-- Carousel Slides Section (hidden by default)   -->
+    <!-- ────────────────────────────────────────────── -->
+    <div id="carouselSlidesSection" class="hidden mt-6">
+        <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h2 class="text-3xl font-bold text-accent-cyan">Home Carousel Slides</h2>
+                <p class="text-light-gray mt-2 max-w-3xl">
+                    Manage the slides used in the Flutter home screen. Main slides power the top carousel, while promo slides power the lower ad carousel.
+                </p>
+            </div>
+            <button id="refreshCarouselSlidesBtn" class="btn btn-primary px-4 py-2 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+            </button>
+        </div>
+
+        <div class="grid gap-6 xl:grid-cols-2">
+            <div class="card p-6">
+                <div class="flex items-center justify-between gap-4 mb-6">
+                    <div>
+                        <p class="text-sm font-semibold uppercase tracking-[0.3em] text-accent-cyan mb-2">Top Carousel</p>
+                        <h3 class="text-2xl font-bold text-light-slate">Main Slides</h3>
+                    </div>
+                    <span class="analytics-pill medium">Main</span>
+                </div>
+
+                <form id="mainCarouselCreateForm" data-placement="main" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-light-gray mb-2">Slide Title</label>
+                        <input type="text" class="carousel-title input-field w-full" placeholder="Optional label for admin use" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-light-gray mb-2">Subtitle</label>
+                        <input type="text" class="carousel-subtitle input-field w-full" placeholder="Optional subtitle" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-light-gray mb-2">Image URL</label>
+                        <input type="url" class="carousel-image-url input-field w-full" placeholder="Paste a Cloudinary or public image URL" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-light-gray mb-2">Upload Image</label>
+                        <input type="file" class="carousel-image-file block w-full text-sm text-light-gray" accept="image/*" />
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="block text-sm font-semibold text-light-gray mb-2">Link URL</label>
+                            <input type="url" class="carousel-link-url input-field w-full" placeholder="Optional target URL" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-light-gray mb-2">Sort Order</label>
+                            <input type="number" class="carousel-sort-order input-field w-full" value="0" />
+                        </div>
+                    </div>
+                    <label class="flex items-center gap-3 text-sm text-light-gray">
+                        <input type="checkbox" class="carousel-is-active h-4 w-4" checked />
+                        Slide is active
+                    </label>
+                    <button type="submit" class="btn btn-success w-full px-5 py-3">Add Main Slide</button>
+                </form>
+
+                <div id="mainCarouselSlidesList" class="space-y-4 mt-6">
+                    <p class="text-light-gray">Open "Carousel Slides" to load main slides.</p>
+                </div>
+            </div>
+
+            <div class="card p-6">
+                <div class="flex items-center justify-between gap-4 mb-6">
+                    <div>
+                        <p class="text-sm font-semibold uppercase tracking-[0.3em] text-accent-cyan mb-2">Promo Carousel</p>
+                        <h3 class="text-2xl font-bold text-light-slate">Promo Slides</h3>
+                    </div>
+                    <span class="analytics-pill good">Promo</span>
+                </div>
+
+                <form id="promoCarouselCreateForm" data-placement="promo" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-light-gray mb-2">Slide Title</label>
+                        <input type="text" class="carousel-title input-field w-full" placeholder="Optional label for admin use" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-light-gray mb-2">Subtitle</label>
+                        <input type="text" class="carousel-subtitle input-field w-full" placeholder="Optional subtitle" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-light-gray mb-2">Image URL</label>
+                        <input type="url" class="carousel-image-url input-field w-full" placeholder="Paste a Cloudinary or public image URL" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-light-gray mb-2">Upload Image</label>
+                        <input type="file" class="carousel-image-file block w-full text-sm text-light-gray" accept="image/*" />
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="block text-sm font-semibold text-light-gray mb-2">Link URL</label>
+                            <input type="url" class="carousel-link-url input-field w-full" placeholder="Optional target URL" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-light-gray mb-2">Sort Order</label>
+                            <input type="number" class="carousel-sort-order input-field w-full" value="0" />
+                        </div>
+                    </div>
+                    <label class="flex items-center gap-3 text-sm text-light-gray">
+                        <input type="checkbox" class="carousel-is-active h-4 w-4" checked />
+                        Slide is active
+                    </label>
+                    <button type="submit" class="btn btn-success w-full px-5 py-3">Add Promo Slide</button>
+                </form>
+
+                <div id="promoCarouselSlidesList" class="space-y-4 mt-6">
+                    <p class="text-light-gray">Open "Carousel Slides" to load promo slides.</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- ────────────────────────────────────────────── -->
@@ -588,6 +931,8 @@
                     <option value="all">All Orders</option>
                     <option value="pending_payment">Pending Payment</option>
                     <option value="processing">Processing</option>
+                    <option value="partially_shipped">Partially Shipped</option>
+                    <option value="shipped">Shipped</option>
                     <option value="out_for_delivery">Out for Delivery</option>
                     <option value="delivered">Delivered (Ready for Payout)</option>
                     <option value="completed">Completed (Paid)</option>
@@ -657,14 +1002,22 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentRiderFilter = 'all';
     let currentWithdrawalFilter = 'all';
     let currentCompanyFilter = 'all';
+    let hasLoadedReferralSettings = false;
+    let hasLoadedDeliveryFeeSettings = false;
+    let hasLoadedCarouselSlides = false;
     let allOrders = [];
     let allRiders = [];
     let allWithdrawals = [];
     let allCompanies = [];
     let allDisputes = [];
     let pendingVendorRequests = [];
+    let customerVendorMetrics = null;
     let isAnalyticsRefreshing = false;
     let analyticsLastUpdated = null;
+    let selectedAnalyticsRange = '30d';
+    let analyticsRangeWindow = null;
+    let latestAnalyticsSnapshot = null;
+    let latestDeliveryFeeSettings = null;
 
     // DOM Elements - only get those that exist
     const messageContainer     = document.getElementById('messageContainer');
@@ -674,8 +1027,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const analyticsBreakdown   = document.getElementById('analyticsBreakdown');
     const analyticsInsights    = document.getElementById('analyticsInsights');
     const analyticsMeta        = document.getElementById('analyticsMeta');
+    const analyticsAlerts      = document.getElementById('analyticsAlerts');
     const analyticsPriorityBadge = document.getElementById('analyticsPriorityBadge');
     const refreshAnalyticsBtn  = document.getElementById('refreshAnalyticsBtn');
+    const exportAnalyticsBtn   = document.getElementById('exportAnalyticsBtn');
+    const analyticsRangeSelect = document.getElementById('analyticsRangeSelect');
 
     const ordersList           = document.getElementById('ordersList');
     const orderFilterDropdown  = document.getElementById('orderFilterDropdown');
@@ -686,6 +1042,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const withdrawalCountBadge = document.getElementById('withdrawalCountBadge');
     const withdrawalTotalDisplay = document.getElementById('withdrawalTotalDisplay');
     const refreshWithdrawalsBtn = document.getElementById('refreshWithdrawalsBtn');
+    const referralSettingsSection = document.getElementById('referralSettingsSection');
+    const deliveryFeeSettingsSection = document.getElementById('deliveryFeeSettingsSection');
+    const carouselSlidesSection = document.getElementById('carouselSlidesSection');
+    const currentReferralRewardDisplay = document.getElementById('currentReferralRewardDisplay');
+    const referralSettingsSource = document.getElementById('referralSettingsSource');
+    const referralSettingsUpdatedAt = document.getElementById('referralSettingsUpdatedAt');
+    const referralSettingsUpdatedBy = document.getElementById('referralSettingsUpdatedBy');
+    const referralRewardAmountInput = document.getElementById('referralRewardAmountInput');
+    const referralSettingsForm = document.getElementById('referralSettingsForm');
+    const saveReferralSettingsBtn = document.getElementById('saveReferralSettingsBtn');
+    const refreshReferralSettingsBtn = document.getElementById('refreshReferralSettingsBtn');
+    const referralAuditTrail = document.getElementById('referralAuditTrail');
+    const deliveryFeeCoverageDisplay = document.getElementById('deliveryFeeCoverageDisplay');
+    const deliveryFeeSettingsSource = document.getElementById('deliveryFeeSettingsSource');
+    const deliveryFeeFallbackDisplay = document.getElementById('deliveryFeeFallbackDisplay');
+    const deliveryFeeMinimumDisplay = document.getElementById('deliveryFeeMinimumDisplay');
+    const deliveryFeeSettingsUpdatedAt = document.getElementById('deliveryFeeSettingsUpdatedAt');
+    const deliveryFeeSettingsUpdatedBy = document.getElementById('deliveryFeeSettingsUpdatedBy');
+    const deliveryFallbackRateInput = document.getElementById('deliveryFallbackRateInput');
+    const deliveryMinimumFeeInput = document.getElementById('deliveryMinimumFeeInput');
+    const deliveryFeeZoneGroups = document.getElementById('deliveryFeeZoneGroups');
+    const deliveryFeeSettingsForm = document.getElementById('deliveryFeeSettingsForm');
+    const refreshDeliveryFeeSettingsBtn = document.getElementById('refreshDeliveryFeeSettingsBtn');
+    const refreshCarouselSlidesBtn = document.getElementById('refreshCarouselSlidesBtn');
+    const mainCarouselCreateForm = document.getElementById('mainCarouselCreateForm');
+    const promoCarouselCreateForm = document.getElementById('promoCarouselCreateForm');
+    const mainCarouselSlidesList = document.getElementById('mainCarouselSlidesList');
+    const promoCarouselSlidesList = document.getElementById('promoCarouselSlidesList');
     const storedToken = localStorage.getItem('admin_jwt_token');
 
     if (!storedToken) {
@@ -694,6 +1078,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     adminToken = storedToken;
+
+    if (analyticsRangeSelect) {
+        analyticsRangeSelect.value = selectedAnalyticsRange;
+    }
 
     // Initialize Socket.io connection for real-time updates
     let socket = null;
@@ -816,6 +1204,771 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${Math.round(Number(value) || 0)}%`;
     }
 
+    function formatSignedPercent(value) {
+        const numericValue = Number(value || 0);
+
+        if (!Number.isFinite(numericValue)) {
+            return '0.0%';
+        }
+
+        const roundedValue = Number(numericValue.toFixed(1));
+
+        if (roundedValue > 0) {
+            return `+${roundedValue}%`;
+        }
+
+        return `${roundedValue}%`;
+    }
+
+    function getTrendTone(changePercent, positiveIsGood = true) {
+        const numericValue = Number(changePercent || 0);
+
+        if (Math.abs(numericValue) < 5) {
+            return 'medium';
+        }
+
+        if (numericValue > 0) {
+            return positiveIsGood ? 'good' : 'high';
+        }
+
+        return positiveIsGood ? 'high' : 'good';
+    }
+
+    function getTrendBadge(changePercent) {
+        const numericValue = Number(changePercent || 0);
+
+        if (!Number.isFinite(numericValue) || Math.abs(numericValue) < 0.05) {
+            return 'Flat';
+        }
+
+        return `${numericValue > 0 ? 'Up' : 'Down'} ${Math.abs(numericValue).toFixed(1)}%`;
+    }
+
+    function getTrendNarrative(changePercent, positiveIsGood = true) {
+        const numericValue = Number(changePercent || 0);
+
+        if (!Number.isFinite(numericValue) || Math.abs(numericValue) < 0.05) {
+            return 'holding steady versus the previous period';
+        }
+
+        const direction = numericValue > 0 ? 'up' : 'down';
+
+        if (positiveIsGood) {
+            return `${direction} ${Math.abs(numericValue).toFixed(1)}% versus the previous period`;
+        }
+
+        return `${direction} ${Math.abs(numericValue).toFixed(1)}% versus the previous period, which changes payout exposure`;
+    }
+
+    function getAnalyticsRangeBounds() {
+        if (!analyticsRangeWindow?.startDate || !analyticsRangeWindow?.endDate) {
+            return null;
+        }
+
+        const startDate = new Date(analyticsRangeWindow.startDate);
+        const endDate = new Date(analyticsRangeWindow.endDate);
+
+        if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+            return null;
+        }
+
+        return { startDate, endDate };
+    }
+
+    function filterCollectionByAnalyticsRange(items, getDateValue) {
+        const records = Array.isArray(items) ? items : [];
+        const rangeBounds = getAnalyticsRangeBounds();
+
+        if (!rangeBounds) {
+            return records;
+        }
+
+        return records.filter(item => {
+            const rawDate = getDateValue(item);
+
+            if (!rawDate) {
+                return false;
+            }
+
+            const parsedDate = new Date(rawDate);
+
+            if (Number.isNaN(parsedDate.getTime())) {
+                return false;
+            }
+
+            return parsedDate >= rangeBounds.startDate && parsedDate < rangeBounds.endDate;
+        });
+    }
+
+    function formatDateTime(value) {
+        if (!value) return 'Not yet';
+        const parsedDate = new Date(value);
+        if (Number.isNaN(parsedDate.getTime())) return 'Not available';
+        return parsedDate.toLocaleString('en-US', {
+            dateStyle: 'medium',
+            timeStyle: 'short'
+        });
+    }
+
+    function getAdminDisplayName(admin) {
+        if (!admin) return 'System';
+        return admin.name || admin.email || 'Admin';
+    }
+
+    function escapeHtml(value = '') {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function handleAdminSessionExpiry(status) {
+        if (status === 401 || status === 403) {
+            displayMessage('Session expired. Redirecting to login...', 'warning');
+            clearAdminSession();
+            setTimeout(() => redirectToLogin('expired'), 1200);
+            return true;
+        }
+
+        return false;
+    }
+
+    function renderReferralAudit(history = []) {
+        if (!referralAuditTrail) return;
+
+        if (!history.length) {
+            referralAuditTrail.innerHTML = '<p class="text-light-gray">No referral reward changes have been recorded yet.</p>';
+            return;
+        }
+
+        referralAuditTrail.innerHTML = history.map(entry => {
+            const isStartupSeed = entry.source === 'startup_seed';
+            const actorLabel = isStartupSeed ? 'System startup' : getAdminDisplayName(entry.changedBy);
+            const previousAmountLabel = entry.previousAmount === null || entry.previousAmount === undefined
+                ? 'Initial reward seed'
+                : `${formatCurrency(entry.previousAmount)} to ${formatCurrency(entry.newAmount)}`;
+
+            return `
+                <div class="rounded-xl border border-cyan-400 border-opacity-15 bg-blue-950 bg-opacity-30 p-4">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                            <p class="font-semibold text-light-slate">${actorLabel}</p>
+                            <p class="text-sm text-light-gray mt-1">
+                                ${isStartupSeed ? 'Default referral reward was seeded when the backend started.' : 'Referral reward amount updated by admin action.'}
+                            </p>
+                            <p class="text-xs text-gray-400 mt-3">${previousAmountLabel}</p>
+                        </div>
+                        <div class="sm:text-right">
+                            <p class="text-xl font-bold text-accent-cyan">${formatCurrency(entry.newAmount)}</p>
+                            <p class="text-xs text-light-gray mt-1">${formatDateTime(entry.changedAt)}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderReferralSettings(settings) {
+        if (!currentReferralRewardDisplay || !referralRewardAmountInput) return;
+
+        currentReferralRewardDisplay.textContent = formatCurrency(settings.referralRewardAmount);
+        referralSettingsSource.textContent = settings.source === 'database' ? 'Database controlled' : 'Environment fallback';
+        referralSettingsUpdatedAt.textContent = formatDateTime(settings.updatedAt || settings.createdAt);
+        referralSettingsUpdatedBy.textContent = settings.updatedBy
+            ? `${getAdminDisplayName(settings.updatedBy)}${settings.updatedBy.email ? ` (${settings.updatedBy.email})` : ''}`
+            : settings.source === 'database'
+                ? 'System'
+                : 'Not saved yet';
+        referralRewardAmountInput.value = Number(settings.referralRewardAmount || 0);
+        renderReferralAudit(Array.isArray(settings.history) ? settings.history : []);
+        hasLoadedReferralSettings = true;
+    }
+
+    function renderDeliveryFeeZoneEditor(zones = []) {
+        if (!deliveryFeeZoneGroups) return;
+
+        if (!zones.length) {
+            deliveryFeeZoneGroups.innerHTML = '<p class="text-light-gray">No delivery zones configured yet.</p>';
+            return;
+        }
+
+        const groupedZones = zones.reduce((groups, zone) => {
+            const groupName = zone.group || 'Abuja Zones';
+            if (!groups[groupName]) {
+                groups[groupName] = [];
+            }
+            groups[groupName].push(zone);
+            return groups;
+        }, {});
+
+        deliveryFeeZoneGroups.innerHTML = Object.entries(groupedZones).map(([groupName, groupZones]) => `
+            <div class="rounded-2xl border border-cyan-400 border-opacity-10 bg-blue-950 bg-opacity-20 p-5">
+                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
+                    <div>
+                        <h4 class="text-xl font-bold text-light-slate">${escapeHtml(groupName)}</h4>
+                        <p class="text-sm text-light-gray">${groupZones.length} Abuja zone${groupZones.length === 1 ? '' : 's'} in this pricing group.</p>
+                    </div>
+                    <span class="analytics-pill medium">${groupZones.length} zones</span>
+                </div>
+                <div class="grid gap-4 md:grid-cols-2">
+                    ${groupZones.map(zone => `
+                        <div class="rounded-xl border border-cyan-400 border-opacity-10 bg-[#10203D] p-4">
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <p class="text-lg font-semibold text-light-slate">${escapeHtml(zone.zoneName || zone.zoneKey || 'Zone')}</p>
+                                    <p class="text-xs uppercase tracking-[0.2em] text-light-gray mt-1">${escapeHtml(zone.city || 'Abuja')}</p>
+                                </div>
+                                <label class="flex items-center gap-2 text-xs text-light-gray">
+                                    <input
+                                        type="checkbox"
+                                        class="h-4 w-4"
+                                        data-delivery-zone-active="${escapeHtml(zone.zoneKey)}"
+                                        ${zone.isActive !== false ? 'checked' : ''}
+                                    />
+                                    Active
+                                </label>
+                            </div>
+
+                            <div class="mt-4">
+                                <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-light-gray mb-2">
+                                    Fee Amount (₦)
+                                </label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    class="input-field w-full"
+                                    data-delivery-zone-amount="${escapeHtml(zone.zoneKey)}"
+                                    value="${Number(zone.amount || 0)}"
+                                />
+                            </div>
+
+                            <p class="text-xs text-gray-400 mt-3 leading-6">
+                                Matches: ${escapeHtml((zone.aliases || []).join(', ') || zone.zoneName || zone.zoneKey || 'No aliases')}
+                            </p>
+                            ${(zone.tags || []).length ? `
+                                <div class="flex flex-wrap gap-2 mt-3">
+                                    ${(zone.tags || []).map(tag => `
+                                        <span class="analytics-pill good">${escapeHtml(String(tag).replace(/_/g, ' '))}</span>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderDeliveryFeeSettings(settings) {
+        if (!deliveryFeeCoverageDisplay || !deliveryFallbackRateInput || !deliveryMinimumFeeInput) return;
+
+        latestDeliveryFeeSettings = settings;
+        deliveryFeeCoverageDisplay.textContent = `${Number(settings.zoneCount || settings.zones?.length || 0)} Abuja Zones`;
+        deliveryFeeSettingsSource.textContent = settings.source === 'database' ? 'Database controlled' : 'Startup defaults';
+        deliveryFeeFallbackDisplay.textContent = `₦${Number(settings.fallbackRatePerKm || 0).toFixed(2)} / km`;
+        deliveryFeeMinimumDisplay.textContent = formatCurrency(settings.minimumDeliveryFee || 0);
+        deliveryFeeSettingsUpdatedAt.textContent = formatDateTime(settings.updatedAt || settings.createdAt);
+        deliveryFeeSettingsUpdatedBy.textContent = settings.updatedBy
+            ? `${getAdminDisplayName(settings.updatedBy)}${settings.updatedBy.email ? ` (${settings.updatedBy.email})` : ''}`
+            : settings.source === 'database'
+                ? 'System'
+                : 'Startup seed';
+        deliveryFallbackRateInput.value = Number(settings.fallbackRatePerKm || 0);
+        deliveryMinimumFeeInput.value = Number(settings.minimumDeliveryFee || 0);
+        renderDeliveryFeeZoneEditor(Array.isArray(settings.zones) ? settings.zones : []);
+        hasLoadedDeliveryFeeSettings = true;
+    }
+
+    async function fetchDeliveryFeeSettings() {
+        if (!adminToken) {
+            displayMessage('Please login as admin to load delivery fee settings.', 'error');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/delivery-fee-settings`, {
+                headers: {
+                    'Authorization': `Bearer ${adminToken}`,
+                },
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                renderDeliveryFeeSettings(data);
+            } else {
+                displayMessage(data.message || 'Failed to load delivery fee settings', 'error');
+            }
+        } catch (error) {
+            displayMessage(`Error loading delivery fee settings: ${error.message}`, 'error');
+        }
+    }
+
+    async function saveDeliveryFeeSettings(event) {
+        event.preventDefault();
+
+        if (!adminToken) {
+            displayMessage('Please login as admin to save delivery fee settings.', 'error');
+            return;
+        }
+
+        if (!latestDeliveryFeeSettings || !Array.isArray(latestDeliveryFeeSettings.zones)) {
+            displayMessage('Refresh delivery fee settings first.', 'warning');
+            return;
+        }
+
+        const fallbackRatePerKm = Number(deliveryFallbackRateInput?.value || 0);
+        const minimumDeliveryFee = Number(deliveryMinimumFeeInput?.value || 0);
+
+        if (!Number.isFinite(fallbackRatePerKm) || fallbackRatePerKm < 0) {
+            displayMessage('Fallback rate per KM must be a valid non-negative number.', 'warning');
+            return;
+        }
+
+        if (!Number.isFinite(minimumDeliveryFee) || minimumDeliveryFee < 0) {
+            displayMessage('Minimum delivery fee must be a valid non-negative number.', 'warning');
+            return;
+        }
+
+        const zones = latestDeliveryFeeSettings.zones.map(zone => {
+            const amountInput = deliveryFeeZoneGroups?.querySelector(`[data-delivery-zone-amount="${zone.zoneKey}"]`);
+            const activeInput = deliveryFeeZoneGroups?.querySelector(`[data-delivery-zone-active="${zone.zoneKey}"]`);
+            const amount = Number(amountInput?.value ?? zone.amount ?? 0);
+
+            return {
+                ...zone,
+                amount: Number.isFinite(amount) && amount >= 0 ? amount : Number(zone.amount || 0),
+                isActive: activeInput ? Boolean(activeInput.checked) : zone.isActive !== false,
+            };
+        });
+
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/delivery-fee-settings`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`,
+                },
+                body: JSON.stringify({
+                    fallbackRatePerKm,
+                    minimumDeliveryFee,
+                    zones,
+                }),
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                renderDeliveryFeeSettings(data);
+                displayMessage(data.message || 'Delivery fee settings updated successfully.', 'success');
+            } else {
+                displayMessage(data.message || 'Failed to update delivery fee settings.', 'error');
+            }
+        } catch (error) {
+            displayMessage(`Error saving delivery fee settings: ${error.message}`, 'error');
+        }
+    }
+
+    function renderCarouselSlideCards(slides = [], placement) {
+        if (!slides.length) {
+            return `<p class="text-light-gray">No ${placement === 'main' ? 'main' : 'promo'} slides have been added yet.</p>`;
+        }
+
+        return slides.map(slide => `
+            <div class="rounded-xl border border-cyan-400 border-opacity-15 bg-blue-950 bg-opacity-30 p-4" data-slide-id="${escapeHtml(slide._id || slide.id || '')}" data-placement="${escapeHtml(slide.placement || placement)}" data-image-url="${escapeHtml(slide.imageUrl || '')}">
+                <div class="grid gap-4 lg:grid-cols-[160px_1fr]">
+                    <div class="overflow-hidden rounded-xl border border-cyan-400 border-opacity-10 bg-blue-900 bg-opacity-20">
+                        <img
+                            src="${escapeHtml(slide.imageUrl || '')}"
+                            alt="${escapeHtml(slide.title || 'Carousel slide')}"
+                            class="h-36 w-full object-cover"
+                            loading="lazy"
+                        />
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-light-gray mb-2">Title</label>
+                                <input type="text" class="carousel-title input-field w-full" value="${escapeHtml(slide.title || '')}" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-light-gray mb-2">Subtitle</label>
+                                <input type="text" class="carousel-subtitle input-field w-full" value="${escapeHtml(slide.subtitle || '')}" />
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-light-gray mb-2">Image URL</label>
+                                <input type="url" class="carousel-image-url input-field w-full" value="${escapeHtml(slide.imageUrl || '')}" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-light-gray mb-2">Replace Image</label>
+                                <input type="file" class="carousel-image-file block w-full text-sm text-light-gray" accept="image/*" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-light-gray mb-2">Link URL</label>
+                                <input type="url" class="carousel-link-url input-field w-full" value="${escapeHtml(slide.linkUrl || '')}" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-[0.2em] text-light-gray mb-2">Sort Order</label>
+                                <input type="number" class="carousel-sort-order input-field w-full" value="${Number(slide.sortOrder || 0)}" />
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div class="space-y-1">
+                                <label class="flex items-center gap-3 text-sm text-light-gray">
+                                    <input type="checkbox" class="carousel-is-active h-4 w-4" ${slide.isActive ? 'checked' : ''} />
+                                    Slide is active
+                                </label>
+                                <p class="text-xs text-gray-400">
+                                    Updated ${formatDateTime(slide.updatedAt)} by ${escapeHtml(getAdminDisplayName(slide.updatedBy))}
+                                </p>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" class="save-carousel-slide-btn btn btn-success px-4 py-2 text-sm" data-id="${escapeHtml(slide._id || slide.id || '')}">
+                                    Save
+                                </button>
+                                <button type="button" class="delete-carousel-slide-btn btn btn-danger px-4 py-2 text-sm" data-id="${escapeHtml(slide._id || slide.id || '')}">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function attachCarouselSlideListeners() {
+        document.querySelectorAll('.save-carousel-slide-btn').forEach(button => {
+            button.addEventListener('click', () => updateCarouselSlide(button));
+        });
+
+        document.querySelectorAll('.delete-carousel-slide-btn').forEach(button => {
+            button.addEventListener('click', () => deleteCarouselSlide(button.dataset.id));
+        });
+    }
+
+    function renderCarouselSlides(groupedSlides = {}) {
+        if (!mainCarouselSlidesList || !promoCarouselSlidesList) return;
+
+        const mainSlides = Array.isArray(groupedSlides.main) ? groupedSlides.main : [];
+        const promoSlides = Array.isArray(groupedSlides.promo) ? groupedSlides.promo : [];
+
+        mainCarouselSlidesList.innerHTML = renderCarouselSlideCards(mainSlides, 'main');
+        promoCarouselSlidesList.innerHTML = renderCarouselSlideCards(promoSlides, 'promo');
+        attachCarouselSlideListeners();
+        hasLoadedCarouselSlides = true;
+    }
+
+    async function uploadCarouselImage(file, placement) {
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('placement', placement);
+
+        const response = await fetch(`${BASE_URL}/api/uploads/cloudinary/carousel`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${adminToken}`
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (handleAdminSessionExpiry(response.status)) {
+            throw new Error('Session expired');
+        }
+
+        if (!response.ok || !data.url) {
+            throw new Error(data.message || 'Failed to upload carousel image.');
+        }
+
+        return data.url;
+    }
+
+    async function buildCarouselPayload(container, placement, existingImageUrl = '') {
+        const title = container.querySelector('.carousel-title')?.value?.trim() || '';
+        const subtitle = container.querySelector('.carousel-subtitle')?.value?.trim() || '';
+        const imageUrlInput = container.querySelector('.carousel-image-url');
+        const fileInput = container.querySelector('.carousel-image-file');
+        const linkUrl = container.querySelector('.carousel-link-url')?.value?.trim() || '';
+        const sortOrderValue = container.querySelector('.carousel-sort-order')?.value;
+        const isActive = Boolean(container.querySelector('.carousel-is-active')?.checked);
+
+        let imageUrl = imageUrlInput?.value?.trim() || existingImageUrl;
+
+        if (fileInput?.files?.length) {
+            imageUrl = await uploadCarouselImage(fileInput.files[0], placement);
+            if (imageUrlInput) {
+                imageUrlInput.value = imageUrl;
+            }
+        }
+
+        return {
+            placement,
+            title,
+            subtitle,
+            imageUrl,
+            linkUrl,
+            sortOrder: Number.parseInt(sortOrderValue || '0', 10) || 0,
+            isActive
+        };
+    }
+
+    async function fetchCarouselSlides() {
+        if (!adminToken || !mainCarouselSlidesList || !promoCarouselSlidesList) return;
+
+        mainCarouselSlidesList.innerHTML = '<p class="text-light-gray">Loading main slides...</p>';
+        promoCarouselSlidesList.innerHTML = '<p class="text-light-gray">Loading promo slides...</p>';
+
+        try {
+            const response = await fetch(`${BASE_URL}/api/admin/carousel-slides`, {
+                headers: {
+                    'Authorization': `Bearer ${adminToken}`
+                }
+            });
+            const data = await response.json();
+
+            if (handleAdminSessionExpiry(response.status)) {
+                return;
+            }
+
+            if (response.ok) {
+                renderCarouselSlides(data);
+            } else {
+                mainCarouselSlidesList.innerHTML = '<p class="text-red-400">Unable to load main slides.</p>';
+                promoCarouselSlidesList.innerHTML = '<p class="text-red-400">Unable to load promo slides.</p>';
+                displayMessage(data.message || 'Failed to load carousel slides.', 'error');
+            }
+        } catch (err) {
+            mainCarouselSlidesList.innerHTML = '<p class="text-red-400">Unable to load main slides.</p>';
+            promoCarouselSlidesList.innerHTML = '<p class="text-red-400">Unable to load promo slides.</p>';
+            displayMessage(`Error: ${err.message}`, 'error');
+        }
+    }
+
+    async function createCarouselSlide(event) {
+        event.preventDefault();
+
+        const form = event.currentTarget;
+        const placement = form?.dataset?.placement;
+        const submitButton = form?.querySelector('button[type="submit"]');
+        const originalButtonText = submitButton?.textContent || 'Save Slide';
+
+        if (!placement) return;
+
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = 'Saving...';
+        }
+
+        try {
+            const payload = await buildCarouselPayload(form, placement);
+
+            if (!payload.imageUrl) {
+                displayMessage('Please provide an image URL or upload an image before saving.', 'warning');
+                return;
+            }
+
+            const response = await fetch(`${BASE_URL}/api/admin/carousel-slides`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+
+            if (handleAdminSessionExpiry(response.status)) {
+                return;
+            }
+
+            if (response.ok) {
+                form.reset();
+                const activeCheckbox = form.querySelector('.carousel-is-active');
+                if (activeCheckbox) {
+                    activeCheckbox.checked = true;
+                }
+                displayMessage(data.message || 'Carousel slide created successfully.', 'success');
+                fetchCarouselSlides();
+            } else {
+                displayMessage(data.message || 'Failed to create carousel slide.', 'error');
+            }
+        } catch (err) {
+            if (err.message !== 'Session expired') {
+                displayMessage(`Error: ${err.message}`, 'error');
+            }
+        } finally {
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.textContent = originalButtonText;
+            }
+        }
+    }
+
+    async function updateCarouselSlide(button) {
+        const card = button?.closest('[data-slide-id]');
+        const slideId = card?.dataset?.slideId;
+        const placement = card?.dataset?.placement;
+        const originalButtonText = button?.textContent || 'Save';
+
+        if (!card || !slideId || !placement) return;
+
+        button.disabled = true;
+        button.textContent = 'Saving...';
+
+        try {
+            const payload = await buildCarouselPayload(card, placement, card.dataset.imageUrl || '');
+
+            if (!payload.imageUrl) {
+                displayMessage('Please provide an image URL or upload an image before saving.', 'warning');
+                return;
+            }
+
+            const response = await fetch(`${BASE_URL}/api/admin/carousel-slides/${slideId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+
+            if (handleAdminSessionExpiry(response.status)) {
+                return;
+            }
+
+            if (response.ok) {
+                displayMessage(data.message || 'Carousel slide updated successfully.', 'success');
+                fetchCarouselSlides();
+            } else {
+                displayMessage(data.message || 'Failed to update carousel slide.', 'error');
+            }
+        } catch (err) {
+            if (err.message !== 'Session expired') {
+                displayMessage(`Error: ${err.message}`, 'error');
+            }
+        } finally {
+            button.disabled = false;
+            button.textContent = originalButtonText;
+        }
+    }
+
+    async function deleteCarouselSlide(slideId) {
+        if (!slideId) return;
+        if (!confirm('Delete this carousel slide?')) return;
+
+        try {
+            const response = await fetch(`${BASE_URL}/api/admin/carousel-slides/${slideId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${adminToken}`
+                }
+            });
+            const data = await response.json();
+
+            if (handleAdminSessionExpiry(response.status)) {
+                return;
+            }
+
+            if (response.ok) {
+                displayMessage(data.message || 'Carousel slide deleted successfully.', 'success');
+                fetchCarouselSlides();
+            } else {
+                displayMessage(data.message || 'Failed to delete carousel slide.', 'error');
+            }
+        } catch (err) {
+            displayMessage(`Error: ${err.message}`, 'error');
+        }
+    }
+
+    async function fetchReferralSettings() {
+        if (!adminToken || !referralAuditTrail) return;
+
+        referralAuditTrail.innerHTML = '<p class="text-light-gray">Loading referral reward history...</p>';
+
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/referral-settings`, {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            const data = await res.json();
+
+            if (res.status === 401 || res.status === 403) {
+                displayMessage('Session expired. Redirecting to login...', 'warning');
+                clearAdminSession();
+                setTimeout(() => redirectToLogin('expired'), 1200);
+                return;
+            }
+
+            if (res.ok) {
+                renderReferralSettings(data);
+            } else {
+                referralAuditTrail.innerHTML = '<p class="text-red-400">Unable to load referral reward history.</p>';
+                displayMessage(data.message || 'Failed to load referral settings', 'error');
+            }
+        } catch (err) {
+            referralAuditTrail.innerHTML = '<p class="text-red-400">Unable to load referral reward history.</p>';
+            displayMessage(`Error: ${err.message}`, 'error');
+        }
+    }
+
+    async function saveReferralSettings(event) {
+        event.preventDefault();
+
+        const parsedRewardAmount = Number.parseFloat(referralRewardAmountInput?.value);
+
+        if (!Number.isFinite(parsedRewardAmount) || parsedRewardAmount < 0) {
+            displayMessage('Please enter a valid non-negative reward amount.', 'warning');
+            return;
+        }
+
+        const originalButtonText = saveReferralSettingsBtn?.textContent || 'Save Referral Reward';
+        if (saveReferralSettingsBtn) {
+            saveReferralSettingsBtn.disabled = true;
+            saveReferralSettingsBtn.textContent = 'Saving...';
+        }
+
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/referral-settings`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify({ referralRewardAmount: parsedRewardAmount })
+            });
+            const data = await res.json();
+
+            if (res.status === 401 || res.status === 403) {
+                displayMessage('Session expired. Redirecting to login...', 'warning');
+                clearAdminSession();
+                setTimeout(() => redirectToLogin('expired'), 1200);
+                return;
+            }
+
+            if (res.ok) {
+                renderReferralSettings(data);
+                displayMessage(
+                    data.message || 'Referral reward amount updated successfully.',
+                    String(data.message || '').toLowerCase().includes('unchanged') ? 'warning' : 'success'
+                );
+            } else {
+                displayMessage(data.message || 'Failed to update referral reward amount.', 'error');
+            }
+        } catch (err) {
+            displayMessage(`Error: ${err.message}`, 'error');
+        } finally {
+            if (saveReferralSettingsBtn) {
+                saveReferralSettingsBtn.disabled = false;
+                saveReferralSettingsBtn.textContent = originalButtonText;
+            }
+        }
+    }
+
     function countBy(items, selector) {
         return (items || []).reduce((acc, item) => {
             const key = selector(item) || 'unknown';
@@ -824,20 +1977,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }, {});
     }
 
-    function getOrderStatusCounts() {
-        return countBy(allOrders, order => (order.mainOrderStatus || 'pending_payment').toLowerCase());
+    function getOrderStatusCounts(orders = allOrders) {
+        return countBy(orders, order => (order.mainOrderStatus || 'pending_payment').toLowerCase());
     }
 
-    function getCompanyStatusCounts() {
-        return countBy(allCompanies, company => (company.status || 'unknown').toLowerCase());
+    function getCompanyStatusCounts(companies = allCompanies) {
+        return countBy(companies, company => (company.status || 'unknown').toLowerCase());
     }
 
-    function getDisputeStatusCounts() {
-        return countBy(allDisputes, dispute => (dispute.status || 'open').toLowerCase());
+    function getDisputeStatusCounts(disputes = allDisputes) {
+        return countBy(disputes, dispute => (dispute.status || 'open').toLowerCase());
     }
 
-    function getWithdrawalStatusCounts() {
-        return countBy(allWithdrawals, withdrawal => (withdrawal.status || 'pending').toLowerCase());
+    function getWithdrawalStatusCounts(withdrawals = allWithdrawals) {
+        return countBy(withdrawals, withdrawal => (withdrawal.status || 'pending').toLowerCase());
     }
 
     function createBreakdownRows(items, total) {
@@ -851,7 +2004,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="space-y-2">
                     <div class="flex items-center justify-between gap-3 text-sm">
                         <span class="text-light-slate font-semibold">${item.label}</span>
-                        <span class="text-light-gray">${item.value} <span class="text-xs text-gray-400">(${formatPercent((item.value / total) * 100)})</span></span>
+                        <span class="text-light-gray">${item.displayValue ?? item.value} <span class="text-xs text-gray-400">(${formatPercent((item.value / total) * 100)})</span></span>
                     </div>
                     <div class="analytics-track">
                         <div class="analytics-fill" style="width: ${ratio}%"></div>
@@ -885,7 +2038,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="analytics-group">
                 <div class="flex items-center justify-between gap-3 mb-4">
                     <h4 class="text-lg font-semibold text-light-slate">${section.title}</h4>
-                    <span class="text-xs uppercase tracking-[0.25em] text-gray-400">${section.total} items</span>
+                    <span class="text-xs uppercase tracking-[0.25em] text-gray-400">${section.totalDisplay ?? section.total} ${section.unitLabel || 'items'}</span>
                 </div>
                 <div class="space-y-4">
                     ${createBreakdownRows(section.items, section.total)}
@@ -918,17 +2071,187 @@ document.addEventListener('DOMContentLoaded', () => {
         `).join('');
     }
 
-    function updateAnalyticsView() {
-        const orderStatusCounts = getOrderStatusCounts();
-        const companyStatusCounts = getCompanyStatusCounts();
-        const disputeStatusCounts = getDisputeStatusCounts();
-        const withdrawalStatusCounts = getWithdrawalStatusCounts();
+    function renderAnalyticsAlerts(alerts) {
+        if (!analyticsAlerts) return;
 
-        const totalOrders = allOrders.length;
+        if (!alerts.length) {
+            analyticsAlerts.innerHTML = '<span class="analytics-pill good">No Major Warnings</span>';
+            return;
+        }
+
+        analyticsAlerts.innerHTML = alerts.map(alert => `
+            <span class="analytics-pill ${alert.tone}" title="${escapeHtml(alert.detail || '')}">
+                ${escapeHtml(alert.label)}
+            </span>
+        `).join('');
+    }
+
+    function escapeCsvValue(value) {
+        const normalizedValue = String(value ?? '');
+        return `"${normalizedValue.replace(/"/g, '""')}"`;
+    }
+
+    function exportAnalyticsSnapshotToCsv() {
+        if (!latestAnalyticsSnapshot) {
+            displayMessage('Refresh the analytics first so there is data to export.', 'warning');
+            return;
+        }
+
+        const rows = [['section', 'metric', 'value', 'notes']];
+        const appendRow = (section, metric, value, notes = '') => {
+            rows.push([section, metric, value, notes]);
+        };
+
+        appendRow('meta', 'range', latestAnalyticsSnapshot.rangeLabel, '');
+        appendRow('meta', 'generated_at', latestAnalyticsSnapshot.generatedAt, '');
+
+        (latestAnalyticsSnapshot.metrics || []).forEach(metric => {
+            appendRow('metric', metric.label, metric.value, metric.detail || '');
+        });
+
+        (latestAnalyticsSnapshot.alerts || []).forEach(alert => {
+            appendRow('alert', alert.label, alert.tone, alert.detail || '');
+        });
+
+        (latestAnalyticsSnapshot.breakdownSections || []).forEach(section => {
+            (section.items || []).forEach(item => {
+                appendRow(
+                    section.title,
+                    item.label,
+                    item.displayValue ?? item.value,
+                    '',
+                );
+            });
+        });
+
+        (latestAnalyticsSnapshot.topPerformingVendors || []).forEach((vendor, index) => {
+            appendRow(
+                'top_vendor',
+                `#${index + 1} ${vendor.vendorName}`,
+                formatCurrency(vendor.totalSalesAmount),
+                `${vendor.paidOrders} paid orders | ${vendor.activeProducts} active products | ${vendor.email || 'No email'}`
+            );
+        });
+
+        const csvContent = rows
+            .map(columns => columns.map(escapeCsvValue).join(','))
+            .join('\r\n');
+        const csvBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const downloadUrl = URL.createObjectURL(csvBlob);
+        const downloadLink = document.createElement('a');
+        const exportDate = new Date().toISOString().slice(0, 10);
+
+        downloadLink.href = downloadUrl;
+        downloadLink.download = `naijago-analytics-${selectedAnalyticsRange}-${exportDate}.csv`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        URL.revokeObjectURL(downloadUrl);
+    }
+
+    function updateAnalyticsView() {
+        const commerceMetrics = customerVendorMetrics || {};
+        const analyticsRange = commerceMetrics.range || analyticsRangeWindow || {};
+        const rangeLabel = analyticsRange.label || 'All Time';
+        const isAllTimeRange = Boolean(analyticsRange.isAllTime || !analyticsRange.startDate);
+        const analyticsOrders = filterCollectionByAnalyticsRange(allOrders, order => order.createdAt);
+        const analyticsDisputes = filterCollectionByAnalyticsRange(
+            allDisputes,
+            dispute => dispute.createdAt || dispute.updatedAt,
+        );
+        const analyticsWithdrawals = filterCollectionByAnalyticsRange(
+            allWithdrawals,
+            withdrawal => withdrawal.createdAt || withdrawal.requestedAt || withdrawal.updatedAt,
+        );
+        const orderStatusCounts = getOrderStatusCounts(analyticsOrders);
+        const companyStatusCounts = getCompanyStatusCounts();
+        const disputeStatusCounts = getDisputeStatusCounts(analyticsDisputes);
+        const withdrawalStatusCounts = getWithdrawalStatusCounts(analyticsWithdrawals);
+
+        const registeredVendors = Number(commerceMetrics.registeredVendors || 0);
+        const activeVendors = Number(commerceMetrics.activeVendors || 0);
+        const registeredCustomers = Number(commerceMetrics.registeredCustomers || 0);
+        const customersWithoutPurchases = Number(
+            commerceMetrics.customersWithoutPurchases ??
+            commerceMetrics.firstTimeCustomersWithoutPurchase ??
+            0
+        );
+        const customersWithPurchases = Number(commerceMetrics.customersWithPurchases || 0);
+        const vendorsWithSales = Number(commerceMetrics.vendorsWithSales || 0);
+        const customerPurchaseConversionRate = Number(
+            commerceMetrics.customerPurchaseConversionRate ||
+            (registeredCustomers ? ((customersWithPurchases / registeredCustomers) * 100) : 0)
+        );
+        const vendorActivationRate = Number(
+            commerceMetrics.vendorActivationRate ||
+            (registeredVendors ? ((activeVendors / registeredVendors) * 100) : 0)
+        );
+        const vendorSalesParticipationRate = Number(
+            commerceMetrics.vendorSalesParticipationRate ||
+            (registeredVendors ? ((vendorsWithSales / registeredVendors) * 100) : 0)
+        );
+        const vendorsWithZeroProducts = Number(commerceMetrics.vendorsWithZeroProducts || 0);
+        const vendorsWithProductsButNoSales = Number(
+            commerceMetrics.vendorsWithProductsButNoSales || 0
+        );
+        const activeVendorsWithNoSales = Number(commerceMetrics.activeVendorsWithNoSales || 0);
+        const vendorsInactive30Days = Number(commerceMetrics.vendorsInactive30Days || 0);
+        const referralsSentInRange = Number(commerceMetrics.referralsSentInRange || 0);
+        const referralsConvertedInRange = Number(
+            commerceMetrics.referralsConvertedInRange || 0
+        );
+        const referralRewardCostTotalInRange = Number(
+            commerceMetrics.referralRewardCostTotalInRange || 0
+        );
+        const totalReferralSignups = Number(commerceMetrics.totalReferralSignups || 0);
+        const totalRewardedReferrals = Number(commerceMetrics.totalRewardedReferrals || 0);
+        const totalReferralRewardCost = Number(commerceMetrics.totalReferralRewardCost || 0);
+        const pendingReferralConversions = Number(
+            commerceMetrics.pendingReferralConversions || 0
+        );
+        const topPerformingVendors = Array.isArray(commerceMetrics.topPerformingVendors)
+            ? commerceMetrics.topPerformingVendors
+            : [];
+        const totalOrders = Number(commerceMetrics.totalOrdersInRange ?? analyticsOrders.length);
+        const paidOrdersInRange = Number(
+            commerceMetrics.paidOrdersInRange ||
+            analyticsOrders.filter(order => order.isPaid).length
+        );
+        const grossMerchandiseValue = Number(commerceMetrics.grossMerchandiseValue || 0);
+        const platformRevenue = Number(commerceMetrics.platformRevenue || 0);
+        const averageOrderValue = Number(commerceMetrics.averageOrderValue || 0);
+        const newCustomersInRange = Number(commerceMetrics.newCustomersInRange || 0);
+        const purchasingCustomersInRange = Number(commerceMetrics.purchasingCustomersInRange || 0);
+        const firstTimeCustomersInRange = Number(commerceMetrics.firstTimeCustomersInRange || 0);
+        const repeatCustomersInRange = Number(commerceMetrics.repeatCustomersInRange || 0);
+        const repeatCustomerRateInRange = Number(
+            commerceMetrics.repeatCustomerRateInRange ||
+            (purchasingCustomersInRange ? ((repeatCustomersInRange / purchasingCustomersInRange) * 100) : 0)
+        );
+        const firstPurchaseShareInRange = Number(
+            commerceMetrics.firstPurchaseShareInRange ||
+            (purchasingCustomersInRange ? ((firstTimeCustomersInRange / purchasingCustomersInRange) * 100) : 0)
+        );
+        const vendorPayoutDueAmount = Number(commerceMetrics.vendorPayoutDueAmount || 0);
+        const vendorPayoutDueShipments = Number(commerceMetrics.vendorPayoutDueShipments || 0);
+        const vendorPayoutsCompletedInRange = Number(commerceMetrics.vendorPayoutsCompletedInRange || 0);
+        const vendorPayoutsCompletedShipmentsInRange = Number(
+            commerceMetrics.vendorPayoutsCompletedShipmentsInRange || 0
+        );
+        const analyticsTrends = commerceMetrics.trends || {};
         const totalCompanies = allCompanies.length;
-        const totalDisputes = allDisputes.length;
-        const totalWithdrawals = allWithdrawals.length;
-        const inFlightOrders = (orderStatusCounts.processing || 0) + (orderStatusCounts.out_for_delivery || 0);
+        const totalDisputes = analyticsDisputes.length;
+        const totalWithdrawals = analyticsWithdrawals.length;
+        const totalResolvedDisputesAllTime = getDisputeStatusCounts(allDisputes).resolved || 0;
+        const unresolvedDisputesBacklog = Math.max(
+            allDisputes.length - totalResolvedDisputesAllTime,
+            0,
+        );
+        const inFlightOrders =
+            (orderStatusCounts.processing || 0) +
+            (orderStatusCounts.partially_shipped || 0) +
+            (orderStatusCounts.shipped || 0) +
+            (orderStatusCounts.out_for_delivery || 0);
         const payoutReadyOrders = orderStatusCounts.delivered || 0;
         const completedOrders = orderStatusCounts.completed || 0;
         const completionRate = totalOrders ? (completedOrders / totalOrders) * 100 : 0;
@@ -938,64 +2261,347 @@ document.addEventListener('DOMContentLoaded', () => {
         const resolvedDisputes = disputeStatusCounts.resolved || 0;
         const openDisputes = Math.max(totalDisputes - resolvedDisputes, 0);
         const pendingWithdrawals = allWithdrawals.filter(withdrawal => withdrawal.status === 'pending');
-        const pendingWithdrawalAmount = pendingWithdrawals.reduce((sum, withdrawal) => sum + (withdrawal.amount || 0), 0);
+        const pendingWithdrawalAmount = pendingWithdrawals.reduce(
+            (sum, withdrawal) => sum + (withdrawal.amount || 0),
+            0,
+        );
         const pendingSettlementAmount = allCompanies.reduce((sum, company) => sum + (company.stats?.pendingSettlement || 0), 0);
         const totalActiveRiders = allCompanies.reduce((sum, company) => sum + (company.stats?.activeRiders || 0), 0);
+        const firstTimeBuyerLabel = isAllTimeRange ? 'One-Time Buyers' : 'First-Time Buyers';
+        const newCustomerLabel = isAllTimeRange ? 'Customers Registered' : 'New Customers';
+        const referralSignupsLabel = isAllTimeRange ? 'Referral Signups' : `Referral Signups (${rangeLabel})`;
+        const referralConversionsLabel = isAllTimeRange
+            ? 'Rewarded Referrals'
+            : `Rewarded Referrals (${rangeLabel})`;
+        const referralCostLabel = isAllTimeRange
+            ? 'Referral Reward Cost'
+            : `Referral Reward Cost (${rangeLabel})`;
+        const revenueTone = isAllTimeRange ? 'medium' : getTrendTone(analyticsTrends.gmvChangePercent);
+        const revenueBadge = isAllTimeRange ? 'Lifetime' : getTrendBadge(analyticsTrends.gmvChangePercent);
+        const platformRevenueTone = isAllTimeRange
+            ? 'medium'
+            : getTrendTone(analyticsTrends.platformRevenueChangePercent);
+        const platformRevenueBadge = isAllTimeRange
+            ? 'Lifetime'
+            : getTrendBadge(analyticsTrends.platformRevenueChangePercent);
+        const averageOrderValueTone = isAllTimeRange
+            ? 'medium'
+            : getTrendTone(analyticsTrends.averageOrderValueChangePercent);
+        const averageOrderValueBadge = isAllTimeRange
+            ? 'Lifetime'
+            : getTrendBadge(analyticsTrends.averageOrderValueChangePercent);
+        const newCustomerTone = isAllTimeRange
+            ? 'medium'
+            : getTrendTone(analyticsTrends.newCustomersChangePercent);
+        const newCustomerBadge = isAllTimeRange
+            ? 'Lifetime'
+            : getTrendBadge(analyticsTrends.newCustomersChangePercent);
+        const firstTimeBuyerTone = isAllTimeRange
+            ? (firstTimeCustomersInRange > 0 ? 'medium' : 'good')
+            : getTrendTone(analyticsTrends.firstTimeCustomersChangePercent);
+        const firstTimeBuyerBadge = isAllTimeRange
+            ? 'Lifetime'
+            : getTrendBadge(analyticsTrends.firstTimeCustomersChangePercent);
+        const repeatBuyerTone = isAllTimeRange
+            ? (repeatCustomersInRange > 0 ? 'good' : 'medium')
+            : getTrendTone(analyticsTrends.repeatCustomersChangePercent);
+        const repeatBuyerBadge = isAllTimeRange
+            ? 'Lifetime'
+            : getTrendBadge(analyticsTrends.repeatCustomersChangePercent);
+        const payoutsCompletedTone = isAllTimeRange
+            ? (vendorPayoutsCompletedInRange > 0 ? 'good' : 'medium')
+            : getTrendTone(analyticsTrends.vendorPayoutsCompletedChangePercent);
+        const payoutsCompletedBadge = isAllTimeRange
+            ? 'Lifetime'
+            : getTrendBadge(analyticsTrends.vendorPayoutsCompletedChangePercent);
+        const referralSignupsTone = isAllTimeRange
+            ? (totalReferralSignups > 0 ? 'good' : 'medium')
+            : getTrendTone(analyticsTrends.referralsSentChangePercent);
+        const referralSignupsBadge = isAllTimeRange
+            ? 'Lifetime'
+            : getTrendBadge(analyticsTrends.referralsSentChangePercent);
+        const referralConversionsTone = isAllTimeRange
+            ? (totalRewardedReferrals > 0 ? 'good' : 'medium')
+            : getTrendTone(analyticsTrends.referralsConvertedChangePercent);
+        const referralConversionsBadge = isAllTimeRange
+            ? 'Lifetime'
+            : getTrendBadge(analyticsTrends.referralsConvertedChangePercent);
+        const referralCostTone = isAllTimeRange
+            ? (totalReferralRewardCost > 0 ? 'medium' : 'good')
+            : 'medium';
+        const referralCostBadge = isAllTimeRange
+            ? 'Lifetime'
+            : getTrendBadge(analyticsTrends.rewardCostTotalChangePercent);
+        const topVendorSalesTotal = topPerformingVendors.reduce(
+            (sum, vendor) => sum + Number(vendor.totalSalesAmount || 0),
+            0,
+        );
+        const revenueAndPayoutTotal =
+            grossMerchandiseValue +
+            platformRevenue +
+            vendorPayoutsCompletedInRange +
+            vendorPayoutDueAmount;
 
         const metrics = [
             {
-                label: 'Vendor Reviews',
-                value: pendingVendorRequests.length,
-                badge: pendingVendorRequests.length > 8 ? 'Backlog' : pendingVendorRequests.length > 0 ? 'Open' : 'Clear',
-                tone: pendingVendorRequests.length > 8 ? 'high' : pendingVendorRequests.length > 0 ? 'medium' : 'good',
-                detail: pendingVendorRequests.length > 0
-                    ? `${pendingVendorRequests.length} vendor applications still need an onboarding decision.`
-                    : 'No vendor applications are waiting for approval right now.'
+                label: 'Registered Vendors',
+                value: registeredVendors,
+                badge: registeredVendors > 0 ? 'Approved' : 'None',
+                tone: registeredVendors > 0 ? 'good' : 'medium',
+                detail: `${activeVendors} approved vendors currently have active product listings, and ${vendorsWithSales} have already recorded sales.`
             },
             {
-                label: 'Orders In Flight',
-                value: inFlightOrders,
-                badge: inFlightOrders > 20 ? 'Busy' : inFlightOrders > 0 ? 'Active' : 'Quiet',
-                tone: inFlightOrders > 20 ? 'high' : inFlightOrders > 0 ? 'medium' : 'good',
-                detail: `${payoutReadyOrders} delivered orders are waiting for payout completion, with ${totalOrders} total orders tracked.`
+                label: 'Active Vendors',
+                value: activeVendors,
+                badge: vendorActivationRate >= 60 ? 'Healthy' : vendorActivationRate >= 35 ? 'Watch' : 'Low',
+                tone: vendorActivationRate >= 60 ? 'good' : vendorActivationRate >= 35 ? 'medium' : 'high',
+                detail: `${formatPercent(vendorActivationRate)} of approved vendors currently have active products available for customers to buy.`
+            },
+            {
+                label: 'Vendors With Zero Products',
+                value: vendorsWithZeroProducts,
+                badge: vendorsWithZeroProducts === 0 ? 'Clear' : vendorsWithZeroProducts <= 3 ? 'Watch' : 'Backlog',
+                tone: vendorsWithZeroProducts === 0 ? 'good' : vendorsWithZeroProducts <= 3 ? 'medium' : 'high',
+                detail: `${vendorsWithZeroProducts} approved vendors still have no products listed, which blocks them from participating in demand.`
+            },
+            {
+                label: 'Vendors With Products But No Sales',
+                value: vendorsWithProductsButNoSales,
+                badge: vendorsWithProductsButNoSales === 0 ? 'Clear' : vendorsWithProductsButNoSales <= 5 ? 'Watch' : 'Risk',
+                tone: vendorsWithProductsButNoSales === 0 ? 'good' : vendorsWithProductsButNoSales <= 5 ? 'medium' : 'high',
+                detail: `${vendorsWithProductsButNoSales} vendors have catalog supply but have not recorded a paid sale yet.`
+            },
+            {
+                label: 'Inactive Vendors 30 Days',
+                value: vendorsInactive30Days,
+                badge: vendorsInactive30Days === 0 ? 'Fresh' : vendorsInactive30Days <= 5 ? 'Watch' : 'Dormant',
+                tone: vendorsInactive30Days === 0 ? 'good' : vendorsInactive30Days <= 5 ? 'medium' : 'high',
+                detail: `${vendorsInactive30Days} approved vendors show no product activity and no paid sale within the last 30 days.`
+            },
+            {
+                label: 'Registered Customers',
+                value: registeredCustomers,
+                badge: registeredCustomers > 0 ? 'Growing' : 'New',
+                tone: registeredCustomers > 0 ? 'good' : 'medium',
+                detail: `${customersWithPurchases} have converted into buyers, while ${customersWithoutPurchases} are still waiting for their first order.`
+            },
+            {
+                label: `GMV (${rangeLabel})`,
+                value: formatCurrency(grossMerchandiseValue),
+                badge: revenueBadge,
+                tone: revenueTone,
+                detail: isAllTimeRange
+                    ? `${paidOrdersInRange} paid orders have generated ${formatCurrency(grossMerchandiseValue)} across the full tracked history.`
+                    : `${paidOrdersInRange} paid orders generated ${formatCurrency(grossMerchandiseValue)} in ${rangeLabel.toLowerCase()}, ${getTrendNarrative(analyticsTrends.gmvChangePercent)}.`
+            },
+            {
+                label: `Platform Revenue (${rangeLabel})`,
+                value: formatCurrency(platformRevenue),
+                badge: platformRevenueBadge,
+                tone: platformRevenueTone,
+                detail: isAllTimeRange
+                    ? `${formatCurrency(platformRevenue)} has been captured in platform fees so far.`
+                    : `${formatCurrency(platformRevenue)} in fees were captured in ${rangeLabel.toLowerCase()}, ${getTrendNarrative(analyticsTrends.platformRevenueChangePercent)}.`
+            },
+            {
+                label: `Average Order Value (${rangeLabel})`,
+                value: formatCurrency(averageOrderValue),
+                badge: averageOrderValueBadge,
+                tone: averageOrderValueTone,
+                detail: isAllTimeRange
+                    ? `Average paid basket size is ${formatCurrency(averageOrderValue)} across all successful purchases.`
+                    : `Average paid basket size is ${formatCurrency(averageOrderValue)} in ${rangeLabel.toLowerCase()}, ${getTrendNarrative(analyticsTrends.averageOrderValueChangePercent)}.`
+            },
+            {
+                label: `${newCustomerLabel} (${rangeLabel})`,
+                value: newCustomersInRange,
+                badge: newCustomerBadge,
+                tone: newCustomerTone,
+                detail: isAllTimeRange
+                    ? `${newCustomersInRange} customer accounts have been created in total.`
+                    : `${newCustomersInRange} customer accounts were created in ${rangeLabel.toLowerCase()}, ${getTrendNarrative(analyticsTrends.newCustomersChangePercent)}.`
+            },
+            {
+                label: `${firstTimeBuyerLabel} (${rangeLabel})`,
+                value: firstTimeCustomersInRange,
+                badge: firstTimeBuyerBadge,
+                tone: firstTimeBuyerTone,
+                detail: isAllTimeRange
+                    ? `${firstTimeCustomersInRange} buyers have made exactly one paid purchase so far.`
+                    : `${firstTimeCustomersInRange} customers made their first paid purchase in ${rangeLabel.toLowerCase()}, representing ${formatPercent(firstPurchaseShareInRange)} of paying customers in that window.`
+            },
+            {
+                label: `Repeat Buyers (${rangeLabel})`,
+                value: repeatCustomersInRange,
+                badge: repeatBuyerBadge,
+                tone: repeatBuyerTone,
+                detail: isAllTimeRange
+                    ? `${repeatCustomersInRange} buyers have made two or more paid orders so far.`
+                    : `${repeatCustomersInRange} returning customers placed paid orders in ${rangeLabel.toLowerCase()}, a ${formatPercent(repeatCustomerRateInRange)} repeat-buyer rate.`
+            },
+            {
+                label: 'Customers Yet To Buy',
+                value: customersWithoutPurchases,
+                badge: customerPurchaseConversionRate >= 50 ? 'Pipeline' : 'Gap',
+                tone: customerPurchaseConversionRate >= 50 ? 'medium' : 'high',
+                detail: `${formatPercent(100 - customerPurchaseConversionRate)} of registered customers have not completed a paid order yet.`
+            },
+            {
+                label: 'Purchasing Customers',
+                value: customersWithPurchases,
+                badge: customerPurchaseConversionRate >= 55 ? 'Strong' : customerPurchaseConversionRate >= 35 ? 'Building' : 'Low',
+                tone: customerPurchaseConversionRate >= 55 ? 'good' : customerPurchaseConversionRate >= 35 ? 'medium' : 'high',
+                detail: `${formatPercent(customerPurchaseConversionRate)} of registered customers have completed at least one paid order.`
+            },
+            {
+                label: 'Vendors With Sales',
+                value: vendorsWithSales,
+                badge: vendorSalesParticipationRate >= 50 ? 'Selling' : vendorSalesParticipationRate >= 25 ? 'Emerging' : 'Thin',
+                tone: vendorSalesParticipationRate >= 50 ? 'good' : vendorSalesParticipationRate >= 25 ? 'medium' : 'high',
+                detail: `${formatPercent(vendorSalesParticipationRate)} of approved vendors have recorded at least one paid sale so far.`
+            },
+            {
+                label: referralSignupsLabel,
+                value: isAllTimeRange ? totalReferralSignups : referralsSentInRange,
+                badge: referralSignupsBadge,
+                tone: referralSignupsTone,
+                detail: isAllTimeRange
+                    ? `${totalReferralSignups} customers have joined through a referral code, with ${pendingReferralConversions} still waiting to convert into rewarded purchases.`
+                    : `${referralsSentInRange} referred signups were recorded in ${rangeLabel.toLowerCase()}, ${getTrendNarrative(analyticsTrends.referralsSentChangePercent)}.`
+            },
+            {
+                label: referralConversionsLabel,
+                value: isAllTimeRange ? totalRewardedReferrals : referralsConvertedInRange,
+                badge: referralConversionsBadge,
+                tone: referralConversionsTone,
+                detail: isAllTimeRange
+                    ? `${totalRewardedReferrals} referred customers have reached their first rewarded purchase so far.`
+                    : `${referralsConvertedInRange} referrals converted to rewarded first purchases in ${rangeLabel.toLowerCase()}, ${getTrendNarrative(analyticsTrends.referralsConvertedChangePercent)}.`
+            },
+            {
+                label: referralCostLabel,
+                value: formatCurrency(
+                    isAllTimeRange ? totalReferralRewardCost : referralRewardCostTotalInRange
+                ),
+                badge: referralCostBadge,
+                tone: referralCostTone,
+                detail: isAllTimeRange
+                    ? `${formatCurrency(totalReferralRewardCost)} has been paid out in referral rewards across all rewarded referrals.`
+                    : `${formatCurrency(referralRewardCostTotalInRange)} in referral rewards was granted in ${rangeLabel.toLowerCase()}, ${getTrendNarrative(analyticsTrends.rewardCostTotalChangePercent)}.`
+            },
+            {
+                label: 'Vendor Payout Queue',
+                value: formatCurrency(vendorPayoutDueAmount),
+                badge: vendorPayoutDueAmount > 250000 ? 'High' : vendorPayoutDueAmount > 0 ? 'Open' : 'Clear',
+                tone: vendorPayoutDueAmount > 250000 ? 'high' : vendorPayoutDueAmount > 0 ? 'medium' : 'good',
+                detail: `${vendorPayoutDueShipments} shipment payouts are currently ready for vendors, while ${pendingWithdrawals.length} withdrawal requests remain in the broader cash-out queue.`
+            },
+            {
+                label: `Vendor Payouts Completed (${rangeLabel})`,
+                value: formatCurrency(vendorPayoutsCompletedInRange),
+                badge: payoutsCompletedBadge,
+                tone: payoutsCompletedTone,
+                detail: isAllTimeRange
+                    ? `${vendorPayoutsCompletedShipmentsInRange} shipment payouts have been completed for vendors so far.`
+                    : `${vendorPayoutsCompletedShipmentsInRange} shipment payouts were completed in ${rangeLabel.toLowerCase()}, ${getTrendNarrative(analyticsTrends.vendorPayoutsCompletedChangePercent)}.`
             },
             {
                 label: 'Completion Rate',
                 value: formatPercent(completionRate),
                 badge: completionRate >= 60 ? 'Healthy' : completionRate >= 35 ? 'Watch' : 'Risk',
                 tone: completionRate >= 60 ? 'good' : completionRate >= 35 ? 'medium' : 'high',
-                detail: `${completedOrders} completed orders out of ${totalOrders || 0} total, measuring how much demand is being fully closed out.`
-            },
-            {
-                label: 'Company Health',
-                value: `${activeCompanies}/${totalCompanies || 0}`,
-                badge: suspendedCompanies > 0 ? 'Mixed' : pendingCompanies > 0 ? 'Growing' : 'Stable',
-                tone: suspendedCompanies > 0 ? 'medium' : pendingCompanies > 0 ? 'good' : 'good',
-                detail: `${activeCompanies} active companies, ${pendingCompanies} pending companies, and ${suspendedCompanies} suspended companies.`
-            },
-            {
-                label: 'Open Disputes',
-                value: openDisputes,
-                badge: openDisputes > 5 ? 'Escalated' : openDisputes > 0 ? 'Pending' : 'Clear',
-                tone: openDisputes > 5 ? 'high' : openDisputes > 0 ? 'medium' : 'good',
-                detail: `${resolvedDisputes} disputes are already resolved, while ${openDisputes} still need admin attention.`
-            },
-            {
-                label: 'Payout Exposure',
-                value: formatCurrency(pendingWithdrawalAmount),
-                badge: pendingWithdrawals.length > 5 ? 'Queue' : pendingWithdrawals.length > 0 ? 'Open' : 'Clear',
-                tone: pendingWithdrawals.length > 5 ? 'high' : pendingWithdrawals.length > 0 ? 'medium' : 'good',
-                detail: `${pendingWithdrawals.length} pending withdrawal requests plus ${formatCurrency(pendingSettlementAmount)} in company settlements to watch.`
+                detail: `${completedOrders} completed orders out of ${totalOrders || 0} tracked in ${rangeLabel.toLowerCase()}, while ${inFlightOrders} remain in motion and ${payoutReadyOrders} are delivered but not fully closed out.`
             }
         ];
 
         const breakdownSections = [
             {
-                title: 'Order Status Mix',
+                title: `Revenue and Payouts (${rangeLabel})`,
+                total: revenueAndPayoutTotal,
+                totalDisplay: formatCurrency(revenueAndPayoutTotal),
+                unitLabel: 'tracked',
+                items: [
+                    { label: 'GMV', value: grossMerchandiseValue, displayValue: formatCurrency(grossMerchandiseValue) },
+                    { label: 'Platform Revenue', value: platformRevenue, displayValue: formatCurrency(platformRevenue) },
+                    {
+                        label: 'Vendor Payouts Completed',
+                        value: vendorPayoutsCompletedInRange,
+                        displayValue: formatCurrency(vendorPayoutsCompletedInRange)
+                    },
+                    {
+                        label: 'Vendor Payout Queue',
+                        value: vendorPayoutDueAmount,
+                        displayValue: formatCurrency(vendorPayoutDueAmount)
+                    }
+                ].filter(item => item.value > 0)
+            },
+            {
+                title: 'Vendor Base',
+                total: registeredVendors,
+                items: [
+                    { label: 'Approved Vendors', value: registeredVendors },
+                    { label: 'Active Vendors', value: activeVendors },
+                    { label: 'Vendors With Sales', value: vendorsWithSales }
+                ].filter(item => item.value > 0)
+            },
+            {
+                title: 'Vendor Quality',
+                total: registeredVendors,
+                items: [
+                    { label: 'Zero Products', value: vendorsWithZeroProducts },
+                    { label: 'Products But No Sales', value: vendorsWithProductsButNoSales },
+                    { label: 'Active Vendors With No Sales', value: activeVendorsWithNoSales },
+                    { label: 'Inactive 30 Days', value: vendorsInactive30Days }
+                ].filter(item => item.value > 0)
+            },
+            {
+                title: 'Customer Base',
+                total: registeredCustomers,
+                items: [
+                    { label: 'Registered Customers', value: registeredCustomers },
+                    { label: 'Yet To Buy', value: customersWithoutPurchases },
+                    { label: 'With Purchases', value: customersWithPurchases }
+                ].filter(item => item.value > 0)
+            },
+            {
+                title: `Buyer Behavior (${rangeLabel})`,
+                total: Math.max(purchasingCustomersInRange, 0),
+                items: [
+                    { label: 'Paying Customers', value: purchasingCustomersInRange },
+                    { label: firstTimeBuyerLabel, value: firstTimeCustomersInRange },
+                    { label: 'Repeat Buyers', value: repeatCustomersInRange }
+                ].filter(item => item.value > 0)
+            },
+            {
+                title: `Referral Performance (${rangeLabel})`,
+                total: Math.max(
+                    isAllTimeRange ? totalReferralSignups : referralsSentInRange,
+                    isAllTimeRange ? totalRewardedReferrals : referralsConvertedInRange,
+                    0,
+                ),
+                items: [
+                    {
+                        label: 'Referral Signups',
+                        value: isAllTimeRange ? totalReferralSignups : referralsSentInRange
+                    },
+                    {
+                        label: 'Rewarded Referrals',
+                        value: isAllTimeRange ? totalRewardedReferrals : referralsConvertedInRange
+                    },
+                    ...(isAllTimeRange ? [{
+                        label: 'Pending Referral Conversions',
+                        value: pendingReferralConversions
+                    }] : [])
+                ].filter(item => item.value > 0)
+            },
+            {
+                title: `Order Status Mix (${rangeLabel})`,
                 total: totalOrders,
                 items: [
                     { label: 'Pending Payment', value: orderStatusCounts.pending_payment || 0 },
                     { label: 'Processing', value: orderStatusCounts.processing || 0 },
+                    { label: 'Partially Shipped', value: orderStatusCounts.partially_shipped || 0 },
+                    { label: 'Shipped', value: orderStatusCounts.shipped || 0 },
                     { label: 'Out for Delivery', value: orderStatusCounts.out_for_delivery || 0 },
                     { label: 'Delivered', value: orderStatusCounts.delivered || 0 },
                     { label: 'Completed', value: orderStatusCounts.completed || 0 },
@@ -1012,7 +2618,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ].filter(item => item.value > 0)
             },
             {
-                title: 'Dispute and Withdrawal Load',
+                title: `Dispute and Withdrawal Load (${rangeLabel})`,
                 total: totalDisputes + totalWithdrawals,
                 items: [
                     { label: 'Open Disputes', value: openDisputes },
@@ -1021,10 +2627,84 @@ document.addEventListener('DOMContentLoaded', () => {
                     { label: 'Completed Withdrawals', value: withdrawalStatusCounts.completed || 0 },
                     { label: 'Failed Withdrawals', value: withdrawalStatusCounts.failed || 0 }
                 ].filter(item => item.value > 0)
+            },
+            {
+                title: `Top Performing Vendors (${rangeLabel})`,
+                total: topVendorSalesTotal,
+                totalDisplay: formatCurrency(topVendorSalesTotal),
+                unitLabel: 'sales',
+                items: topPerformingVendors.map(vendor => ({
+                    label: `${vendor.vendorName} • ${vendor.paidOrders} paid orders`,
+                    value: Number(vendor.totalSalesAmount || 0),
+                    displayValue: formatCurrency(vendor.totalSalesAmount || 0),
+                })).filter(item => item.value > 0)
             }
         ];
 
         const insights = [];
+
+        if (registeredCustomers > 0 && customerPurchaseConversionRate < 45) {
+            insights.push({
+                title: 'Customer conversion is leaving revenue on the table',
+                badge: customerPurchaseConversionRate < 30 ? 'High' : 'Medium',
+                tone: customerPurchaseConversionRate < 30 ? 'high' : 'medium',
+                detail: `${customersWithoutPurchases} registered customers have not made a first purchase yet. Improve onboarding offers, reminders, and first-order activation.`
+            });
+        }
+
+        if (purchasingCustomersInRange >= 5 && repeatCustomerRateInRange < 25) {
+            insights.push({
+                title: 'Repeat purchasing is still thin',
+                badge: repeatCustomerRateInRange < 15 ? 'High' : 'Medium',
+                tone: repeatCustomerRateInRange < 15 ? 'high' : 'medium',
+                detail: `${repeatCustomersInRange} repeat buyers accounted for only ${formatPercent(repeatCustomerRateInRange)} of paying customers in ${rangeLabel.toLowerCase()}. Loyalty nudges and post-purchase follow-up should help.`
+            });
+        }
+
+        if (!isAllTimeRange && Number(analyticsTrends.gmvChangePercent || 0) < -10) {
+            insights.push({
+                title: 'GMV softened versus the previous period',
+                badge: 'Medium',
+                tone: 'medium',
+                detail: `GMV is ${formatSignedPercent(analyticsTrends.gmvChangePercent)} versus the previous window. Review campaign output, checkout friction, and stock availability.`
+            });
+        }
+
+        if (registeredVendors > 0 && vendorActivationRate < 55) {
+            insights.push({
+                title: 'Approved vendors are not fully active',
+                badge: vendorActivationRate < 30 ? 'High' : 'Medium',
+                tone: vendorActivationRate < 30 ? 'high' : 'medium',
+                detail: `Only ${activeVendors} out of ${registeredVendors} approved vendors have active listings. More activation support can widen available supply.`
+            });
+        }
+
+        if (activeVendors > 0 && vendorSalesParticipationRate < 50) {
+            insights.push({
+                title: 'Many active vendors have not converted into sellers',
+                badge: vendorSalesParticipationRate < 25 ? 'High' : 'Medium',
+                tone: vendorSalesParticipationRate < 25 ? 'high' : 'medium',
+                detail: `${vendorsWithSales} vendors have recorded sales, leaving ${Math.max(activeVendors - vendorsWithSales, 0)} active vendors still without a paid sale.`
+            });
+        }
+
+        if (vendorsWithZeroProducts > 0) {
+            insights.push({
+                title: 'Some approved vendors still have empty storefronts',
+                badge: vendorsWithZeroProducts > 5 ? 'High' : 'Medium',
+                tone: vendorsWithZeroProducts > 5 ? 'high' : 'medium',
+                detail: `${vendorsWithZeroProducts} approved vendors have zero listed products. A quick activation push can turn approvals into actual supply.`
+            });
+        }
+
+        if (vendorsInactive30Days > 0) {
+            insights.push({
+                title: 'Dormant vendors need reactivation',
+                badge: vendorsInactive30Days > 8 ? 'High' : 'Medium',
+                tone: vendorsInactive30Days > 8 ? 'high' : 'medium',
+                detail: `${vendorsInactive30Days} approved vendors have shown no product activity and no paid sales in the last 30 days.`
+            });
+        }
 
         if (pendingVendorRequests.length > 8) {
             insights.push({
@@ -1044,12 +2724,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        if (pendingWithdrawals.length > 0 || pendingSettlementAmount > 0) {
+        if (vendorPayoutDueAmount > 0 || pendingWithdrawals.length > 0 || pendingSettlementAmount > 0) {
             insights.push({
                 title: 'Cash-out pressure needs review',
-                badge: pendingWithdrawalAmount > 250000 ? 'High' : 'Medium',
-                tone: pendingWithdrawalAmount > 250000 ? 'high' : 'medium',
-                detail: `${pendingWithdrawals.length} withdrawal requests and ${formatCurrency(pendingSettlementAmount)} in pending settlements could affect liquidity planning.`
+                badge: vendorPayoutDueAmount > 250000 || pendingWithdrawalAmount > 250000 ? 'High' : 'Medium',
+                tone: vendorPayoutDueAmount > 250000 || pendingWithdrawalAmount > 250000 ? 'high' : 'medium',
+                detail: `${formatCurrency(vendorPayoutDueAmount)} is currently queued for vendor payouts, with ${pendingWithdrawals.length} withdrawal requests and ${formatCurrency(pendingSettlementAmount)} in pending settlements also on the radar.`
             });
         }
 
@@ -1059,6 +2739,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 badge: 'Medium',
                 tone: 'medium',
                 detail: `Only ${formatPercent(completionRate)} of tracked orders are fully completed. Inspect cancellations, delivery delays, and payout blockers.`
+            });
+        }
+
+        if ((isAllTimeRange ? totalReferralSignups : referralsSentInRange) > 0 && (isAllTimeRange ? totalRewardedReferrals : referralsConvertedInRange) === 0) {
+            insights.push({
+                title: 'Referral traffic is not converting into rewarded purchases yet',
+                badge: 'Medium',
+                tone: 'medium',
+                detail: isAllTimeRange
+                    ? `${totalReferralSignups} referral signups have been recorded, but none has reached the rewarded first-purchase stage yet.`
+                    : `${referralsSentInRange} referral signups were recorded in ${rangeLabel.toLowerCase()}, but no rewarded first purchase landed in the same window.`
+            });
+        }
+
+        if (!isAllTimeRange && Number(analyticsTrends.gmvChangePercent || 0) > 10) {
+            insights.push({
+                title: 'Revenue momentum is improving',
+                badge: 'Good',
+                tone: 'good',
+                detail: `GMV is ${formatSignedPercent(analyticsTrends.gmvChangePercent)} versus the previous period, supported by ${paidOrdersInRange} paid orders in ${rangeLabel.toLowerCase()}.`
             });
         }
 
@@ -1080,15 +2780,68 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        const alerts = [];
+
+        if (pendingWithdrawals.length >= 5 || pendingWithdrawalAmount >= 250000) {
+            alerts.push({
+                label: `High Pending Withdrawals: ${pendingWithdrawals.length}`,
+                tone: 'high',
+                detail: `${pendingWithdrawals.length} withdrawal requests worth ${formatCurrency(pendingWithdrawalAmount)} are currently pending.`,
+            });
+        }
+
+        if (unresolvedDisputesBacklog >= 5) {
+            alerts.push({
+                label: `High Unresolved Disputes: ${unresolvedDisputesBacklog}`,
+                tone: 'high',
+                detail: `${unresolvedDisputesBacklog} disputes remain unresolved across the full admin queue.`,
+            });
+        }
+
+        if (activeVendorsWithNoSales >= 5) {
+            alerts.push({
+                label: `Active Vendors With No Sales: ${activeVendorsWithNoSales}`,
+                tone: 'medium',
+                detail: `${activeVendorsWithNoSales} active vendors still have no paid sale on record.`,
+            });
+        }
+
+        if (
+            customersWithoutPurchases >= 25 ||
+            (registeredCustomers > 0 && ((customersWithoutPurchases / registeredCustomers) * 100) >= 45)
+        ) {
+            alerts.push({
+                label: `Customers Yet To Buy: ${customersWithoutPurchases}`,
+                tone: 'medium',
+                detail: `${customersWithoutPurchases} registered customers still have not completed a paid order.`,
+            });
+        }
+
         renderAnalyticsCards(metrics);
         renderAnalyticsBreakdown(breakdownSections);
         renderAnalyticsInsights(insights.slice(0, 4));
+        renderAnalyticsAlerts(alerts);
+
+        latestAnalyticsSnapshot = {
+            rangeLabel,
+            generatedAt: analyticsLastUpdated
+                ? analyticsLastUpdated.toISOString()
+                : new Date().toISOString(),
+            metrics,
+            breakdownSections,
+            alerts,
+            topPerformingVendors,
+        };
 
         if (analyticsMeta) {
             const parts = [
-                `Tracking ${totalOrders} orders`,
-                `${totalCompanies} companies`,
-                `${totalDisputes} disputes`,
+                `Range ${rangeLabel}`,
+                `${totalOrders} orders`,
+                `${paidOrdersInRange} paid`,
+                `${formatCurrency(grossMerchandiseValue)} GMV`,
+                `${registeredCustomers} customers`,
+                `${registeredVendors} vendors`,
+                `${vendorPayoutDueShipments} payout-ready shipments`,
                 `${pendingVendorRequests.length} vendor reviews`
             ];
 
@@ -1111,11 +2864,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (analyticsMeta) {
-            analyticsMeta.textContent = 'Refreshing operational data and decision signals...';
+            analyticsMeta.textContent = `Refreshing ${analyticsRangeSelect?.selectedOptions?.[0]?.textContent || 'selected'} operational data and decision signals...`;
         }
 
         await Promise.allSettled([
             fetchPendingVendorRequests(),
+            fetchCustomerVendorMetrics(selectedAnalyticsRange),
             fetchOrders(),
             fetchDisputes(),
             fetchPendingWithdrawals(),
@@ -1135,6 +2889,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // ──────────────────────────────────────────────
     // Vendor Requests (always visible)
     // ──────────────────────────────────────────────
+    async function fetchCustomerVendorMetrics(range = selectedAnalyticsRange) {
+        if (!adminToken) return;
+
+        selectedAnalyticsRange = range || '30d';
+
+        try {
+            const query = new URLSearchParams({ range: selectedAnalyticsRange }).toString();
+            const response = await fetch(`${BASE_URL}/api/admin/customer-vendor-metrics?${query}`, {
+                headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            const data = await response.json();
+
+            if (handleAdminSessionExpiry(response.status)) {
+                return;
+            }
+
+            if (response.ok) {
+                customerVendorMetrics = data || null;
+                analyticsRangeWindow = data?.range || null;
+
+                if (analyticsRangeSelect && analyticsRangeSelect.value !== selectedAnalyticsRange) {
+                    analyticsRangeSelect.value = selectedAnalyticsRange;
+                }
+
+                updateAnalyticsView();
+            } else {
+                displayMessage(data.message || 'Failed to fetch customer and vendor metrics.', 'error');
+            }
+        } catch (err) {
+            displayMessage(`Error loading customer/vendor metrics: ${err.message}`, 'error');
+        }
+    }
+
     async function fetchPendingVendorRequests() {
         if (!adminToken) {
             pendingRequestsList.innerHTML = '<p class="text-center text-light-gray">Please login as admin to load requests.</p>';
@@ -1265,7 +3052,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const user = order.user || {};
             const shipping = order.shippingAddress || {};
-            const rider = order.rider ? { _id: order.rider } : null;
+            const rider = order.rider && typeof order.rider === 'object'
+                ? order.rider
+                : (order.rider ? { _id: order.rider } : null);
 
             const statusLower = (order.mainOrderStatus || 'pending_payment').toLowerCase();
             
@@ -1382,7 +3171,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p class="text-light-gray mb-1"><strong>Phone:</strong> ${user.phoneNumber||'N/A'}</p>
                 <p class="text-light-gray mb-1"><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'})}</p>
                 <p class="text-light-gray mb-1"><strong>Paid:</strong> <span class="font-bold ${order.isPaid?'text-green-400':'text-red-400'}">${order.isPaid?'Yes':'No'}</span></p>
-                ${rider ? `<p class="text-light-gray mb-1"><strong>Rider:</strong> ${order.riderName || 'Assigned'} (${order.riderPhone || 'No phone'})</p>` : ''}
+                ${rider ? `<p class="text-light-gray mb-1"><strong>Rider:</strong> ${rider.fullName || 'Assigned'} (${rider.phoneNumber || 'No phone'})</p>` : ''}
                 
                 <!-- Payout Information Box -->
                 ${order.mainOrderStatus === 'delivered' || order.mainOrderStatus === 'completed' ? `
@@ -1422,7 +3211,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         • Enabled buttons follow valid order flow.<br>
                         • <strong class="text-yellow-400">"Mark Delivered"</strong> = Physical delivery confirmed.<br>
                         • <strong class="text-green-400">"Complete & Pay"</strong> = Process payouts to vendor(s) and rider simultaneously (150/km).<br>
-                        • All payouts happen at once when status is changed to "completed".
+                        • Customer app status updates automatically after each admin change.
                     </p>
                 </div>
             `;
@@ -1450,10 +3239,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     const data = await res.json();
                     if (res.ok) {
+                        const statusLabel = newStatus.replace(/_/g, ' ').toUpperCase();
                         if (newStatus === 'completed') {
-                            displayMessage(`✅ Order completed! Vendors and rider have been paid simultaneously.`, 'success');
+                            displayMessage(`✅ Order completed. Customer app updated and vendor payouts have been processed.`, 'success');
                         } else {
-                            displayMessage(`Status updated to ${newStatus.toUpperCase()}`, 'success');
+                            displayMessage(`Status updated to ${statusLabel}. Customer app will reflect the new order stage.`, 'success');
                         }
                         fetchOrders();
                     } else {
@@ -2079,7 +3869,7 @@ document.addEventListener('DOMContentLoaded', () => {
         section.classList.toggle('hidden');
         
         // Hide other sections when one is opened
-        ['ordersSection', 'disputesSection', 'withdrawalsSection'].forEach(id => {
+        ['referralSettingsSection', 'deliveryFeeSettingsSection', 'carouselSlidesSection', 'ordersSection', 'disputesSection', 'withdrawalsSection'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.classList.add('hidden');
         });
@@ -2089,12 +3879,57 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    document.getElementById('toggleReferralSettingsBtn')?.addEventListener('click', () => {
+        if (!referralSettingsSection) return;
+
+        referralSettingsSection.classList.toggle('hidden');
+
+        ['companiesSection', 'deliveryFeeSettingsSection', 'carouselSlidesSection', 'ordersSection', 'disputesSection', 'withdrawalsSection'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
+
+        if (!referralSettingsSection.classList.contains('hidden') && !hasLoadedReferralSettings) {
+            fetchReferralSettings();
+        }
+    });
+
+    document.getElementById('toggleDeliveryFeeSettingsBtn')?.addEventListener('click', () => {
+        if (!deliveryFeeSettingsSection) return;
+
+        deliveryFeeSettingsSection.classList.toggle('hidden');
+
+        ['companiesSection', 'referralSettingsSection', 'carouselSlidesSection', 'ordersSection', 'disputesSection', 'withdrawalsSection'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
+
+        if (!deliveryFeeSettingsSection.classList.contains('hidden') && !hasLoadedDeliveryFeeSettings) {
+            fetchDeliveryFeeSettings();
+        }
+    });
+
+    document.getElementById('toggleCarouselSlidesBtn')?.addEventListener('click', () => {
+        if (!carouselSlidesSection) return;
+
+        carouselSlidesSection.classList.toggle('hidden');
+
+        ['companiesSection', 'referralSettingsSection', 'deliveryFeeSettingsSection', 'ordersSection', 'disputesSection', 'withdrawalsSection'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
+
+        if (!carouselSlidesSection.classList.contains('hidden') && !hasLoadedCarouselSlides) {
+            fetchCarouselSlides();
+        }
+    });
+
     document.getElementById('toggleOrdersBtn')?.addEventListener('click', () => {
         const section = document.getElementById('ordersSection');
         section.classList.toggle('hidden');
         
         // Hide other sections when one is opened
-        ['companiesSection', 'disputesSection', 'withdrawalsSection'].forEach(id => {
+        ['companiesSection', 'referralSettingsSection', 'deliveryFeeSettingsSection', 'carouselSlidesSection', 'disputesSection', 'withdrawalsSection'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.classList.add('hidden');
         });
@@ -2109,7 +3944,7 @@ document.addEventListener('DOMContentLoaded', () => {
         section.classList.toggle('hidden');
         
         // Hide other sections when one is opened
-        ['companiesSection', 'ordersSection', 'withdrawalsSection'].forEach(id => {
+        ['companiesSection', 'referralSettingsSection', 'deliveryFeeSettingsSection', 'carouselSlidesSection', 'ordersSection', 'withdrawalsSection'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.classList.add('hidden');
         });
@@ -2124,7 +3959,7 @@ document.addEventListener('DOMContentLoaded', () => {
         section.classList.toggle('hidden');
         
         // Hide other sections when one is opened
-        ['companiesSection', 'ordersSection', 'disputesSection'].forEach(id => {
+        ['companiesSection', 'referralSettingsSection', 'deliveryFeeSettingsSection', 'carouselSlidesSection', 'ordersSection', 'disputesSection'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.classList.add('hidden');
         });
@@ -2136,10 +3971,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Refresh buttons
     refreshAnalyticsBtn?.addEventListener('click', refreshAnalyticsView);
+    exportAnalyticsBtn?.addEventListener('click', exportAnalyticsSnapshotToCsv);
+    analyticsRangeSelect?.addEventListener('change', event => {
+        selectedAnalyticsRange = event.target.value || '30d';
+        refreshAnalyticsView();
+    });
     document.getElementById('refreshCompaniesBtn')?.addEventListener('click', fetchCompanies);
     if (refreshWithdrawalsBtn) {
         refreshWithdrawalsBtn.addEventListener('click', fetchPendingWithdrawals);
     }
+    refreshReferralSettingsBtn?.addEventListener('click', fetchReferralSettings);
+    referralSettingsForm?.addEventListener('submit', saveReferralSettings);
+    refreshDeliveryFeeSettingsBtn?.addEventListener('click', fetchDeliveryFeeSettings);
+    deliveryFeeSettingsForm?.addEventListener('submit', saveDeliveryFeeSettings);
+    refreshCarouselSlidesBtn?.addEventListener('click', fetchCarouselSlides);
+    mainCarouselCreateForm?.addEventListener('submit', createCarouselSlide);
+    promoCarouselCreateForm?.addEventListener('submit', createCarouselSlide);
 
     // Filter change
     if (orderFilterDropdown) {
