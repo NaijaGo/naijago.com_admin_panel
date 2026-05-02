@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Referral Reward Settings | NaijaGo Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <link rel="stylesheet" href="css/admin-panel.css" />
+  </head>
+  <body class="p-8" data-page="referral-settings">
+    <div class="container mx-auto">
+      <div class="flex flex-col gap-6 mb-8 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-[0.35em] text-accent-cyan mb-2">
+            Protected Admin Workspace
+          </p>
+          <h1 class="text-5xl font-extrabold text-light-slate shimmer-text">
+            Referral Reward Settings
+          </h1>
+          <p class="text-light-gray mt-3 max-w-2xl">
+            Use the navigation below to move between admin work screens.
+          </p>
+        </div>
+        <button
+          id="logoutAdminBtn"
+          class="btn btn-danger px-6 py-3 rounded-lg text-sm self-start md:self-auto"
+        >
+          Logout
+        </button>
+      </div>
+
+      <nav class="grid gap-3 mb-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <a href="index.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Dashboard</a>
+          <a href="vendor-requests.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Vendor Requests</a>
+          <a href="pharmacist-requests.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Pharmacists</a>
+          <a href="companies.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Companies</a>
+          <a href="orders.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Orders</a>
+          <a href="disputes.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Disputes</a>
+          <a href="withdrawals.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Withdrawals</a>
+          <a href="referral-settings.html" class="btn btn-primary px-4 py-3 text-sm text-center">Referral Rewards</a>
+          <a href="delivery-fees.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Delivery Fees</a>
+          <a href="carousel-slides.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Carousel Slides</a>
+          <a href="pharmacy-chat-prices.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Pharmacy Prices</a>
+      </nav>
+
+      <div id="messageContainer" class="mb-4"></div>
+
+      <!-- ────────────────────────────────────────────── -->
+      <!-- Referral Settings Section (hidden by default) -->
+      <!-- ────────────────────────────────────────────── -->
+      <div id="referralSettingsSection" class="mt-6">
+        <div
+          class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
+        >
+          <div>
+            <h2 class="text-3xl font-bold text-accent-cyan">
+              Referral Reward Settings
+            </h2>
+            <p class="text-light-gray mt-2 max-w-3xl">
+              Control how much a user earns after a referred customer completes
+              a first paid order.
+            </p>
+          </div>
+          <button
+            id="refreshReferralSettingsBtn"
+            class="btn btn-primary px-4 py-2 text-sm"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4 inline mr-2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            Refresh
+          </button>
+        </div>
+
+        <div class="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+          <div class="card p-6">
+            <p
+              class="text-sm font-semibold uppercase tracking-[0.3em] text-accent-cyan"
+            >
+              Current Reward
+            </p>
+            <p
+              id="currentReferralRewardDisplay"
+              class="text-4xl font-extrabold text-light-slate mt-4"
+            >
+              --
+            </p>
+
+            <div class="grid gap-4 mt-6 sm:grid-cols-2">
+              <div
+                class="rounded-xl bg-blue-900 bg-opacity-20 border border-cyan-400 border-opacity-10 p-4"
+              >
+                <p class="text-xs uppercase tracking-[0.25em] text-light-gray">
+                  Config Source
+                </p>
+                <p
+                  id="referralSettingsSource"
+                  class="mt-2 text-lg font-semibold text-light-slate"
+                >
+                  Loading...
+                </p>
+              </div>
+              <div
+                class="rounded-xl bg-blue-900 bg-opacity-20 border border-cyan-400 border-opacity-10 p-4"
+              >
+                <p class="text-xs uppercase tracking-[0.25em] text-light-gray">
+                  Last Updated
+                </p>
+                <p
+                  id="referralSettingsUpdatedAt"
+                  class="mt-2 text-lg font-semibold text-light-slate"
+                >
+                  Loading...
+                </p>
+              </div>
+              <div
+                class="rounded-xl bg-blue-900 bg-opacity-20 border border-cyan-400 border-opacity-10 p-4 sm:col-span-2"
+              >
+                <p class="text-xs uppercase tracking-[0.25em] text-light-gray">
+                  Last Updated By
+                </p>
+                <p
+                  id="referralSettingsUpdatedBy"
+                  class="mt-2 text-lg font-semibold text-light-slate"
+                >
+                  Loading...
+                </p>
+              </div>
+            </div>
+
+            <form id="referralSettingsForm" class="mt-8 space-y-4">
+              <div>
+                <label
+                  for="referralRewardAmountInput"
+                  class="block text-sm font-semibold text-light-gray mb-2"
+                >
+                  Reward Amount per Referral
+                </label>
+                <input
+                  id="referralRewardAmountInput"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="input-field w-full"
+                  placeholder="Enter reward amount in naira"
+                />
+              </div>
+              <p class="text-sm text-light-gray">
+                This amount is granted after the referred customer completes a
+                first paid order.
+              </p>
+              <button
+                id="saveReferralSettingsBtn"
+                type="submit"
+                class="btn btn-success w-full px-5 py-3"
+              >
+                Save Referral Reward
+              </button>
+            </form>
+          </div>
+
+          <div class="card p-6">
+            <div class="flex items-center justify-between gap-4 mb-6">
+              <div>
+                <p
+                  class="text-sm font-semibold uppercase tracking-[0.3em] text-accent-cyan mb-2"
+                >
+                  Audit Trail
+                </p>
+                <h3 class="text-2xl font-bold text-light-slate">
+                  Reward Change History
+                </h3>
+              </div>
+              <span class="analytics-pill medium">Tracked</span>
+            </div>
+            <div id="referralAuditTrail" class="space-y-4">
+              <p class="text-light-gray">
+                Open "Referral Rewards" to load the current change history.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+    </div>
+
+    <script src="js/admin/runtime.js"></script>
+    <script src="js/admin/referral-settings.js"></script>
+    <script src="js/admin/delivery-fees.js"></script>
+    <script src="js/admin/pharmacy-chat-prices.js"></script>
+    <script src="js/admin/carousel-slides.js"></script>
+    <script src="js/admin/analytics.js"></script>
+    <script src="js/admin/approvals.js"></script>
+    <script src="js/admin/orders.js"></script>
+    <script src="js/admin/disputes.js"></script>
+    <script src="js/admin/withdrawals.js"></script>
+    <script src="js/admin/companies.js"></script>
+    <script src="js/admin-panel.js"></script>
+  </body></html>

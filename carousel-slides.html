@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Carousel Slides | NaijaGo Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <link rel="stylesheet" href="css/admin-panel.css" />
+  </head>
+  <body class="p-8" data-page="carousel-slides">
+    <div class="container mx-auto">
+      <div class="flex flex-col gap-6 mb-8 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-[0.35em] text-accent-cyan mb-2">
+            Protected Admin Workspace
+          </p>
+          <h1 class="text-5xl font-extrabold text-light-slate shimmer-text">
+            Carousel Slides
+          </h1>
+          <p class="text-light-gray mt-3 max-w-2xl">
+            Use the navigation below to move between admin work screens.
+          </p>
+        </div>
+        <button
+          id="logoutAdminBtn"
+          class="btn btn-danger px-6 py-3 rounded-lg text-sm self-start md:self-auto"
+        >
+          Logout
+        </button>
+      </div>
+
+      <nav class="grid gap-3 mb-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <a href="index.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Dashboard</a>
+          <a href="vendor-requests.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Vendor Requests</a>
+          <a href="pharmacist-requests.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Pharmacists</a>
+          <a href="companies.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Companies</a>
+          <a href="orders.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Orders</a>
+          <a href="disputes.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Disputes</a>
+          <a href="withdrawals.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Withdrawals</a>
+          <a href="referral-settings.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Referral Rewards</a>
+          <a href="delivery-fees.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Delivery Fees</a>
+          <a href="carousel-slides.html" class="btn btn-primary px-4 py-3 text-sm text-center">Carousel Slides</a>
+          <a href="pharmacy-chat-prices.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Pharmacy Prices</a>
+      </nav>
+
+      <div id="messageContainer" class="mb-4"></div>
+
+      <!-- ────────────────────────────────────────────── -->
+      <!-- Carousel Slides Section (hidden by default)   -->
+      <!-- ────────────────────────────────────────────── -->
+      <div id="carouselSlidesSection" class="mt-6">
+        <div
+          class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
+        >
+          <div>
+            <h2 class="text-3xl font-bold text-accent-cyan">
+              Home Carousel Slides
+            </h2>
+            <p class="text-light-gray mt-2 max-w-3xl">
+              Manage the slides used in the Flutter home screen. Main slides
+              power the top carousel, while promo slides power the lower ad
+              carousel.
+            </p>
+          </div>
+          <button
+            id="refreshCarouselSlidesBtn"
+            class="btn btn-primary px-4 py-2 text-sm"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4 inline mr-2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            Refresh
+          </button>
+        </div>
+
+        <div class="grid gap-6 xl:grid-cols-2">
+          <div class="card p-6">
+            <div class="flex items-center justify-between gap-4 mb-6">
+              <div>
+                <p
+                  class="text-sm font-semibold uppercase tracking-[0.3em] text-accent-cyan mb-2"
+                >
+                  Top Carousel
+                </p>
+                <h3 class="text-2xl font-bold text-light-slate">Main Slides</h3>
+              </div>
+              <span class="analytics-pill medium">Main</span>
+            </div>
+            <div class="mb-5 rounded-xl border border-cyan-400 border-opacity-20 bg-blue-950 bg-opacity-30 p-4">
+              <p class="text-sm font-bold text-light-slate">Top carousel upload requirement</p>
+              <p class="text-sm text-light-gray mt-2">
+                Use wide images for the first home carousel. Recommended size:
+                <strong class="text-accent-cyan">1200 x 520 px</strong>
+                or any <strong class="text-accent-cyan">2.3:1</strong> image.
+                Keep important text centered so it is safe on mobile.
+              </p>
+            </div>
+
+            <form
+              id="mainCarouselCreateForm"
+              data-placement="main"
+              class="space-y-4"
+            >
+              <div>
+                <label class="block text-sm font-semibold text-light-gray mb-2"
+                  >Slide Title</label
+                >
+                <input
+                  type="text"
+                  class="carousel-title input-field w-full"
+                  placeholder="Optional label for admin use"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-light-gray mb-2"
+                  >Subtitle</label
+                >
+                <input
+                  type="text"
+                  class="carousel-subtitle input-field w-full"
+                  placeholder="Optional subtitle"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-light-gray mb-2"
+                  >Image URL</label
+                >
+                <input
+                  type="url"
+                  class="carousel-image-url input-field w-full"
+                  placeholder="Paste a Cloudinary or public image URL"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-light-gray mb-2"
+                  >Upload Image</label
+                >
+                <input
+                  type="file"
+                  class="carousel-image-file block w-full text-sm text-light-gray"
+                  accept="image/*"
+                />
+                <p class="mt-2 text-xs text-light-gray">
+                  Top carousel images are saved separately under
+                  <span class="text-accent-cyan">carousel-slides/main</span>.
+                </p>
+              </div>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label
+                    class="block text-sm font-semibold text-light-gray mb-2"
+                    >Click Action</label
+                  >
+                  <select class="carousel-action-type input-field w-full">
+                    <option value="none">No action</option>
+                    <option value="restaurant">Open restaurants</option>
+                    <option value="pharmacy">Open pharmacy</option>
+                    <option value="category">Open category</option>
+                    <option value="product">Open product</option>
+                    <option value="external">Open external link</option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    class="block text-sm font-semibold text-light-gray mb-2"
+                    >Action Value</label
+                  >
+                  <input
+                    type="text"
+                    class="carousel-action-value input-field w-full"
+                    placeholder="Category name, product id, or URL"
+                  />
+                </div>
+              </div>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label
+                    class="block text-sm font-semibold text-light-gray mb-2"
+                    >Fallback Link URL</label
+                  >
+                  <input
+                    type="url"
+                    class="carousel-link-url input-field w-full"
+                    placeholder="Optional legacy URL"
+                  />
+                </div>
+                <div>
+                  <label
+                    class="block text-sm font-semibold text-light-gray mb-2"
+                    >Sort Order</label
+                  >
+                  <input
+                    type="number"
+                    class="carousel-sort-order input-field w-full"
+                    value="0"
+                  />
+                </div>
+              </div>
+              <label class="flex items-center gap-3 text-sm text-light-gray">
+                <input
+                  type="checkbox"
+                  class="carousel-is-active h-4 w-4"
+                  checked
+                />
+                Slide is active
+              </label>
+              <button type="submit" class="btn btn-success w-full px-5 py-3">
+                Add Main Slide
+              </button>
+            </form>
+
+            <div id="mainCarouselSlidesList" class="space-y-4 mt-6">
+              <p class="text-light-gray">
+                Open "Carousel Slides" to load main slides.
+              </p>
+            </div>
+          </div>
+
+          <div class="card p-6">
+            <div class="flex items-center justify-between gap-4 mb-6">
+              <div>
+                <p
+                  class="text-sm font-semibold uppercase tracking-[0.3em] text-accent-cyan mb-2"
+                >
+                  Promo Carousel
+                </p>
+                <h3 class="text-2xl font-bold text-light-slate">
+                  Promo Slides
+                </h3>
+              </div>
+              <span class="analytics-pill good">Promo</span>
+            </div>
+            <div class="mb-5 rounded-xl border border-emerald-400 border-opacity-20 bg-emerald-950 bg-opacity-20 p-4">
+              <p class="text-sm font-bold text-light-slate">Promo carousel upload requirement</p>
+              <p class="text-sm text-light-gray mt-2">
+                Use shorter banner images for the lower carousel. Recommended
+                size: <strong class="text-accent-cyan">1080 x 360 px</strong>
+                or any <strong class="text-accent-cyan">3:1</strong> image.
+                This carousel is managed independently from the top carousel.
+              </p>
+            </div>
+
+            <form
+              id="promoCarouselCreateForm"
+              data-placement="promo"
+              class="space-y-4"
+            >
+              <div>
+                <label class="block text-sm font-semibold text-light-gray mb-2"
+                  >Slide Title</label
+                >
+                <input
+                  type="text"
+                  class="carousel-title input-field w-full"
+                  placeholder="Optional label for admin use"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-light-gray mb-2"
+                  >Subtitle</label
+                >
+                <input
+                  type="text"
+                  class="carousel-subtitle input-field w-full"
+                  placeholder="Optional subtitle"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-light-gray mb-2"
+                  >Image URL</label
+                >
+                <input
+                  type="url"
+                  class="carousel-image-url input-field w-full"
+                  placeholder="Paste a Cloudinary or public image URL"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-light-gray mb-2"
+                  >Upload Image</label
+                >
+                <input
+                  type="file"
+                  class="carousel-image-file block w-full text-sm text-light-gray"
+                  accept="image/*"
+                />
+                <p class="mt-2 text-xs text-light-gray">
+                  Promo carousel images are saved separately under
+                  <span class="text-accent-cyan">carousel-slides/promo</span>.
+                </p>
+              </div>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label
+                    class="block text-sm font-semibold text-light-gray mb-2"
+                    >Click Action</label
+                  >
+                  <select class="carousel-action-type input-field w-full">
+                    <option value="none">No action</option>
+                    <option value="restaurant">Open restaurants</option>
+                    <option value="pharmacy">Open pharmacy</option>
+                    <option value="category">Open category</option>
+                    <option value="product">Open product</option>
+                    <option value="external">Open external link</option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    class="block text-sm font-semibold text-light-gray mb-2"
+                    >Action Value</label
+                  >
+                  <input
+                    type="text"
+                    class="carousel-action-value input-field w-full"
+                    placeholder="Category name, product id, or URL"
+                  />
+                </div>
+              </div>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label
+                    class="block text-sm font-semibold text-light-gray mb-2"
+                    >Fallback Link URL</label
+                  >
+                  <input
+                    type="url"
+                    class="carousel-link-url input-field w-full"
+                    placeholder="Optional legacy URL"
+                  />
+                </div>
+                <div>
+                  <label
+                    class="block text-sm font-semibold text-light-gray mb-2"
+                    >Sort Order</label
+                  >
+                  <input
+                    type="number"
+                    class="carousel-sort-order input-field w-full"
+                    value="0"
+                  />
+                </div>
+              </div>
+              <label class="flex items-center gap-3 text-sm text-light-gray">
+                <input
+                  type="checkbox"
+                  class="carousel-is-active h-4 w-4"
+                  checked
+                />
+                Slide is active
+              </label>
+              <button type="submit" class="btn btn-success w-full px-5 py-3">
+                Add Promo Slide
+              </button>
+            </form>
+
+            <div id="promoCarouselSlidesList" class="space-y-4 mt-6">
+              <p class="text-light-gray">
+                Open "Carousel Slides" to load promo slides.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+    </div>
+
+    <script src="js/admin/runtime.js"></script>
+    <script src="js/admin/referral-settings.js"></script>
+    <script src="js/admin/delivery-fees.js"></script>
+    <script src="js/admin/pharmacy-chat-prices.js"></script>
+    <script src="js/admin/carousel-slides.js"></script>
+    <script src="js/admin/analytics.js"></script>
+    <script src="js/admin/approvals.js"></script>
+    <script src="js/admin/orders.js"></script>
+    <script src="js/admin/disputes.js"></script>
+    <script src="js/admin/withdrawals.js"></script>
+    <script src="js/admin/companies.js"></script>
+    <script src="js/admin-panel.js"></script>
+  </body></html>

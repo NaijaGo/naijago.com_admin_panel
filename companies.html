@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Company Management | NaijaGo Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <link rel="stylesheet" href="css/admin-panel.css" />
+  </head>
+  <body class="p-8" data-page="companies">
+    <div class="container mx-auto">
+      <div class="flex flex-col gap-6 mb-8 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-[0.35em] text-accent-cyan mb-2">
+            Protected Admin Workspace
+          </p>
+          <h1 class="text-5xl font-extrabold text-light-slate shimmer-text">
+            Company Management
+          </h1>
+          <p class="text-light-gray mt-3 max-w-2xl">
+            Use the navigation below to move between admin work screens.
+          </p>
+        </div>
+        <button
+          id="logoutAdminBtn"
+          class="btn btn-danger px-6 py-3 rounded-lg text-sm self-start md:self-auto"
+        >
+          Logout
+        </button>
+      </div>
+
+      <nav class="grid gap-3 mb-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <a href="index.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Dashboard</a>
+          <a href="vendor-requests.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Vendor Requests</a>
+          <a href="pharmacist-requests.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Pharmacists</a>
+          <a href="companies.html" class="btn btn-primary px-4 py-3 text-sm text-center">Companies</a>
+          <a href="orders.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Orders</a>
+          <a href="disputes.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Disputes</a>
+          <a href="withdrawals.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Withdrawals</a>
+          <a href="referral-settings.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Referral Rewards</a>
+          <a href="delivery-fees.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Delivery Fees</a>
+          <a href="carousel-slides.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Carousel Slides</a>
+          <a href="pharmacy-chat-prices.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Pharmacy Prices</a>
+      </nav>
+
+      <div id="messageContainer" class="mb-4"></div>
+
+      <!-- ────────────────────────────────────────────── -->
+      <!-- Companies Section (hidden by default)         -->
+      <!-- ────────────────────────────────────────────── -->
+      <div id="companiesSection" class="mt-6">
+        <div class="mb-6 flex justify-between items-center">
+          <h2 class="text-3xl font-bold text-accent-cyan">
+            Company Management
+          </h2>
+          <div class="flex items-center gap-4">
+            <button
+              id="refreshCompaniesBtn"
+              class="btn btn-primary px-4 py-2 text-sm"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4 inline mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Company Filter -->
+        <div class="mb-6 flex flex-wrap gap-2">
+          <button
+            class="company-filter-btn btn btn-primary-alt px-4 py-2 text-sm"
+            data-status="all"
+          >
+            All Companies
+          </button>
+          <button
+            class="company-filter-btn btn px-4 py-2 text-sm status-approved"
+            data-status="active"
+          >
+            Active
+          </button>
+          <button
+            class="company-filter-btn btn px-4 py-2 text-sm status-pending"
+            data-status="pending"
+          >
+            Pending
+          </button>
+          <button
+            class="company-filter-btn btn px-4 py-2 text-sm status-suspended"
+            data-status="suspended"
+          >
+            Suspended
+          </button>
+        </div>
+
+        <div id="companiesList" class="space-y-6">
+          <p class="text-center text-light-gray">
+            Click "Company Management" to load companies...
+          </p>
+        </div>
+      </div>
+
+
+    </div>
+
+    <script src="js/admin/runtime.js"></script>
+    <script src="js/admin/referral-settings.js"></script>
+    <script src="js/admin/delivery-fees.js"></script>
+    <script src="js/admin/pharmacy-chat-prices.js"></script>
+    <script src="js/admin/carousel-slides.js"></script>
+    <script src="js/admin/analytics.js"></script>
+    <script src="js/admin/approvals.js"></script>
+    <script src="js/admin/orders.js"></script>
+    <script src="js/admin/disputes.js"></script>
+    <script src="js/admin/withdrawals.js"></script>
+    <script src="js/admin/companies.js"></script>
+    <script src="js/admin-panel.js"></script>
+  </body></html>

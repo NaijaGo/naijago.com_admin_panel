@@ -1,0 +1,540 @@
+        const BASE_URL = "https://naijago-backend.onrender.com";
+        //const BASE_URL = 'http://localhost:5000';
+
+        let adminToken = "";
+        let currentFilter = "all";
+        let currentRiderFilter = "all";
+        let currentWithdrawalFilter = "all";
+        let currentCompanyFilter = "all";
+        let hasLoadedReferralSettings = false;
+        let hasLoadedDeliveryFeeSettings = false;
+        let hasLoadedCarouselSlides = false;
+        let hasLoadedPharmacySubscriptionSettings = false;
+        let allOrders = [];
+        let allRiders = [];
+        let allWithdrawals = [];
+        let allCompanies = [];
+        let allDisputes = [];
+        let pendingVendorRequests = [];
+        let pendingPharmacistRequests = [];
+        let customerVendorMetrics = null;
+        let isAnalyticsRefreshing = false;
+        let analyticsLastUpdated = null;
+        let selectedAnalyticsRange = "30d";
+        let analyticsRangeWindow = null;
+        let latestAnalyticsSnapshot = null;
+        let latestDeliveryFeeSettings = null;
+        let latestPharmacySubscriptionSettings = null;
+        const currentPage = document.body.dataset.page || "dashboard";
+
+        // DOM Elements - only get those that exist
+        const messageContainer = document.getElementById("messageContainer");
+        const pendingRequestsList = document.getElementById(
+          "pendingRequestsList",
+        );
+        const pharmacistRequestsList = document.getElementById(
+          "pharmacistRequestsList",
+        );
+        const refreshPharmacistRequestsBtn = document.getElementById(
+          "refreshPharmacistRequestsBtn",
+        );
+        const logoutAdminBtn = document.getElementById("logoutAdminBtn");
+        const analyticsCards = document.getElementById("analyticsCards");
+        const analyticsBreakdown =
+          document.getElementById("analyticsBreakdown");
+        const analyticsInsights = document.getElementById("analyticsInsights");
+        const analyticsMeta = document.getElementById("analyticsMeta");
+        const analyticsAlerts = document.getElementById("analyticsAlerts");
+        const analyticsPriorityBadge = document.getElementById(
+          "analyticsPriorityBadge",
+        );
+        const refreshAnalyticsBtn = document.getElementById(
+          "refreshAnalyticsBtn",
+        );
+        const exportAnalyticsBtn =
+          document.getElementById("exportAnalyticsBtn");
+        const analyticsRangeSelect = document.getElementById(
+          "analyticsRangeSelect",
+        );
+
+        const ordersList = document.getElementById("ordersList");
+        const orderFilterDropdown = document.getElementById(
+          "orderFilterDropdown",
+        );
+
+        const disputesList = document.getElementById("disputesList");
+
+        const withdrawalsList = document.getElementById("withdrawalsList");
+        const withdrawalCountBadge = document.getElementById(
+          "withdrawalCountBadge",
+        );
+        const withdrawalTotalDisplay = document.getElementById(
+          "withdrawalTotalDisplay",
+        );
+        const refreshWithdrawalsBtn = document.getElementById(
+          "refreshWithdrawalsBtn",
+        );
+        const referralSettingsSection = document.getElementById(
+          "referralSettingsSection",
+        );
+        const deliveryFeeSettingsSection = document.getElementById(
+          "deliveryFeeSettingsSection",
+        );
+        const carouselSlidesSection = document.getElementById(
+          "carouselSlidesSection",
+        );
+        const pharmacySubscriptionSettingsSection = document.getElementById(
+          "pharmacySubscriptionSettingsSection",
+        );
+        const currentReferralRewardDisplay = document.getElementById(
+          "currentReferralRewardDisplay",
+        );
+        const referralSettingsSource = document.getElementById(
+          "referralSettingsSource",
+        );
+        const referralSettingsUpdatedAt = document.getElementById(
+          "referralSettingsUpdatedAt",
+        );
+        const referralSettingsUpdatedBy = document.getElementById(
+          "referralSettingsUpdatedBy",
+        );
+        const referralRewardAmountInput = document.getElementById(
+          "referralRewardAmountInput",
+        );
+        const referralSettingsForm = document.getElementById(
+          "referralSettingsForm",
+        );
+        const saveReferralSettingsBtn = document.getElementById(
+          "saveReferralSettingsBtn",
+        );
+        const refreshReferralSettingsBtn = document.getElementById(
+          "refreshReferralSettingsBtn",
+        );
+        const referralAuditTrail =
+          document.getElementById("referralAuditTrail");
+        const deliveryFeeCoverageDisplay = document.getElementById(
+          "deliveryFeeCoverageDisplay",
+        );
+        const deliveryFeeSettingsSource = document.getElementById(
+          "deliveryFeeSettingsSource",
+        );
+        const deliveryFeeFallbackDisplay = document.getElementById(
+          "deliveryFeeFallbackDisplay",
+        );
+        const deliveryFeeMinimumDisplay = document.getElementById(
+          "deliveryFeeMinimumDisplay",
+        );
+        const deliveryFeeSettingsUpdatedAt = document.getElementById(
+          "deliveryFeeSettingsUpdatedAt",
+        );
+        const deliveryFeeSettingsUpdatedBy = document.getElementById(
+          "deliveryFeeSettingsUpdatedBy",
+        );
+        const deliveryFallbackRateInput = document.getElementById(
+          "deliveryFallbackRateInput",
+        );
+        const deliveryMinimumFeeInput = document.getElementById(
+          "deliveryMinimumFeeInput",
+        );
+        const deliveryFeeZoneGroups = document.getElementById(
+          "deliveryFeeZoneGroups",
+        );
+        const deliveryFeeSettingsForm = document.getElementById(
+          "deliveryFeeSettingsForm",
+        );
+        const refreshDeliveryFeeSettingsBtn = document.getElementById(
+          "refreshDeliveryFeeSettingsBtn",
+        );
+        const refreshCarouselSlidesBtn = document.getElementById(
+          "refreshCarouselSlidesBtn",
+        );
+        const mainCarouselCreateForm = document.getElementById(
+          "mainCarouselCreateForm",
+        );
+        const promoCarouselCreateForm = document.getElementById(
+          "promoCarouselCreateForm",
+        );
+        const mainCarouselSlidesList = document.getElementById(
+          "mainCarouselSlidesList",
+        );
+        const promoCarouselSlidesList = document.getElementById(
+          "promoCarouselSlidesList",
+        );
+        const pharmacySubscriptionPlanEditor = document.getElementById(
+          "pharmacySubscriptionPlanEditor",
+        );
+        const pharmacySubscriptionSettingsForm = document.getElementById(
+          "pharmacySubscriptionSettingsForm",
+        );
+        const refreshPharmacySubscriptionSettingsBtn = document.getElementById(
+          "refreshPharmacySubscriptionSettingsBtn",
+        );
+        const storedToken = localStorage.getItem("admin_jwt_token");
+
+        if (!storedToken) {
+          redirectToLogin();
+        } else {
+          adminToken = storedToken;
+        }
+
+        if (analyticsRangeSelect) {
+          analyticsRangeSelect.value = selectedAnalyticsRange;
+        }
+
+        // Initialize Socket.io connection for real-time updates
+        let socket = null;
+        function initializeSocket() {
+          if (!adminToken) return;
+
+          socket = io(BASE_URL, {
+            auth: { token: adminToken },
+            transports: ["websocket", "polling"],
+          });
+
+          socket.on("connect", () => {
+            console.log("Connected to real-time server");
+          });
+
+          socket.on("admin_notification", (data) => {
+            showRealTimeNotification(data);
+          });
+
+          socket.on("rider_location_update", (data) => {
+            updateRiderLocationOnMap(data);
+          });
+
+          socket.on("disconnect", () => {
+            console.log("Disconnected from real-time server");
+          });
+        }
+
+        function showRealTimeNotification(data) {
+          const notificationDiv = document.createElement("div");
+          notificationDiv.className =
+            "fixed top-4 right-4 z-50 card p-4 max-w-sm animate-slide-in";
+          notificationDiv.style.minWidth = "300px";
+
+          let icon = "📢";
+          let bgColor = "bg-blue-900";
+          if (data.type === "order_ready_for_completion") {
+            icon = "💰";
+            bgColor = "bg-green-900";
+          } else if (data.type === "rider_withdrawal_request") {
+            icon = "🏧";
+            bgColor = "bg-yellow-900";
+          } else if (data.type === "delivery_cancelled") {
+            icon = "❌";
+            bgColor = "bg-red-900";
+          }
+
+          notificationDiv.innerHTML = `
+            <div class="flex items-start gap-3">
+                <span class="text-2xl">${icon}</span>
+                <div class="flex-1">
+                    <h4 class="font-bold text-accent-cyan">${data.type?.replace(/_/g, " ").toUpperCase() || "Notification"}</h4>
+                    <p class="text-sm mt-1">${data.message}</p>
+                    <p class="text-xs text-gray-400 mt-2">${new Date().toLocaleTimeString()}</p>
+                </div>
+                <button class="text-gray-400 hover:text-white" onclick="this.parentElement.parentElement.remove()">×</button>
+            </div>
+        `;
+
+          document.body.appendChild(notificationDiv);
+
+          // Auto-remove after 10 seconds
+          setTimeout(() => {
+            if (notificationDiv.parentNode) {
+              notificationDiv.remove();
+            }
+          }, 10000);
+        }
+
+        function updateRiderLocationOnMap(data) {
+          console.log("Rider location updated:", data);
+          const riderCards = document.querySelectorAll(
+            `[data-rider-id="${data.riderId}"]`,
+          );
+          riderCards.forEach((card) => {
+            const locationEl = card.querySelector(".rider-location");
+            if (locationEl) {
+              locationEl.innerHTML = `
+                    <span class="tracking-dot tracking-moving"></span>
+                    Live: ${data.location.lat.toFixed(4)}, ${data.location.lng.toFixed(4)}
+                `;
+              locationEl.title =
+                data.location.address || "Location updated just now";
+            }
+          });
+        }
+
+        function displayMessage(message, type) {
+          if (!messageContainer) return;
+          messageContainer.innerHTML = `<div class="message ${type}">${message}</div>`;
+          setTimeout(() => {
+            messageContainer.innerHTML = "";
+          }, 6000);
+        }
+
+        function clearAdminSession() {
+          adminToken = "";
+          localStorage.removeItem("admin_jwt_token");
+          if (socket) {
+            socket.disconnect();
+            socket = null;
+          }
+        }
+
+        function redirectToLogin(reason = "") {
+          const suffix = reason ? `?reason=${encodeURIComponent(reason)}` : "";
+          window.location.replace(`./login.html${suffix}`);
+        }
+
+        function formatCurrency(amount) {
+          return new Intl.NumberFormat("en-NG", {
+            style: "currency",
+            currency: "NGN",
+            maximumFractionDigits: 0,
+          }).format(Number(amount) || 0);
+        }
+
+        function formatCompactNumber(value) {
+          return new Intl.NumberFormat("en-NG", {
+            notation: "compact",
+            maximumFractionDigits: 1,
+          }).format(Number(value) || 0);
+        }
+
+        function formatPercent(value) {
+          return `${Math.round(Number(value) || 0)}%`;
+        }
+
+        function formatSignedPercent(value) {
+          const numericValue = Number(value || 0);
+
+          if (!Number.isFinite(numericValue)) {
+            return "0.0%";
+          }
+
+          const roundedValue = Number(numericValue.toFixed(1));
+
+          if (roundedValue > 0) {
+            return `+${roundedValue}%`;
+          }
+
+          return `${roundedValue}%`;
+        }
+
+        function getTrendTone(changePercent, positiveIsGood = true) {
+          const numericValue = Number(changePercent || 0);
+
+          if (Math.abs(numericValue) < 5) {
+            return "medium";
+          }
+
+          if (numericValue > 0) {
+            return positiveIsGood ? "good" : "high";
+          }
+
+          return positiveIsGood ? "high" : "good";
+        }
+
+        function getTrendBadge(changePercent) {
+          const numericValue = Number(changePercent || 0);
+
+          if (!Number.isFinite(numericValue) || Math.abs(numericValue) < 0.05) {
+            return "Flat";
+          }
+
+          return `${numericValue > 0 ? "Up" : "Down"} ${Math.abs(numericValue).toFixed(1)}%`;
+        }
+
+        function getTrendNarrative(changePercent, positiveIsGood = true) {
+          const numericValue = Number(changePercent || 0);
+
+          if (!Number.isFinite(numericValue) || Math.abs(numericValue) < 0.05) {
+            return "holding steady versus the previous period";
+          }
+
+          const direction = numericValue > 0 ? "up" : "down";
+
+          if (positiveIsGood) {
+            return `${direction} ${Math.abs(numericValue).toFixed(1)}% versus the previous period`;
+          }
+
+          return `${direction} ${Math.abs(numericValue).toFixed(1)}% versus the previous period, which changes payout exposure`;
+        }
+
+        function getAnalyticsRangeBounds() {
+          if (
+            !analyticsRangeWindow?.startDate ||
+            !analyticsRangeWindow?.endDate
+          ) {
+            return null;
+          }
+
+          const startDate = new Date(analyticsRangeWindow.startDate);
+          const endDate = new Date(analyticsRangeWindow.endDate);
+
+          if (
+            Number.isNaN(startDate.getTime()) ||
+            Number.isNaN(endDate.getTime())
+          ) {
+            return null;
+          }
+
+          return { startDate, endDate };
+        }
+
+        function filterCollectionByAnalyticsRange(items, getDateValue) {
+          const records = Array.isArray(items) ? items : [];
+          const rangeBounds = getAnalyticsRangeBounds();
+
+          if (!rangeBounds) {
+            return records;
+          }
+
+          return records.filter((item) => {
+            const rawDate = getDateValue(item);
+
+            if (!rawDate) {
+              return false;
+            }
+
+            const parsedDate = new Date(rawDate);
+
+            if (Number.isNaN(parsedDate.getTime())) {
+              return false;
+            }
+
+            return (
+              parsedDate >= rangeBounds.startDate &&
+              parsedDate < rangeBounds.endDate
+            );
+          });
+        }
+
+        function formatDateTime(value) {
+          if (!value) return "Not yet";
+          const parsedDate = new Date(value);
+          if (Number.isNaN(parsedDate.getTime())) return "Not available";
+          return parsedDate.toLocaleString("en-US", {
+            dateStyle: "medium",
+            timeStyle: "short",
+          });
+        }
+
+        function getAdminDisplayName(admin) {
+          if (!admin) return "System";
+          return admin.name || admin.email || "Admin";
+        }
+
+        function escapeHtml(value = "") {
+          return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+        }
+
+        function formatStatusLabel(value = "") {
+          return String(value || "none")
+            .replace(/_/g, " ")
+            .toUpperCase();
+        }
+
+        function formatBusinessLocation(location) {
+          if (!location) return "N/A";
+          if (typeof location === "string") return location || "N/A";
+          return (
+            location.formattedAddress ||
+            location.address ||
+            location.city ||
+            "N/A"
+          );
+        }
+
+        function renderOrderItemMetadata(item = {}) {
+          const details = [];
+          const category = String(item.category || "");
+          const isRestaurant =
+            category === "Restaurant" ||
+            category.startsWith("Restaurant > ") ||
+            Boolean(item.restaurantName);
+          const isMedicine = Boolean(
+            item.medicineAccess ||
+            item.requiresPrescription ||
+            item.requiresPharmacistApproval,
+          );
+
+          if (isRestaurant) {
+            details.push(
+              `<span class="text-xs text-orange-300 font-semibold">Restaurant: ${escapeHtml(item.restaurantName || "Restaurant vendor")}</span>`,
+            );
+            if (item.foodInformation) {
+              details.push(
+                `<span class="text-xs text-light-gray">${escapeHtml(item.foodInformation)}</span>`,
+              );
+            }
+            if (item.orderStartTime || item.orderEndTime) {
+              details.push(
+                `<span class="text-xs text-yellow-300">Order window: ${escapeHtml(item.orderStartTime || "09:00")} - ${escapeHtml(item.orderEndTime || "19:00")}</span>`,
+              );
+            }
+          }
+
+          if (isMedicine) {
+            const access = formatStatusLabel(
+              item.medicineAccess || "over_the_counter",
+            );
+            details.push(
+              `<span class="text-xs text-cyan-300 font-semibold">Medicine access: ${access}</span>`,
+            );
+            if (item.requiresPrescription) {
+              details.push(
+                '<span class="text-xs text-red-300">Prescription required</span>',
+              );
+            } else if (item.requiresPharmacistApproval) {
+              details.push(
+                '<span class="text-xs text-yellow-300">Pharmacist guidance required</span>',
+              );
+            } else if (item.isOverTheCounter) {
+              details.push(
+                '<span class="text-xs text-green-300">Over-the-counter</span>',
+              );
+            }
+          }
+
+          if (!details.length) return "";
+          return `<div class="mt-1 flex flex-col gap-1">${details.join("")}</div>`;
+        }
+
+// Helper function to calculate distance (same as backend)
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+          const R = 6371; // Radius of the Earth in kilometers
+          const dLat = (lat2 - lat1) * (Math.PI / 180);
+          const dLon = (lon2 - lon1) * (Math.PI / 180);
+          const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * (Math.PI / 180)) *
+              Math.cos(lat2 * (Math.PI / 180)) *
+              Math.sin(dLon / 2) *
+              Math.sin(dLon / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          const distance = R * c; // Distance in km
+          return parseFloat(distance.toFixed(2));
+        }
+
+        function handleAdminSessionExpiry(status) {
+          if (status === 401 || status === 403) {
+            displayMessage(
+              "Session expired. Redirecting to login...",
+              "warning",
+            );
+            clearAdminSession();
+            setTimeout(() => redirectToLogin("expired"), 1200);
+            return true;
+          }
+
+          return false;
+        }
