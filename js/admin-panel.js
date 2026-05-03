@@ -275,6 +275,10 @@ if (adminToken) {
     "referral-settings": fetchReferralSettings,
     "delivery-fees": fetchDeliveryFeeSettings,
     "carousel-slides": fetchCarouselSlides,
+    "food-readiness-campaigns":
+      typeof fetchFoodReadinessCampaigns === "function"
+        ? fetchFoodReadinessCampaigns
+        : null,
     "pharmacy-chat-prices": fetchPharmacySubscriptionSettings,
     "product-moderation": fetchProductModerationQueue,
     "engagement-analytics":

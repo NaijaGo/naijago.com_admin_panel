@@ -13,7 +13,7 @@
               '<p class="text-center text-light-gray">Loading orders...</p>';
           }
           try {
-            const res = await fetch(`${BASE_URL}/api/orders`, {
+            const res = await fetch(`${BASE_URL}/api/orders/admin`, {
               headers: { Authorization: `Bearer ${adminToken}` },
             });
             const data = await res.json();
