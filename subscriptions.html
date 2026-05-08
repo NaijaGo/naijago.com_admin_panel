@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Subscriptions | NaijaGo Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <link rel="stylesheet" href="css/admin-panel.css" />
+  </head>
+  <body class="p-8" data-page="subscriptions">
+    <div class="container mx-auto">
+      <div class="flex flex-col gap-6 mb-8 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-[0.35em] text-accent-cyan mb-2">
+            Protected Admin Workspace
+          </p>
+          <h1 class="text-5xl font-extrabold text-light-slate shimmer-text">
+            Subscriptions
+          </h1>
+          <p class="text-light-gray mt-3 max-w-2xl">
+            Monitor NaijaGo subscriber plans, delivery usage, wallet revenue,
+            and free-delivery discounts.
+          </p>
+        </div>
+        <button
+          id="logoutAdminBtn"
+          class="btn btn-danger px-6 py-3 rounded-lg text-sm self-start md:self-auto"
+        >
+          Logout
+        </button>
+      </div>
+
+      <nav class="grid gap-3 mb-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <a href="index.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Dashboard</a>
+        <a href="vendor-requests.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Vendor Requests</a>
+        <a href="orders.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Orders</a>
+        <a href="withdrawals.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Withdrawals</a>
+        <a href="delivery-fees.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Delivery Fees</a>
+        <a href="subscriptions.html" class="btn btn-primary px-4 py-3 text-sm text-center">Subscriptions</a>
+      </nav>
+
+      <div id="messageContainer" class="mb-4"></div>
+
+      <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-8" id="subscriptionSummaryCards">
+        <div class="card p-5"><p class="text-light-gray">Loading subscription metrics...</p></div>
+      </section>
+
+      <section class="card p-6 mb-8">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-5">
+          <div>
+            <h2 class="text-2xl font-bold text-accent-cyan">Plan Controls</h2>
+            <p class="text-light-gray text-sm mt-1">
+              Update monthly pricing, delivery limits, minimum order value, and active state.
+            </p>
+          </div>
+          <button id="refreshSubscriptionsBtn" class="btn btn-primary-alt px-4 py-3 text-sm">
+            Refresh
+          </button>
+        </div>
+        <form id="subscriptionPlansForm" class="space-y-4">
+          <div id="subscriptionPlanEditor" class="grid gap-4 lg:grid-cols-3">
+            <p class="text-light-gray">Loading plans...</p>
+          </div>
+          <button class="btn btn-primary px-5 py-3 text-sm" type="submit">
+            Save Plan Settings
+          </button>
+        </form>
+      </section>
+
+      <section class="card p-6 mb-8">
+        <h2 class="text-2xl font-bold text-accent-cyan mb-4">Subscribers</h2>
+        <div id="subscriptionSubscribersList" class="space-y-4">
+          <p class="text-light-gray">Loading subscribers...</p>
+        </div>
+      </section>
+
+      <section class="card p-6">
+        <h2 class="text-2xl font-bold text-accent-cyan mb-4">Free Delivery Usage</h2>
+        <div id="subscriptionDiscountOrdersList" class="space-y-4">
+          <p class="text-light-gray">Loading discounted orders...</p>
+        </div>
+      </section>
+    </div>
+
+    <script src="js/admin/runtime.js"></script>
+    <script src="js/admin/subscriptions.js"></script>
+    <script src="js/admin-panel.js"></script>
+  </body>
+</html>

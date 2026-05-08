@@ -1,3 +1,15 @@
+        let vendorDirectoryContacts = [];
+
+        const vendorSearchInput = document.getElementById("vendorSearchInput");
+        const vendorStatusFilter = document.getElementById("vendorStatusFilter");
+        const vendorDirectoryMeta =
+          document.getElementById("vendorDirectoryMeta");
+        const refreshVendorDirectoryBtn = document.getElementById(
+          "refreshVendorDirectoryBtn",
+        );
+        const exportVendorsCsvBtn =
+          document.getElementById("exportVendorsCsvBtn");
+
         async function fetchPendingVendorRequests() {
           if (!adminToken) {
             if (pendingRequestsList) {
@@ -26,7 +38,11 @@
             }
             if (res.ok) {
               pendingVendorRequests = data || [];
-              renderPendingRequests(data);
+              if (vendorDirectoryMeta) {
+                await fetchVendorDirectory();
+              } else {
+                renderPendingRequests(data);
+              }
               updateAnalyticsView();
             } else {
               displayMessage(
@@ -44,6 +60,43 @@
               pendingRequestsList.innerHTML =
                 '<p class="text-center text-red-500">Connection failed</p>';
             }
+          }
+        }
+
+        async function fetchVendorDirectory() {
+          if (!adminToken || !pendingRequestsList) return;
+
+          pendingRequestsList.innerHTML =
+            '<p class="text-center text-light-gray">Loading vendors...</p>';
+
+          try {
+            const params = new URLSearchParams();
+            const status = vendorStatusFilter?.value || "all";
+            const search = vendorSearchInput?.value?.trim();
+            if (status !== "all") params.set("status", status);
+            if (search) params.set("search", search);
+
+            const res = await fetch(
+              `${BASE_URL}/api/admin/contacts/vendors${params.toString() ? `?${params}` : ""}`,
+              { headers: { Authorization: `Bearer ${adminToken}` } },
+            );
+            const data = await res.json();
+
+            if (handleAdminSessionExpiry(res.status)) return;
+
+            if (!res.ok) {
+              displayMessage(data.message || "Failed to fetch vendors", "error");
+              pendingRequestsList.innerHTML =
+                '<p class="text-center text-red-500">Error loading vendors</p>';
+              return;
+            }
+
+            vendorDirectoryContacts = data.contacts || [];
+            renderVendorDirectory();
+          } catch (err) {
+            displayMessage(`Network error: ${err.message}`, "error");
+            pendingRequestsList.innerHTML =
+              '<p class="text-center text-red-500">Connection failed</p>';
           }
         }
 
@@ -89,6 +142,82 @@
             );
         }
 
+        function renderVendorDirectory() {
+          if (!pendingRequestsList) return;
+
+          if (vendorDirectoryMeta) {
+            vendorDirectoryMeta.textContent = `${vendorDirectoryContacts.length} vendor record${vendorDirectoryContacts.length === 1 ? "" : "s"} loaded. ${pendingVendorRequests.length} still waiting for review.`;
+          }
+
+          if (!vendorDirectoryContacts.length) {
+            pendingRequestsList.innerHTML =
+              '<p class="text-center text-light-gray">No vendors found for this filter.</p>';
+            return;
+          }
+
+          pendingRequestsList.innerHTML = vendorDirectoryContacts
+            .map((vendor) => {
+              const status = vendor.status || "none";
+              return `
+                <article class="card p-6 request-card">
+                  <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <div class="flex flex-wrap items-center gap-3 mb-3">
+                        <h3 class="text-2xl font-bold text-light-slate">${escapeHtml(vendor.name || "Unnamed vendor")}</h3>
+                        <span class="status-badge ${vendorStatusClass(status)}">${formatStatusLabel(status)}</span>
+                      </div>
+                      <p class="text-light-gray text-sm mb-1"><strong>Email:</strong> <span class="text-accent-cyan">${escapeHtml(vendor.email || "No email")}</span></p>
+                      <p class="text-light-gray text-sm mb-1"><strong>Phone:</strong> ${escapeHtml(vendor.phoneNumber || "No phone")}</p>
+                      <p class="text-light-gray text-sm mb-1"><strong>Business:</strong> ${escapeHtml(vendor.businessName || "N/A")}</p>
+                      <p class="text-light-gray text-sm mb-1"><strong>Categories:</strong> ${escapeHtml((vendor.businessCategories || []).join(", ") || "N/A")}</p>
+                      <p class="text-light-gray text-sm mb-1"><strong>WhatsApp:</strong> ${escapeHtml(vendor.businessWhatsAppNumber || "N/A")} | <strong>Support:</strong> ${escapeHtml(vendor.businessSupportPhone || "N/A")}</p>
+                      <p class="text-light-gray text-sm"><strong>Created:</strong> ${formatDateTime(vendor.createdAt)} | <strong>Updated:</strong> ${formatDateTime(vendor.updatedAt)}</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 lg:justify-end">
+                      ${vendorStatusButton(vendor.id, "received", "Mark Received", status)}
+                      ${vendorStatusButton(vendor.id, "reviewing", "Reviewing", status)}
+                      ${vendorStatusButton(vendor.id, "approved", "Approve", status)}
+                      ${vendorStatusButton(vendor.id, "rejected", "Reject", status)}
+                    </div>
+                  </div>
+                </article>
+              `;
+            })
+            .join("");
+
+          pendingRequestsList.querySelectorAll(".vendor-status-btn").forEach(
+            (button) => {
+              button.addEventListener("click", () =>
+                updateVendorStatus(button.dataset.userId, button.dataset.status),
+              );
+            },
+          );
+        }
+
+        function vendorStatusButton(userId, status, label, currentStatus) {
+          const disabled = status === currentStatus ? "btn-disabled" : "";
+          const tone =
+            status === "approved"
+              ? "btn-success"
+              : status === "rejected"
+                ? "btn-danger"
+                : status === "reviewing"
+                  ? "btn-warning"
+                  : "btn-primary-alt";
+
+          return `<button class="btn ${tone} ${disabled} vendor-status-btn px-4 py-2 text-sm" data-user-id="${escapeHtml(userId || "")}" data-status="${status}">${label}</button>`;
+        }
+
+        function vendorStatusClass(status = "") {
+          const normalized = String(status).toLowerCase();
+          if (normalized === "approved") return "status-approved";
+          if (normalized === "rejected") return "status-rejected";
+          if (normalized === "reviewing" || normalized === "received") {
+            return "status-delivered";
+          }
+          return "status-pending";
+        }
+
         async function updateVendorStatus(userId, status) {
           try {
             const res = await fetch(
@@ -116,6 +245,60 @@
             displayMessage(`Error: ${err.message}`, "error");
           }
         }
+
+        function exportVendorDirectoryCsv() {
+          if (!vendorDirectoryContacts.length) {
+            displayMessage("Load vendors before exporting.", "warning");
+            return;
+          }
+
+          const rows = [
+            [
+              "name",
+              "email",
+              "phoneNumber",
+              "status",
+              "businessName",
+              "businessCategories",
+              "businessWhatsAppNumber",
+              "businessSupportPhone",
+              "createdAt",
+            ],
+            ...vendorDirectoryContacts.map((vendor) => [
+              vendor.name || "",
+              vendor.email || "",
+              vendor.phoneNumber || "",
+              vendor.status || "",
+              vendor.businessName || "",
+              (vendor.businessCategories || []).join("; "),
+              vendor.businessWhatsAppNumber || "",
+              vendor.businessSupportPhone || "",
+              vendor.createdAt || "",
+            ]),
+          ];
+
+          const csv = rows.map((row) => row.map(vendorCsvCell).join(",")).join("\n");
+          const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `naijago-vendors-${new Date().toISOString().slice(0, 10)}.csv`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }
+
+        function vendorCsvCell(value) {
+          return `"${String(value ?? "").replace(/"/g, '""')}"`;
+        }
+
+        refreshVendorDirectoryBtn?.addEventListener("click", fetchVendorDirectory);
+        exportVendorsCsvBtn?.addEventListener("click", exportVendorDirectoryCsv);
+        vendorStatusFilter?.addEventListener("change", fetchVendorDirectory);
+        vendorSearchInput?.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") fetchVendorDirectory();
+        });
 
         async function fetchPendingPharmacistRequests() {
           if (!adminToken) {

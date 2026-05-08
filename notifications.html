@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Notifications | NaijaGo Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <link rel="stylesheet" href="css/admin-panel.css" />
+  </head>
+  <body class="p-8" data-page="notifications">
+    <div class="container mx-auto">
+      <div
+        class="flex flex-col gap-6 mb-8 md:flex-row md:items-center md:justify-between"
+      >
+        <div>
+          <p
+            class="text-sm font-semibold uppercase tracking-[0.35em] text-accent-cyan mb-2"
+          >
+            Protected Admin Workspace
+          </p>
+          <h1 class="text-5xl font-extrabold text-light-slate shimmer-text">
+            Notifications
+          </h1>
+          <p class="text-light-gray mt-3 max-w-3xl">
+            Send in-app notifications from the backend to customers, vendors,
+            riders, or everyone.
+          </p>
+        </div>
+        <button
+          id="logoutAdminBtn"
+          class="btn btn-danger px-6 py-3 rounded-lg text-sm self-start md:self-auto"
+        >
+          Logout
+        </button>
+      </div>
+
+      <nav class="grid gap-3 mb-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <a href="index.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Dashboard</a>
+        <a href="notifications.html" class="btn btn-primary px-4 py-3 text-sm text-center">Notifications</a>
+        <a href="marketing-lists.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Marketing Lists</a>
+        <a href="people.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">People Directory</a>
+        <a href="vendors.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Vendor Operations</a>
+        <a href="riders.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Rider Operations</a>
+        <a href="orders.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Orders</a>
+        <a href="withdrawals.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Withdrawals</a>
+        <a href="engagement-analytics.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Engagement Analytics</a>
+      </nav>
+
+      <div id="messageContainer" class="mb-4"></div>
+
+      <section class="card p-6 mb-8">
+        <div class="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 class="text-3xl font-bold text-accent-cyan">
+              Audit Summary
+            </h2>
+            <p id="notificationStatsMeta" class="text-light-gray mt-2">
+              Loading notification delivery and read stats...
+            </p>
+          </div>
+          <button id="refreshNotificationStatsBtn" class="btn btn-primary px-5 py-3">
+            Refresh Stats
+          </button>
+        </div>
+        <div id="notificationStatsCards" class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <p class="text-light-gray">Loading stats...</p>
+        </div>
+      </section>
+
+      <section class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] mb-8">
+        <form id="adminNotificationForm" class="card p-6">
+          <h2 class="text-3xl font-bold text-accent-cyan mb-5">
+            Compose Notification
+          </h2>
+
+          <div class="grid gap-4">
+            <label class="block">
+              <span class="text-sm font-semibold text-light-gray">Segment</span>
+              <select id="notificationSegment" class="input-field w-full mt-2" required>
+                <option value="all_customers">All customers</option>
+                <option value="customers_with_orders">Customers with orders</option>
+                <option value="customers_without_orders">Customers without orders</option>
+                <option value="active_subscribers">Active subscribers</option>
+                <option value="all_vendors">All vendors</option>
+                <option value="approved_vendors">Approved vendors</option>
+                <option value="pending_vendors">Pending vendors</option>
+                <option value="suspended_vendors">Suspended vendors</option>
+                <option value="all_riders">All riders</option>
+                <option value="approved_riders">Approved riders</option>
+                <option value="pending_riders">Pending riders</option>
+                <option value="suspended_riders">Suspended riders</option>
+                <option value="all">Everyone</option>
+              </select>
+            </label>
+
+            <label class="block">
+              <span class="text-sm font-semibold text-light-gray">Title</span>
+              <input
+                id="notificationTitle"
+                class="input-field w-full mt-2"
+                maxlength="80"
+                placeholder="Example: Promo update"
+                required
+              />
+            </label>
+
+            <label class="block">
+              <span class="text-sm font-semibold text-light-gray">Message</span>
+              <textarea
+                id="notificationMessage"
+                class="input-field w-full mt-2 min-h-[150px]"
+                maxlength="500"
+                placeholder="Write the notification body"
+                required
+              ></textarea>
+            </label>
+
+            <label class="block">
+              <span class="text-sm font-semibold text-light-gray">Specific IDs optional</span>
+              <textarea
+                id="notificationRecipientIds"
+                class="input-field w-full mt-2 min-h-[90px]"
+                placeholder="Comma-separated user/vendor/rider IDs. Leave blank for full selected audience."
+              ></textarea>
+            </label>
+
+            <label class="block">
+              <span class="text-sm font-semibold text-light-gray">Schedule optional</span>
+              <input
+                id="notificationScheduledFor"
+                type="datetime-local"
+                class="input-field w-full mt-2"
+              />
+            </label>
+
+            <div id="notificationPreviewBox" class="rounded-lg border border-cyan-300/20 bg-cyan-300/5 p-4">
+              <p class="text-light-gray">
+                Preview the audience before sending.
+              </p>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+              <button id="previewAdminNotificationBtn" class="btn btn-primary-alt px-6 py-3" type="button">
+                Preview Recipients
+              </button>
+              <button id="sendAdminNotificationBtn" class="btn btn-primary px-6 py-3" type="submit">
+                Send Now
+              </button>
+              <button id="scheduleAdminNotificationBtn" class="btn btn-warning px-6 py-3" type="button">
+                Schedule
+              </button>
+              <button id="saveNotificationTemplateBtn" class="btn btn-success px-6 py-3" type="button">
+                Save Template
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <aside class="card p-6">
+          <h2 class="text-3xl font-bold text-accent-cyan mb-5">
+            Delivery Result
+          </h2>
+          <div id="notificationSendResult" class="space-y-4">
+            <p class="text-light-gray">
+              Choose an audience and send. The backend stores the notification
+              in each recipient’s app notification list and emits live socket
+              events where available.
+            </p>
+          </div>
+        </aside>
+      </section>
+
+      <section class="card p-6 mb-8">
+        <div class="flex flex-col gap-4 mb-6 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <h2 class="text-3xl font-bold text-accent-cyan">
+              Notification Templates
+            </h2>
+            <p id="notificationTemplatesMeta" class="text-light-gray mt-2">
+              Loading reusable templates...
+            </p>
+          </div>
+          <div class="grid gap-3 md:grid-cols-[1fr_220px_auto] xl:min-w-[680px]">
+            <input
+              id="notificationTemplateSearch"
+              class="input-field w-full"
+              placeholder="Search templates"
+            />
+            <select id="notificationTemplateCategoryFilter" class="input-field w-full">
+              <option value="all">All categories</option>
+              <option value="promo">Promos</option>
+              <option value="rider_reminder">Rider reminders</option>
+              <option value="vendor_notice">Vendor notices</option>
+              <option value="delivery_alert">Delivery alerts</option>
+              <option value="customer_update">Customer updates</option>
+              <option value="general">General</option>
+            </select>
+            <button id="refreshNotificationTemplatesBtn" class="btn btn-primary px-5 py-3">
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="grid gap-4 mb-6 lg:grid-cols-[1fr_220px]">
+          <input
+            id="notificationTemplateName"
+            class="input-field w-full"
+            placeholder="Template name for saving current compose"
+          />
+          <select id="notificationTemplateCategory" class="input-field w-full">
+            <option value="promo">Promo</option>
+            <option value="rider_reminder">Rider reminder</option>
+            <option value="vendor_notice">Vendor notice</option>
+            <option value="delivery_alert">Delivery alert</option>
+            <option value="customer_update">Customer update</option>
+            <option value="general">General</option>
+          </select>
+        </div>
+
+        <div id="notificationTemplatesList" class="grid gap-4 lg:grid-cols-2">
+          <p class="text-center text-light-gray lg:col-span-2">Restoring admin session...</p>
+        </div>
+      </section>
+
+      <section class="grid gap-8 lg:grid-cols-2 mb-8">
+        <div class="card p-6">
+          <h2 class="text-3xl font-bold text-accent-cyan mb-5">
+            Bulk Export
+          </h2>
+          <p class="text-light-gray mb-4">
+            Export the currently selected segment with email and phone columns for WhatsApp or email campaigns.
+          </p>
+          <button id="exportNotificationSegmentBtn" class="btn btn-success px-5 py-3">
+            Export Selected Segment CSV
+          </button>
+        </div>
+
+        <div class="card p-6">
+          <h2 class="text-3xl font-bold text-accent-cyan mb-5">
+            Bulk Import
+          </h2>
+          <div class="grid gap-4">
+            <input
+              id="marketingListName"
+              class="input-field w-full"
+              placeholder="List name, e.g. Lagos promo leads"
+            />
+            <select id="marketingListAudience" class="input-field w-full">
+              <option value="mixed">Mixed contacts</option>
+              <option value="customers">Customers</option>
+              <option value="vendors">Vendors</option>
+              <option value="riders">Riders</option>
+            </select>
+            <input id="marketingListFile" class="input-field w-full" type="file" accept=".csv,text/csv" />
+            <textarea
+              id="marketingListCsv"
+              class="input-field w-full min-h-[120px]"
+              placeholder="Paste CSV with columns: name,email,phoneNumber,type"
+            ></textarea>
+            <button id="importMarketingListBtn" class="btn btn-primary px-5 py-3">
+              Import Marketing List
+            </button>
+            <div id="marketingListResult" class="text-light-gray"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card p-6 mb-8">
+        <div class="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 class="text-3xl font-bold text-accent-cyan">
+              Email / WhatsApp Campaign
+            </h2>
+            <p class="text-light-gray mt-2">
+              Send the current title and message to an imported marketing list.
+            </p>
+          </div>
+          <button id="refreshMarketingListsBtn" class="btn btn-primary px-5 py-3">
+            Refresh Lists
+          </button>
+        </div>
+
+        <div class="grid gap-4 lg:grid-cols-[1fr_auto_auto]">
+          <select id="campaignMarketingList" class="input-field w-full">
+            <option value="">Load imported marketing lists...</option>
+          </select>
+          <label class="flex items-center gap-2 text-light-gray">
+            <input id="campaignEmailChannel" type="checkbox" checked />
+            Email
+          </label>
+          <label class="flex items-center gap-2 text-light-gray">
+            <input id="campaignWhatsappChannel" type="checkbox" />
+            WhatsApp
+          </label>
+        </div>
+
+        <div class="flex flex-wrap gap-3 mt-5">
+          <button id="sendMarketingCampaignBtn" class="btn btn-success px-5 py-3">
+            Send Campaign
+          </button>
+        </div>
+
+        <div id="marketingCampaignResult" class="mt-5 text-light-gray">
+          Import a list, choose channels, then send a campaign.
+        </div>
+      </section>
+
+      <section class="card p-6 mb-8">
+        <div class="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 class="text-3xl font-bold text-accent-cyan">
+              Scheduled Notifications
+            </h2>
+            <p id="scheduledNotificationsMeta" class="text-light-gray mt-2">
+              Loading scheduled notifications...
+            </p>
+          </div>
+          <button id="refreshScheduledNotificationsBtn" class="btn btn-primary px-5 py-3">
+            Refresh Scheduled
+          </button>
+        </div>
+        <div id="scheduledNotificationsList" class="space-y-4">
+          <p class="text-center text-light-gray">Restoring admin session...</p>
+        </div>
+      </section>
+
+      <section class="card p-6">
+        <div class="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 class="text-3xl font-bold text-accent-cyan">
+              Notification History
+            </h2>
+            <p id="notificationHistoryMeta" class="text-light-gray mt-2">
+              Loading audit history...
+            </p>
+          </div>
+          <button id="refreshNotificationHistoryBtn" class="btn btn-primary px-5 py-3">
+            Refresh History
+          </button>
+        </div>
+        <div id="notificationHistoryList" class="space-y-4">
+          <p class="text-center text-light-gray">Restoring admin session...</p>
+        </div>
+      </section>
+    </div>
+
+    <script src="js/admin/runtime.js"></script>
+    <script src="js/admin/notifications.js"></script>
+    <script src="js/admin-panel.js"></script>
+  </body>
+</html>

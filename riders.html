@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rider Operations | NaijaGo Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <link rel="stylesheet" href="css/admin-panel.css" />
+  </head>
+  <body class="p-8" data-page="riders">
+    <div class="container mx-auto">
+      <div
+        class="flex flex-col gap-6 mb-8 md:flex-row md:items-center md:justify-between"
+      >
+        <div>
+          <p
+            class="text-sm font-semibold uppercase tracking-[0.35em] text-accent-cyan mb-2"
+          >
+            Protected Admin Workspace
+          </p>
+          <h1 class="text-5xl font-extrabold text-light-slate shimmer-text">
+            Rider Operations
+          </h1>
+          <p class="text-light-gray mt-3 max-w-3xl">
+            Manage individual and company riders, availability, delivery stats,
+            wallet totals, and operational status.
+          </p>
+        </div>
+        <button
+          id="logoutAdminBtn"
+          class="btn btn-danger px-6 py-3 rounded-lg text-sm self-start md:self-auto"
+        >
+          Logout
+        </button>
+      </div>
+
+      <nav class="grid gap-3 mb-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <a href="index.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Dashboard</a>
+        <a href="people.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">People Directory</a>
+        <a href="riders.html" class="btn btn-primary px-4 py-3 text-sm text-center">Rider Operations</a>
+        <a href="rider-requests.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Rider Requests</a>
+        <a href="vendor-requests.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Vendor Management</a>
+        <a href="orders.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Orders</a>
+        <a href="withdrawals.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Withdrawals</a>
+        <a href="companies.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Companies</a>
+      </nav>
+
+      <div id="messageContainer" class="mb-4"></div>
+
+      <section class="card p-6 mb-8">
+        <div class="grid gap-4 lg:grid-cols-[1fr_auto_auto_auto_auto] lg:items-end">
+          <label class="block">
+            <span class="text-sm font-semibold text-light-gray">Search</span>
+            <input
+              id="riderSearchInput"
+              class="input-field w-full mt-2"
+              placeholder="Search name, email, phone, or plate"
+              type="search"
+            />
+          </label>
+          <label class="block">
+            <span class="text-sm font-semibold text-light-gray">Status</span>
+            <select id="riderStatusFilter" class="input-field w-full mt-2">
+              <option value="all">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="suspended">Suspended</option>
+              <option value="active">Company active</option>
+              <option value="inactive">Company inactive</option>
+              <option value="pending_verification">Company pending</option>
+            </select>
+          </label>
+          <label class="block">
+            <span class="text-sm font-semibold text-light-gray">Source</span>
+            <select id="riderSourceFilter" class="input-field w-full mt-2">
+              <option value="all">All riders</option>
+              <option value="individual">Individual riders</option>
+              <option value="company">Company riders</option>
+            </select>
+          </label>
+          <button id="refreshRidersBtn" class="btn btn-primary px-5 py-3">
+            Refresh
+          </button>
+          <button id="exportRidersCsvBtn" class="btn btn-success px-5 py-3">
+            Export CSV
+          </button>
+        </div>
+      </section>
+
+      <section class="grid gap-4 mb-8 md:grid-cols-4">
+        <div class="card p-5">
+          <p class="text-sm text-light-gray">Total Riders</p>
+          <p id="riderTotalCount" class="text-3xl font-bold text-accent-cyan">0</p>
+        </div>
+        <div class="card p-5">
+          <p class="text-sm text-light-gray">Approved / Active</p>
+          <p id="riderActiveCount" class="text-3xl font-bold text-green-400">0</p>
+        </div>
+        <div class="card p-5">
+          <p class="text-sm text-light-gray">Deliveries</p>
+          <p id="riderDeliveryCount" class="text-3xl font-bold text-light-slate">0</p>
+        </div>
+        <div class="card p-5">
+          <p class="text-sm text-light-gray">Total Earnings</p>
+          <p id="riderEarningsTotal" class="text-3xl font-bold text-yellow-300">₦0</p>
+        </div>
+      </section>
+
+      <section class="card p-6">
+        <div class="flex flex-col gap-3 mb-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 class="text-3xl font-bold text-accent-cyan">Rider List</h2>
+            <p id="riderDirectoryMeta" class="text-light-gray mt-2">
+              Loading riders...
+            </p>
+          </div>
+          <a href="rider-requests.html" class="btn btn-primary-alt px-5 py-3 text-center">
+            Pending Registration Queue
+          </a>
+        </div>
+        <div id="riderOperationsList" class="space-y-6">
+          <p class="text-center text-light-gray">Restoring admin session...</p>
+        </div>
+      </section>
+    </div>
+
+    <script src="js/admin/runtime.js"></script>
+    <script src="js/admin/riders.js"></script>
+    <script src="js/admin-panel.js"></script>
+  </body>
+</html>

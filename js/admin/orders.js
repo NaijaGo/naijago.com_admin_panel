@@ -105,6 +105,11 @@
                         </p>
                         <p class="text-xs text-yellow-400 mb-2 ml-2">
                             Vendor Payout: ₦${((s.subtotal || 0) - (s.platformFee || 0)).toFixed(2)} | Platform Fee: ₦${(s.platformFee || 0).toFixed(2)}
+                            ${
+                              s.subscriptionFreeDeliveryApplied
+                                ? ` | Subscription Discount: ₦${(s.subscriptionDeliveryDiscount || 0).toFixed(2)}`
+                                : ""
+                            }
                         </p>`;
                 s.items?.forEach((item) => {
                   let sizeDisplay = "";
@@ -224,6 +229,11 @@
                 <p class="text-light-gray mb-1"><strong>Phone:</strong> ${user.phoneNumber || "N/A"}</p>
                 <p class="text-light-gray mb-1"><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}</p>
                 <p class="text-light-gray mb-1"><strong>Paid:</strong> <span class="font-bold ${order.isPaid ? "text-green-400" : "text-red-400"}">${order.isPaid ? "Yes" : "No"}</span></p>
+                ${
+                  order.subscriptionFreeDeliveryApplied
+                    ? `<p class="text-green-300 mb-1"><strong>Subscription:</strong> ${order.subscriptionPlanId || "Plan"} free delivery applied • Saved ₦${(order.subscriptionDeliveryDiscount || 0).toFixed(2)} • Consumed: ${order.subscriptionDeliveryConsumed ? "Yes" : "Pending payment"}</p>`
+                    : ""
+                }
                 ${rider ? `<p class="text-light-gray mb-1"><strong>Rider:</strong> ${rider.fullName || "Assigned"} (${rider.phoneNumber || "No phone"})</p>` : ""}
                 
                 <!-- Payout Information Box -->
