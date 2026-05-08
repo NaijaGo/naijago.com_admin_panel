@@ -1,5 +1,5 @@
-        //const BASE_URL = "https://naijago-backend.onrender.com";
-        const BASE_URL = 'http://localhost:5000';
+        const BASE_URL = "https://naijago-backend.onrender.com";
+        // const BASE_URL = "http://localhost:5000";
 
         let adminToken = "";
         let currentFilter = "all";
@@ -185,8 +185,12 @@
         let socket = null;
         function initializeSocket() {
           if (!adminToken) return;
+          if (typeof window.io !== "function") {
+            console.warn("Socket.io client is not loaded; real-time updates are disabled.");
+            return;
+          }
 
-          socket = io(BASE_URL, {
+          socket = window.io(BASE_URL, {
             auth: { token: adminToken },
             transports: ["websocket", "polling"],
           });

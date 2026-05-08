@@ -52,6 +52,15 @@ const notificationHistoryMeta = document.getElementById(
 const refreshNotificationHistoryBtn = document.getElementById(
   "refreshNotificationHistoryBtn",
 );
+const notificationHistoryChannelFilter = document.getElementById(
+  "notificationHistoryChannelFilter",
+);
+const notificationHistoryStatusFilter = document.getElementById(
+  "notificationHistoryStatusFilter",
+);
+const notificationHistoryEventFilter = document.getElementById(
+  "notificationHistoryEventFilter",
+);
 const notificationStatsMeta = document.getElementById("notificationStatsMeta");
 const notificationStatsCards = document.getElementById("notificationStatsCards");
 const refreshNotificationStatsBtn = document.getElementById(
@@ -315,6 +324,11 @@ notificationTemplateSearch?.addEventListener("keydown", (event) => {
   if (event.key === "Enter") fetchNotificationTemplates();
 });
 refreshNotificationHistoryBtn?.addEventListener("click", fetchNotificationHistory);
+notificationHistoryChannelFilter?.addEventListener("change", fetchNotificationHistory);
+notificationHistoryStatusFilter?.addEventListener("change", fetchNotificationHistory);
+notificationHistoryEventFilter?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") fetchNotificationHistory();
+});
 refreshNotificationStatsBtn?.addEventListener("click", fetchNotificationStats);
 refreshScheduledNotificationsBtn?.addEventListener("click", fetchScheduledNotifications);
 exportNotificationSegmentBtn?.addEventListener("click", exportNotificationSegmentCsv);
@@ -358,6 +372,7 @@ function renderNotificationStats(data) {
   const delivery = data.delivery || {};
   const scheduled = data.scheduled || {};
   const readStats = data.readStats || {};
+  const byChannel = delivery.byChannel || {};
   const opened =
     Number(readStats.customers?.read || 0) +
     Number(readStats.vendors?.read || 0) +
@@ -368,9 +383,11 @@ function renderNotificationStats(data) {
   }
 
   notificationStatsCards.innerHTML = [
-    resultCard("Sent", delivery.sent || 0),
-    resultCard("Opened / Read", opened),
+    resultCard("All Sent", delivery.sent || 0),
+    resultCard("Email Sent", byChannel.email?.sent || 0),
+    resultCard("WhatsApp Sent", byChannel.whatsapp?.sent || 0),
     resultCard("Failed", delivery.failed || 0),
+    resultCard("Opened / Read", opened),
     resultCard("Scheduled", scheduled.scheduled || 0),
     resultCard("Cancelled", scheduled.cancelled || 0),
   ].join("");
@@ -639,8 +656,16 @@ async function fetchNotificationHistory() {
     '<p class="text-center text-light-gray">Loading notification history...</p>';
 
   try {
+    const params = new URLSearchParams({ limit: "200" });
+    const channel = notificationHistoryChannelFilter?.value || "all";
+    const status = notificationHistoryStatusFilter?.value || "all";
+    const eventType = notificationHistoryEventFilter?.value?.trim() || "";
+    if (channel !== "all") params.set("channel", channel);
+    if (status !== "all") params.set("status", status);
+    if (eventType) params.set("eventType", eventType);
+
     const response = await fetch(
-      `${BASE_URL}/api/admin/notification-logs?limit=50`,
+      `${BASE_URL}/api/admin/notification-logs?${params.toString()}`,
       { headers: { Authorization: `Bearer ${adminToken}` } },
     );
     const data = await response.json();
@@ -656,7 +681,9 @@ async function fetchNotificationHistory() {
 
     const logs = data.logs || [];
     if (notificationHistoryMeta) {
-      notificationHistoryMeta.textContent = `${logs.length} sent notification audit record${logs.length === 1 ? "" : "s"}.`;
+      const total = Number(data.count || logs.length);
+      notificationHistoryMeta.textContent =
+        `${logs.length} of ${total} notification audit record${total === 1 ? "" : "s"} shown. Includes in-app, push, email, WhatsApp, sent, skipped, and failed records.`;
     }
     renderNotificationHistory(logs);
   } catch (error) {
@@ -678,28 +705,93 @@ function renderNotificationHistory(logs) {
   notificationHistoryList.innerHTML = logs
     .map((log) => {
       const response = log.providerResponse || {};
+      const status = String(log.status || "sent").toLowerCase();
+      const channel = String(log.channel || "app_socket").toLowerCase();
       return `
         <article class="card p-5">
           <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <div class="flex flex-wrap items-center gap-3 mb-2">
                 <h3 class="text-xl font-bold text-light-slate">${escapeHtml(log.title || "Untitled")}</h3>
-                <span class="status-badge status-approved">${escapeHtml(log.recipient || response.segment || "segment")}</span>
+                <span class="status-badge ${notificationStatusClass(status)}">${escapeHtml(formatStatusLabel(status))}</span>
+                <span class="status-badge ${notificationChannelClass(channel)}">${escapeHtml(notificationChannelLabel(channel))}</span>
+                <span class="status-badge status-pending">${escapeHtml(log.eventType || "notification")}</span>
               </div>
               <p class="text-sm text-light-gray">${escapeHtml(log.message || "")}</p>
-              <p class="text-xs text-light-gray mt-2">${escapeHtml(log.eventType || "notification")} • Sent ${formatDateTime(log.createdAt)}</p>
+              <div class="grid gap-2 mt-3 text-sm md:grid-cols-2">
+                <p class="text-light-gray"><strong>Recipient:</strong> <span class="text-light-slate">${escapeHtml(log.recipient || response.segment || "N/A")}</span></p>
+                <p class="text-light-gray"><strong>Time:</strong> ${formatDateTime(log.createdAt)}</p>
+                ${log.vendor ? `<p class="text-light-gray"><strong>Vendor:</strong> ${escapeHtml(log.vendor.businessName || log.vendor.firstName || "Vendor")}</p>` : ""}
+                ${log.order ? `<p class="text-light-gray"><strong>Order:</strong> ${escapeHtml(log.order)}</p>` : ""}
+                ${log.shipment ? `<p class="text-light-gray"><strong>Shipment:</strong> ${escapeHtml(log.shipment)}</p>` : ""}
+              </div>
+              ${log.errorMessage ? `<p class="text-sm text-red-300 mt-3"><strong>Reason:</strong> ${escapeHtml(log.errorMessage)}</p>` : ""}
+              ${notificationProviderSummary(response)}
             </div>
             <div class="grid grid-cols-2 gap-2 text-sm md:min-w-[320px]">
               ${historyCount("Customers", response.customers || 0)}
               ${historyCount("Vendors", response.vendors || 0)}
               ${historyCount("Riders", response.riders || 0)}
-              ${historyCount("Total", response.total || 0)}
+              ${historyCount("Total", response.total || (response.campaignId ? 1 : 0))}
             </div>
           </div>
         </article>
       `;
     })
     .join("");
+}
+
+function notificationChannelLabel(channel = "") {
+  const labels = {
+    app_socket: "In-app",
+    push: "Push",
+    email: "Email",
+    whatsapp: "WhatsApp",
+  };
+  return labels[channel] || formatStatusLabel(channel || "unknown");
+}
+
+function notificationChannelClass(channel = "") {
+  if (channel === "email") return "status-delivered";
+  if (channel === "whatsapp") return "status-approved";
+  if (channel === "push") return "status-pending";
+  return "status-approved";
+}
+
+function notificationStatusClass(status = "") {
+  if (status === "sent") return "status-approved";
+  if (status === "failed") return "status-rejected";
+  if (status === "skipped") return "status-delivered";
+  return "status-pending";
+}
+
+function notificationProviderSummary(providerResponse = {}) {
+  if (!providerResponse || typeof providerResponse !== "object") return "";
+
+  const provider = providerResponse.providerResponse || providerResponse;
+  const campaignId = providerResponse.campaignId;
+  const listId = providerResponse.listId;
+  const providerId =
+    provider?.id ||
+    provider?.messageId ||
+    provider?.data?.id ||
+    provider?.key?.id ||
+    "";
+
+  const rows = [
+    campaignId ? `Campaign: ${campaignId}` : "",
+    listId ? `List: ${listId}` : "",
+    providerId ? `Provider ID: ${providerId}` : "",
+    providerResponse.reason ? `Provider reason: ${providerResponse.reason}` : "",
+  ].filter(Boolean);
+
+  if (!rows.length) return "";
+
+  return `
+    <div class="mt-3 rounded-lg border border-cyan-300/20 bg-cyan-300/5 p-3">
+      ${rows.map((row) => `<p class="text-xs text-light-gray">${escapeHtml(row)}</p>`).join("")}
+    </div>
+  `;
 }
 
 async function fetchScheduledNotifications() {

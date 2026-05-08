@@ -332,7 +332,7 @@
       </section>
 
       <section class="card p-6">
-        <div class="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
+        <div class="flex flex-col gap-4 mb-6 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <h2 class="text-3xl font-bold text-accent-cyan">
               Notification History
@@ -341,9 +341,29 @@
               Loading audit history...
             </p>
           </div>
-          <button id="refreshNotificationHistoryBtn" class="btn btn-primary px-5 py-3">
-            Refresh History
-          </button>
+          <div class="grid gap-3 md:grid-cols-[180px_180px_1fr_auto] xl:min-w-[760px]">
+            <select id="notificationHistoryChannelFilter" class="input-field w-full">
+              <option value="all">All channels</option>
+              <option value="app_socket">In-app</option>
+              <option value="push">Push</option>
+              <option value="email">Email</option>
+              <option value="whatsapp">WhatsApp</option>
+            </select>
+            <select id="notificationHistoryStatusFilter" class="input-field w-full">
+              <option value="all">All statuses</option>
+              <option value="sent">Sent</option>
+              <option value="skipped">Skipped</option>
+              <option value="failed">Failed</option>
+            </select>
+            <input
+              id="notificationHistoryEventFilter"
+              class="input-field w-full"
+              placeholder="Event type, e.g. admin_marketing_campaign"
+            />
+            <button id="refreshNotificationHistoryBtn" class="btn btn-primary px-5 py-3">
+              Refresh History
+            </button>
+          </div>
         </div>
         <div id="notificationHistoryList" class="space-y-4">
           <p class="text-center text-light-gray">Restoring admin session...</p>

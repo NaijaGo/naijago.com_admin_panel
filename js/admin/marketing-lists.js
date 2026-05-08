@@ -334,5 +334,3 @@ refreshMarketingListsPageBtn?.addEventListener("click", fetchMarketingListsPage)
 exportSelectedMarketingListBtn?.addEventListener("click", exportSelectedMarketingList);
 deleteSelectedMarketingListBtn?.addEventListener("click", deleteSelectedMarketingList);
 sendSelectedMarketingCampaignBtn?.addEventListener("click", sendSelectedMarketingCampaign);
-
-fetchMarketingListsPage();

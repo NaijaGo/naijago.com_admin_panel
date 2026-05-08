@@ -10,10 +10,10 @@ const refreshSubscriptionsBtn = document.getElementById("refreshSubscriptionsBtn
 function renderSubscriptionSummary(summary = {}) {
   if (!subscriptionSummaryCards) return;
   const cards = [
+    ["Total Subscribers", summary.total || 0],
     ["Active Subscribers", summary.active || 0],
     ["Monthly Plan Value", formatCurrency(summary.activeMonthlyValue || 0)],
-    ["Wallet Revenue", formatCurrency(summary.revenue || 0)],
-    ["Delivery Discounts", formatCurrency(summary.deliveryDiscounts || 0)],
+    ["Remaining Deliveries", summary.remainingDeliveries || 0],
   ];
   subscriptionSummaryCards.innerHTML = cards
     .map(
@@ -25,6 +25,64 @@ function renderSubscriptionSummary(summary = {}) {
       `,
     )
     .join("");
+}
+
+function getSubscriptionEndState(subscription = {}) {
+  const status = String(subscription.status || "inactive").toLowerCase();
+  const expiresAt = subscription.expiresAt ? new Date(subscription.expiresAt) : null;
+
+  if (!expiresAt || Number.isNaN(expiresAt.getTime())) {
+    return {
+      label: status,
+      tone: status === "active" ? "medium" : "high",
+      detail: "No end date",
+    };
+  }
+
+  const now = new Date();
+  const msRemaining = expiresAt.getTime() - now.getTime();
+  const daysRemaining = Math.ceil(msRemaining / (24 * 60 * 60 * 1000));
+
+  if (msRemaining <= 0 || status === "expired") {
+    return {
+      label: "expired",
+      tone: "high",
+      detail: `Ended ${formatDateTime(expiresAt)}`,
+    };
+  }
+
+  if (status !== "active") {
+    return {
+      label: status,
+      tone: "medium",
+      detail: `Ends ${formatDateTime(expiresAt)}`,
+    };
+  }
+
+  if (daysRemaining <= 3) {
+    return {
+      label: "ending soon",
+      tone: "medium",
+      detail: `${daysRemaining} day${daysRemaining === 1 ? "" : "s"} left`,
+    };
+  }
+
+  return {
+    label: "active",
+    tone: "good",
+    detail: `${daysRemaining} day${daysRemaining === 1 ? "" : "s"} left`,
+  };
+}
+
+function formatSubscriptionDate(value) {
+  if (!value) return "Not set";
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) return "Not set";
+  return parsedDate.toLocaleDateString("en-NG", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function renderSubscriptionPlans(plans = []) {
@@ -71,6 +129,7 @@ function renderSubscribers(subscribers = []) {
     .map((user) => {
       const sub = user.naijagoSubscription || {};
       const name = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email || "Customer";
+      const endState = getSubscriptionEndState(sub);
       return `
         <div class="rounded-2xl border border-cyan-400 border-opacity-10 bg-[#10203D] p-4">
           <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -78,13 +137,17 @@ function renderSubscribers(subscribers = []) {
               <p class="text-lg font-bold text-light-slate">${escapeHtml(name)}</p>
               <p class="text-sm text-light-gray">${escapeHtml(user.email || "")} • ${escapeHtml(user.phoneNumber || "No phone")}</p>
             </div>
-            <span class="analytics-pill ${sub.status === "active" ? "good" : "medium"}">${escapeHtml(sub.status || "inactive")}</span>
+            <div class="text-left md:text-right">
+              <span class="analytics-pill ${endState.tone}">${escapeHtml(endState.label)}</span>
+              <p class="text-xs text-light-gray mt-2">${escapeHtml(endState.detail)}</p>
+            </div>
           </div>
-          <div class="grid gap-3 mt-4 md:grid-cols-4 text-sm">
+          <div class="grid gap-3 mt-4 md:grid-cols-5 text-sm">
             <p><span class="text-light-gray">Plan:</span> <strong class="text-light-slate">${escapeHtml(sub.planName || sub.planId || "None")}</strong></p>
             <p><span class="text-light-gray">Price:</span> <strong class="text-light-slate">${formatCurrency(sub.price || 0)}</strong></p>
             <p><span class="text-light-gray">Remaining:</span> <strong class="text-light-slate">${Number(sub.deliveriesRemaining || 0)} / ${Number(sub.monthlyDeliveryLimit || 0)}</strong></p>
-            <p><span class="text-light-gray">Expires:</span> <strong class="text-light-slate">${formatDateTime(sub.expiresAt)}</strong></p>
+            <p><span class="text-light-gray">Started:</span> <strong class="text-light-slate">${formatSubscriptionDate(sub.activatedAt)}</strong></p>
+            <p><span class="text-light-gray">Ends:</span> <strong class="text-light-slate">${formatSubscriptionDate(sub.expiresAt)}</strong></p>
           </div>
           <p class="text-xs text-light-gray mt-3">Preferences: ${escapeHtml((sub.preferences || []).join(", ") || "None")}</p>
         </div>

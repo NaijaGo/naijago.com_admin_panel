@@ -12,6 +12,10 @@ const vendorOpsApprovedCount = document.getElementById("vendorOpsApprovedCount")
 const vendorOpsProductsCount = document.getElementById("vendorOpsProductsCount");
 const vendorOpsSalesTotal = document.getElementById("vendorOpsSalesTotal");
 const vendorOpsPayoutDue = document.getElementById("vendorOpsPayoutDue");
+const approvedPharmacistsList = document.getElementById("approvedPharmacistsList");
+const approvedPharmacistsMeta = document.getElementById("approvedPharmacistsMeta");
+const approvedRestaurantsList = document.getElementById("approvedRestaurantsList");
+const approvedRestaurantsMeta = document.getElementById("approvedRestaurantsMeta");
 
 async function fetchVendorOperations() {
   if (!adminToken) {
@@ -52,6 +56,7 @@ async function fetchVendorOperations() {
     vendorOperations = data.vendors || [];
     vendorOperationsTotals = data.totals || {};
     renderVendorOperations();
+    renderApprovedSpecialtyLists();
   } catch (error) {
     displayMessage(`Network error: ${error.message}`, "error");
     if (vendorOperationsList) {
@@ -59,6 +64,90 @@ async function fetchVendorOperations() {
         '<p class="text-center text-red-500">Connection failed.</p>';
     }
   }
+}
+
+function isApprovedPharmacistVendor(vendor) {
+  return (
+    vendor.status === "approved" &&
+    (vendor.pharmacistStatus === "approved" || vendor.role === "pharmacist")
+  );
+}
+
+function isRestaurantVendor(vendor) {
+  if (vendor.status !== "approved") return false;
+  return (vendor.businessCategories || []).some((category) => {
+    const normalized = String(category || "").trim().toLowerCase();
+    if (normalized.includes("restaurant equipment")) return false;
+    return (
+      normalized === "restaurant" ||
+      normalized.startsWith("restaurant >") ||
+      normalized.includes("food") ||
+      normalized.includes("meal") ||
+      normalized.includes("catering")
+    );
+  });
+}
+
+function renderApprovedSpecialtyLists() {
+  const approvedPharmacists = vendorOperations.filter(isApprovedPharmacistVendor);
+  const approvedRestaurants = vendorOperations.filter(isRestaurantVendor);
+
+  renderSpecialtyVendorList({
+    container: approvedPharmacistsList,
+    meta: approvedPharmacistsMeta,
+    vendors: approvedPharmacists,
+    emptyMessage: "No approved pharmacist vendors found.",
+    label: "approved pharmacist vendor",
+  });
+
+  renderSpecialtyVendorList({
+    container: approvedRestaurantsList,
+    meta: approvedRestaurantsMeta,
+    vendors: approvedRestaurants,
+    emptyMessage: "No approved restaurant vendors found.",
+    label: "approved restaurant vendor",
+  });
+}
+
+function renderSpecialtyVendorList({ container, meta, vendors, emptyMessage, label }) {
+  if (!container) return;
+
+  if (meta) {
+    meta.textContent = `${vendors.length} ${label}${vendors.length === 1 ? "" : "s"} loaded.`;
+  }
+
+  if (!vendors.length) {
+    container.innerHTML = `<p class="text-center text-light-gray">${emptyMessage}</p>`;
+    return;
+  }
+
+  container.innerHTML = vendors
+    .map((vendor) => {
+      const contactPhone =
+        vendor.businessSupportPhone ||
+        vendor.businessWhatsAppNumber ||
+        vendor.phoneNumber ||
+        "No phone";
+
+      return `
+        <article class="rounded-xl border border-cyan-400 border-opacity-10 bg-blue-950 bg-opacity-20 p-4">
+          <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h3 class="text-lg font-bold text-light-slate">${escapeHtml(vendor.businessName || vendor.name || "Unnamed vendor")}</h3>
+              <p class="text-sm text-light-gray">Owner: ${escapeHtml(vendor.name || "N/A")}</p>
+              <p class="text-sm text-light-gray">Email: <span class="text-accent-cyan">${escapeHtml(vendor.email || "No email")}</span></p>
+              <p class="text-sm text-light-gray">Phone: ${escapeHtml(contactPhone)}</p>
+              <p class="text-sm text-light-gray">Categories: ${escapeHtml((vendor.businessCategories || []).join(", ") || "N/A")}</p>
+            </div>
+            <div class="grid gap-2 text-sm md:min-w-[150px]">
+              ${vendorMetricBox("Products", `${formatNumber(vendor.activeProducts || 0)} active`)}
+              ${vendorMetricBox("Sales", formatCurrency(vendor.totalSalesAmount || 0))}
+            </div>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
 }
 
 function renderVendorOperations() {

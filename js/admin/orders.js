@@ -38,6 +38,111 @@
           return orders.filter((o) => o.mainOrderStatus === currentFilter);
         }
 
+        function assignedPersonName(person, fallback = "Assigned") {
+          if (!person || typeof person !== "object") return fallback;
+          return (
+            person.fullName ||
+            person.name ||
+            person.businessName ||
+            person.companyName ||
+            [person.firstName, person.lastName].filter(Boolean).join(" ") ||
+            fallback
+          );
+        }
+
+        function assignedPersonPhone(person) {
+          return (
+            person?.phoneNumber ||
+            person?.contactPhone ||
+            person?.businessSupportPhone ||
+            "No phone"
+          );
+        }
+
+        function renderAssignedRiderLine(label, rider, extra = "") {
+          if (!rider) return "";
+          const riderId = rider._id || rider.id || rider.riderId || "";
+          return `
+            <p class="text-sm text-light-gray">
+              <strong>${label}:</strong>
+              <span class="text-light-slate">${escapeHtml(assignedPersonName(rider, "Assigned rider"))}</span>
+              <span class="text-accent-cyan">${escapeHtml(assignedPersonPhone(rider))}</span>
+              ${rider.plateNumber ? ` | Plate: ${escapeHtml(rider.plateNumber)}` : ""}
+              ${riderId ? ` | ID: ${escapeHtml(riderId)}` : ""}
+              ${extra}
+            </p>
+          `;
+        }
+
+        function renderOrderAssignmentPanel(order, mainRider) {
+          const company = order.company || order.assignedToCompany;
+          const companyDeliveries = Array.isArray(order.companyDeliveries)
+            ? order.companyDeliveries
+            : [];
+          const shipmentRiders = (order.shipments || [])
+            .map((shipment, index) => ({ shipment, index }))
+            .filter(({ shipment }) => shipment.rider);
+
+          if (!mainRider && !company && !companyDeliveries.length && !shipmentRiders.length) {
+            return `
+              <div class="rounded-lg border border-yellow-400 border-opacity-30 bg-yellow-900 bg-opacity-20 p-4 my-4">
+                <p class="font-bold text-yellow-300">No rider assigned yet</p>
+                <p class="text-sm text-light-gray mt-1">This order is still waiting for dispatch assignment.</p>
+              </div>
+            `;
+          }
+
+          const companyDeliveryHtml = companyDeliveries
+            .map((delivery) => {
+              const deliveryCompany = delivery.company || company;
+              const deliveryRider = delivery.rider;
+              return `
+                <div class="rounded-lg border border-cyan-300 border-opacity-20 bg-cyan-300 bg-opacity-5 p-3">
+                  <p class="text-sm text-light-gray">
+                    <strong>Company Delivery:</strong>
+                    <span class="text-light-slate">${escapeHtml(delivery.deliveryId || delivery._id || "Delivery")}</span>
+                    | Status: <span class="text-accent-cyan">${escapeHtml(formatStatusLabel(delivery.status || "pending"))}</span>
+                  </p>
+                  ${
+                    deliveryCompany
+                      ? `<p class="text-sm text-light-gray"><strong>Company:</strong> ${escapeHtml(assignedPersonName(deliveryCompany, "Assigned company"))} (${escapeHtml(assignedPersonPhone(deliveryCompany))})</p>`
+                      : ""
+                  }
+                  ${
+                    deliveryRider
+                      ? renderAssignedRiderLine("Company Rider", deliveryRider)
+                      : '<p class="text-sm text-yellow-300"><strong>Company Rider:</strong> Company has not assigned a specific rider yet.</p>'
+                  }
+                </div>
+              `;
+            })
+            .join("");
+
+          const shipmentRiderHtml = shipmentRiders
+            .map(({ shipment, index }) =>
+              renderAssignedRiderLine(
+                `Shipment ${index + 1} Rider`,
+                shipment.rider,
+                ` | Status: ${escapeHtml(formatStatusLabel(shipment.shipmentStatus || "processing"))}`,
+              ),
+            )
+            .join("");
+
+          return `
+            <div class="rounded-lg border border-cyan-400 border-opacity-20 bg-blue-900 bg-opacity-20 p-4 my-4">
+              <h4 class="font-bold text-accent-cyan mb-2">Assigned Rider / Delivery</h4>
+              ${mainRider ? renderAssignedRiderLine("Main Order Rider", mainRider) : ""}
+              ${
+                company && !companyDeliveries.length
+                  ? `<p class="text-sm text-light-gray"><strong>Assigned Company:</strong> ${escapeHtml(assignedPersonName(company, "Assigned company"))} (${escapeHtml(assignedPersonPhone(company))})</p>`
+                  : ""
+              }
+              ${shipmentRiderHtml}
+              ${companyDeliveryHtml}
+            </div>
+          `;
+        }
+
         function renderOrders(orders) {
           if (!ordersList) return;
 
@@ -66,6 +171,12 @@
                 : order.rider
                   ? { _id: order.rider }
                   : null;
+            const hasAssignment =
+              Boolean(rider) ||
+              Boolean(order.company) ||
+              Boolean(order.assignedToCompany) ||
+              Boolean(order.companyDeliveries?.length) ||
+              Boolean(order.shipments?.some((shipment) => shipment.rider));
 
             const statusLower = (
               order.mainOrderStatus || "pending_payment"
@@ -103,6 +214,11 @@
                         <p class="text-xs text-light-gray mb-1 ml-2">
                             Vendor Phone: ${v.phoneNumber || "N/A"} | Location: ${v.businessLocation?.formattedAddress || "N/A"}
                         </p>
+                        ${
+                          s.rider
+                            ? `<p class="text-xs text-green-300 mb-1 ml-2">Assigned Rider: ${escapeHtml(assignedPersonName(s.rider, "Assigned rider"))} | ${escapeHtml(assignedPersonPhone(s.rider))}${s.rider.plateNumber ? ` | Plate: ${escapeHtml(s.rider.plateNumber)}` : ""}</p>`
+                            : ""
+                        }
                         <p class="text-xs text-yellow-400 mb-2 ml-2">
                             Vendor Payout: ₦${((s.subtotal || 0) - (s.platformFee || 0)).toFixed(2)} | Platform Fee: ₦${(s.platformFee || 0).toFixed(2)}
                             ${
@@ -223,7 +339,7 @@
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-3">
                     <h3 class="text-2xl font-semibold text-accent-cyan">Order ID: ${order._id}</h3>
-                    ${order.rider ? `<span class="status-badge status-delivered">Rider Assigned</span>` : ""}
+                    ${hasAssignment ? `<span class="status-badge status-delivered">Rider Assigned</span>` : `<span class="status-badge status-pending">Awaiting Rider</span>`}
                 </div>
                 <p class="text-light-gray mb-1"><strong>User:</strong> ${user.firstName || "N/A"} ${user.lastName || ""} (<span class="text-accent-cyan">${user.email || "N/A"}</span>)</p>
                 <p class="text-light-gray mb-1"><strong>Phone:</strong> ${user.phoneNumber || "N/A"}</p>
@@ -234,7 +350,7 @@
                     ? `<p class="text-green-300 mb-1"><strong>Subscription:</strong> ${order.subscriptionPlanId || "Plan"} free delivery applied • Saved ₦${(order.subscriptionDeliveryDiscount || 0).toFixed(2)} • Consumed: ${order.subscriptionDeliveryConsumed ? "Yes" : "Pending payment"}</p>`
                     : ""
                 }
-                ${rider ? `<p class="text-light-gray mb-1"><strong>Rider:</strong> ${rider.fullName || "Assigned"} (${rider.phoneNumber || "No phone"})</p>` : ""}
+                ${renderOrderAssignmentPanel(order, rider)}
                 
                 <!-- Payout Information Box -->
                 ${

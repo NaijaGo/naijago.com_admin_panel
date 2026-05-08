@@ -266,64 +266,35 @@ if (adminToken) {
   );
 
   const pageLoaders = {
-    "vendor-requests":
-      typeof fetchPendingVendorRequests === "function"
-        ? fetchPendingVendorRequests
-        : null,
-    people: typeof fetchPeopleDirectory === "function" ? fetchPeopleDirectory : null,
-    notifications:
-      typeof fetchNotificationHistory === "function"
-        ? fetchNotificationHistory
-        : null,
-    vendors:
-      typeof fetchVendorOperations === "function"
-        ? fetchVendorOperations
-        : null,
-    "rider-requests":
-      typeof fetchPendingRiderRequests === "function"
-        ? fetchPendingRiderRequests
-        : null,
-    riders: typeof fetchRiderOperations === "function" ? fetchRiderOperations : null,
-    "pharmacist-requests":
-      typeof fetchPendingPharmacistRequests === "function"
-        ? fetchPendingPharmacistRequests
-        : null,
-    companies: typeof fetchCompanies === "function" ? fetchCompanies : null,
-    orders: typeof fetchOrders === "function" ? fetchOrders : null,
-    disputes: typeof fetchDisputes === "function" ? fetchDisputes : null,
-    withdrawals:
-      typeof fetchPendingWithdrawals === "function"
-        ? fetchPendingWithdrawals
-        : null,
-    "referral-settings":
-      typeof fetchReferralSettings === "function" ? fetchReferralSettings : null,
-    "delivery-fees":
-      typeof fetchDeliveryFeeSettings === "function"
-        ? fetchDeliveryFeeSettings
-        : null,
-    "carousel-slides":
-      typeof fetchCarouselSlides === "function" ? fetchCarouselSlides : null,
-    "food-readiness-campaigns":
-      typeof fetchFoodReadinessCampaigns === "function"
-        ? fetchFoodReadinessCampaigns
-        : null,
-    "pharmacy-chat-prices":
-      typeof fetchPharmacySubscriptionSettings === "function"
-        ? fetchPharmacySubscriptionSettings
-        : null,
-    subscriptions:
-      typeof fetchSubscriptions === "function" ? fetchSubscriptions : null,
-    "product-moderation":
-      typeof fetchProductModerationQueue === "function"
-        ? fetchProductModerationQueue
-        : null,
-    "engagement-analytics":
-      typeof fetchEngagementAnalytics === "function"
-        ? fetchEngagementAnalytics
-        : null,
+    "vendor-requests": "fetchPendingVendorRequests",
+    people: "fetchPeopleDirectory",
+    notifications: "fetchNotificationHistory",
+    vendors: "fetchVendorOperations",
+    "marketing-lists": "fetchMarketingListsPage",
+    "rider-requests": "fetchPendingRiderRequests",
+    riders: "fetchRiderOperations",
+    "pharmacist-requests": "fetchPendingPharmacistRequests",
+    companies: "fetchCompanies",
+    orders: "fetchOrders",
+    disputes: "fetchDisputes",
+    withdrawals: "fetchPendingWithdrawals",
+    "referral-settings": "fetchReferralSettings",
+    "delivery-fees": "fetchDeliveryFeeSettings",
+    "carousel-slides": "fetchCarouselSlides",
+    "food-readiness-campaigns": "fetchFoodReadinessCampaigns",
+    "pharmacy-chat-prices": "fetchPharmacySubscriptionSettings",
+    subscriptions: "fetchSubscriptions",
+    "product-moderation": "fetchProductModerationQueue",
+    "engagement-analytics": "fetchEngagementAnalytics",
   };
 
-  pageLoaders[currentPage]?.();
+  const pageLoaderName = pageLoaders[currentPage];
+  const pageLoader =
+    pageLoaderName && typeof window[pageLoaderName] === "function"
+      ? window[pageLoaderName]
+      : null;
+
+  pageLoader?.();
 
   // Filter change
   if (orderFilterDropdown) {
