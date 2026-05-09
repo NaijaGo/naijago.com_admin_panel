@@ -1,5 +1,29 @@
         // Orders Management – Enhanced with payout system
         // ──────────────────────────────────────────────
+        let onlineRidersState = window.latestOnlineRiders || {
+          individualRiders: [],
+          companyRiders: [],
+          total: 0,
+        };
+
+        window.addEventListener("online-riders-updated", (event) => {
+          onlineRidersState = event.detail || {
+            individualRiders: [],
+            companyRiders: [],
+            total: 0,
+          };
+          if (Array.isArray(allOrders) && allOrders.length) {
+            renderOrders(applyFilter(allOrders));
+          }
+        });
+
+        function requestOnlineRiders() {
+          const adminSocket = window.adminSocket;
+          if (adminSocket?.connected) {
+            adminSocket.emit("get_online_riders");
+          }
+        }
+
         async function fetchOrders() {
           if (!adminToken) {
             if (ordersList) {
@@ -20,6 +44,7 @@
             if (res.ok) {
               allOrders = data;
               renderOrders(applyFilter(allOrders));
+              requestOnlineRiders();
               updateAnalyticsView();
             } else {
               if (ordersList) {
@@ -59,6 +84,85 @@
           );
         }
 
+        function getOnlineRiderChoices() {
+          const individualRiders = Array.isArray(onlineRidersState.individualRiders)
+            ? onlineRidersState.individualRiders
+            : [];
+          const companyRiders = Array.isArray(onlineRidersState.companyRiders)
+            ? onlineRidersState.companyRiders
+            : [];
+
+          return [
+            ...individualRiders.map((rider) => ({
+              ...rider,
+              riderType: "individual",
+              labelPrefix: "Individual",
+            })),
+            ...companyRiders.map((rider) => ({
+              ...rider,
+              riderType: "company",
+              labelPrefix: rider.companyName
+                ? `Company: ${rider.companyName}`
+                : "Company Rider",
+            })),
+          ].filter((rider) => rider.riderId || rider._id);
+        }
+
+        function renderRiderAssignControls(order) {
+          const riderChoices = getOnlineRiderChoices();
+          const orderId = order._id || order.id || "";
+          const onlineTotal =
+            typeof onlineRidersState.total === "number"
+              ? onlineRidersState.total
+              : riderChoices.length;
+
+          if (!riderChoices.length) {
+            return `
+              <div class="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <p class="text-sm text-yellow-200">No riders are online right now. Ask a rider to open the rider app and go online, then refresh.</p>
+                <button type="button" class="btn btn-primary-alt refresh-online-riders-btn px-4 py-2 text-sm">Refresh Online Riders</button>
+              </div>
+            `;
+          }
+
+          const options = riderChoices
+            .map((rider) => {
+              const riderId = rider.riderId || rider._id || "";
+              const companyId = rider.companyId || "";
+              const availability = rider.isAvailable ? "Available" : "Online";
+              const plate = rider.plateNumber ? ` | ${rider.plateNumber}` : "";
+              const phone = rider.phoneNumber ? ` | ${rider.phoneNumber}` : "";
+              const label = `${rider.labelPrefix}: ${rider.fullName || "Rider"}${phone}${plate} (${availability})`;
+              const value = `${rider.riderType}|${riderId}|${companyId}`;
+              return `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`;
+            })
+            .join("");
+
+          return `
+            <div class="mt-4 rounded-lg border border-yellow-300 border-opacity-20 bg-black bg-opacity-20 p-3">
+              <div class="mb-2 flex items-center justify-between gap-3">
+                <p class="text-sm font-semibold text-yellow-200">${onlineTotal} rider${onlineTotal === 1 ? "" : "s"} online</p>
+                <button type="button" class="text-xs text-accent-cyan refresh-online-riders-btn">Refresh</button>
+              </div>
+              <div class="flex flex-col gap-3 md:flex-row">
+                <select
+                  class="assign-rider-select flex-1 rounded-lg border border-accent-cyan bg-[#1C2B47] px-3 py-2 text-light-slate"
+                  data-rider-select-for="${escapeHtml(orderId)}"
+                >
+                  ${options}
+                </select>
+                <button
+                  type="button"
+                  class="btn btn-success assign-rider-btn px-5 py-2"
+                  data-order-id="${escapeHtml(orderId)}"
+                >
+                  Assign Rider
+                </button>
+              </div>
+            </div>
+          `;
+        }
+
         function renderAssignedRiderLine(label, rider, extra = "") {
           if (!rider) return "";
           const riderId = rider._id || rider.id || rider.riderId || "";
@@ -88,6 +192,7 @@
               <div class="rounded-lg border border-yellow-400 border-opacity-30 bg-yellow-900 bg-opacity-20 p-4 my-4">
                 <p class="font-bold text-yellow-300">No rider assigned yet</p>
                 <p class="text-sm text-light-gray mt-1">This order is still waiting for dispatch assignment.</p>
+                ${renderRiderAssignControls(order)}
               </div>
             `;
           }
@@ -460,6 +565,56 @@
                 }
               });
             });
+
+          document
+            .querySelectorAll(".refresh-online-riders-btn")
+            .forEach((button) => {
+              button.addEventListener("click", () => {
+                requestOnlineRiders();
+                displayMessage("Refreshing online riders...", "success");
+              });
+            });
+
+          document.querySelectorAll(".assign-rider-btn").forEach((button) => {
+            button.addEventListener("click", () => {
+              const orderId = button.dataset.orderId;
+              const adminSocket = window.adminSocket;
+              const select = button
+                .closest(".order-card")
+                ?.querySelector(".assign-rider-select");
+              const selectedValue = select?.value || "";
+              const [riderType, riderId, companyId] = selectedValue.split("|");
+
+              if (!adminSocket?.connected) {
+                displayMessage(
+                  "Real-time server is not connected yet. Refresh the page and try again.",
+                  "error",
+                );
+                return;
+              }
+
+              if (!orderId || !riderId) {
+                displayMessage("Choose an online rider first.", "error");
+                return;
+              }
+
+              button.disabled = true;
+              button.textContent = "Assigning...";
+              adminSocket.emit("assign_rider_to_order", {
+                orderId,
+                riderId,
+                riderType: riderType || "individual",
+                ...(companyId ? { companyId } : {}),
+              });
+
+              setTimeout(() => {
+                if (button.isConnected) {
+                  button.disabled = false;
+                  button.textContent = "Assign Rider";
+                }
+              }, 8000);
+            });
+          });
         }
 
         // ──────────────────────────────────────────────

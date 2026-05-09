@@ -194,9 +194,13 @@
             auth: { token: adminToken },
             transports: ["websocket", "polling"],
           });
+          window.adminSocket = socket;
 
           socket.on("connect", () => {
             console.log("Connected to real-time server");
+            if (document.body?.dataset?.page === "orders") {
+              socket.emit("get_online_riders");
+            }
           });
 
           socket.on("admin_notification", (data) => {
@@ -205,6 +209,40 @@
 
           socket.on("rider_location_update", (data) => {
             updateRiderLocationOnMap(data);
+          });
+
+          socket.on("online_riders_list", (data) => {
+            window.latestOnlineRiders = data || {
+              individualRiders: [],
+              companyRiders: [],
+              total: 0,
+            };
+            window.dispatchEvent(
+              new CustomEvent("online-riders-updated", {
+                detail: window.latestOnlineRiders,
+              }),
+            );
+          });
+
+          socket.on("rider_status_change", () => {
+            socket.emit("get_online_riders");
+          });
+
+          socket.on("rider_assigned_success", (data) => {
+            displayMessage(
+              data?.message || "Rider assigned successfully.",
+              "success",
+            );
+            if (typeof fetchOrders === "function") {
+              fetchOrders();
+            }
+            socket.emit("get_online_riders");
+          });
+
+          socket.on("error", (data) => {
+            if (data?.message) {
+              displayMessage(data.message, "error");
+            }
           });
 
           socket.on("disconnect", () => {
@@ -285,6 +323,7 @@
           if (socket) {
             socket.disconnect();
             socket = null;
+            window.adminSocket = null;
           }
         }
 
