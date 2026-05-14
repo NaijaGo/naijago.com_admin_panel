@@ -275,6 +275,7 @@ if (adminToken) {
     riders: "fetchRiderOperations",
     "pharmacist-requests": "fetchPendingPharmacistRequests",
     companies: "fetchCompanies",
+    dispatch: "fetchDispatchDashboard",
     orders: "fetchOrders",
     disputes: "fetchDisputes",
     withdrawals: "fetchPendingWithdrawals",

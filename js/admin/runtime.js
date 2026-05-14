@@ -198,7 +198,7 @@
 
           socket.on("connect", () => {
             console.log("Connected to real-time server");
-            if (document.body?.dataset?.page === "orders") {
+            if (["orders", "dispatch"].includes(document.body?.dataset?.page)) {
               socket.emit("get_online_riders");
             }
           });

@@ -17,6 +17,23 @@
           }
         });
 
+        function updateDispatchCountdowns() {
+          document.querySelectorAll(".dispatch-timeout-countdown").forEach((node) => {
+            const assignedAt = Number(node.dataset.assignedAt || 0);
+            const timeoutSeconds = Number(node.dataset.timeoutSeconds || 600);
+            if (!assignedAt) return;
+            const remainingSeconds = Math.max(
+              0,
+              Math.ceil((assignedAt + timeoutSeconds * 1000 - Date.now()) / 1000),
+            );
+            node.textContent = `${remainingSeconds}s left`;
+            node.classList.toggle("text-red-300", remainingSeconds === 0);
+            node.classList.toggle("text-yellow-300", remainingSeconds > 0);
+          });
+        }
+
+        setInterval(updateDispatchCountdowns, 1000);
+
         function requestOnlineRiders() {
           const adminSocket = window.adminSocket;
           if (adminSocket?.connected) {
@@ -178,8 +195,83 @@
           `;
         }
 
+        function assignedAtMs(value) {
+          const parsed = value ? new Date(value).getTime() : NaN;
+          return Number.isFinite(parsed) ? parsed : null;
+        }
+
+        function formatLastSeenFromLocation(location) {
+          const lastUpdated = location?.lastUpdated || location?.timestamp;
+          const parsed = lastUpdated ? new Date(lastUpdated).getTime() : NaN;
+          if (!Number.isFinite(parsed)) return "never";
+          const seconds = Math.max(0, Math.floor((Date.now() - parsed) / 1000));
+          if (seconds < 60) return `${seconds}s ago`;
+          const minutes = Math.floor(seconds / 60);
+          if (minutes < 60) return `${minutes} min ago`;
+          const hours = Math.floor(minutes / 60);
+          if (hours < 24) return `${hours} hr ago`;
+          return `${Math.floor(hours / 24)} day(s) ago`;
+        }
+
+        function isFreshLocation(location) {
+          const lastUpdated = location?.lastUpdated || location?.timestamp;
+          const parsed = lastUpdated ? new Date(lastUpdated).getTime() : NaN;
+          return Number.isFinite(parsed) && Date.now() - parsed <= 10 * 60 * 1000;
+        }
+
+        function firstVendorLocation(order) {
+          const shipment = Array.isArray(order.shipments) ? order.shipments[0] : null;
+          return shipment?.vendorLocation || shipment?.vendor?.businessLocation || null;
+        }
+
+        function distanceToVendor(order, rider) {
+          const location = rider?.currentLocation || rider?.location || {};
+          const vendorLocation = firstVendorLocation(order);
+          const riderLat = location.lat ?? location.latitude;
+          const riderLng = location.lng ?? location.longitude;
+          const vendorLat = vendorLocation?.latitude ?? vendorLocation?.lat;
+          const vendorLng = vendorLocation?.longitude ?? vendorLocation?.lng;
+          if ([riderLat, riderLng, vendorLat, vendorLng].some((value) => value === undefined || value === null || Number.isNaN(Number(value)))) {
+            return null;
+          }
+          return calculateDistance(Number(riderLat), Number(riderLng), Number(vendorLat), Number(vendorLng));
+        }
+
+        function renderDispatchTelemetry(order, rider, statusLabel) {
+          if (!rider) return "";
+          const location = rider.currentLocation || rider.location || {};
+          const fresh = isFreshLocation(location);
+          const distance = distanceToVendor(order, rider);
+          const assignedMs = assignedAtMs(order.assignedAt);
+          const timeoutSeconds = Number(window.RIDER_ASSIGNMENT_TIMEOUT_SECONDS || 600);
+          const remainingSeconds =
+            assignedMs && !order.isClaimed
+              ? Math.max(0, Math.ceil((assignedMs + timeoutSeconds * 1000 - Date.now()) / 1000))
+              : null;
+          const timeoutHtml =
+            remainingSeconds === null
+              ? '<span class="text-green-300">Accepted</span>'
+              : `<span class="dispatch-timeout-countdown ${remainingSeconds === 0 ? "text-red-300" : "text-yellow-300"}" data-assigned-at="${assignedMs}" data-timeout-seconds="${timeoutSeconds}">${remainingSeconds}s left</span>`;
+          const locationText =
+            location.lat != null && location.lng != null
+              ? `${Number(location.lat).toFixed(5)}, ${Number(location.lng).toFixed(5)}`
+              : "No GPS point";
+
+          return `
+            <div class="mt-3 grid gap-2 rounded-lg border border-cyan-300 border-opacity-20 bg-black bg-opacity-20 p-3 text-sm md:grid-cols-2">
+              <p class="text-light-gray"><strong>Status:</strong> <span class="text-light-slate">${escapeHtml(statusLabel)}</span></p>
+              <p class="text-light-gray"><strong>Accept timeout:</strong> ${timeoutHtml}</p>
+              <p class="text-light-gray"><strong>Last seen:</strong> <span class="${fresh ? "text-green-300" : "text-yellow-300"}">${escapeHtml(formatLastSeenFromLocation(location))} • ${fresh ? "GPS fresh" : "GPS stale"}</span></p>
+              <p class="text-light-gray"><strong>Distance to vendor:</strong> <span class="text-accent-cyan">${distance === null ? "Unknown" : `${distance.toFixed(2)} km`}</span></p>
+              <p class="text-light-gray md:col-span-2"><strong>Last location:</strong> <span class="text-light-slate">${escapeHtml(location.address || locationText)}</span></p>
+            </div>
+          `;
+        }
+
         function renderOrderAssignmentPanel(order, mainRider) {
           const company = order.company || order.assignedToCompany;
+          const pendingAssignedRider =
+            order.assignedRider && !order.isClaimed ? order.assignedRider : null;
           const companyDeliveries = Array.isArray(order.companyDeliveries)
             ? order.companyDeliveries
             : [];
@@ -187,7 +279,7 @@
             .map((shipment, index) => ({ shipment, index }))
             .filter(({ shipment }) => shipment.rider);
 
-          if (!mainRider && !company && !companyDeliveries.length && !shipmentRiders.length) {
+          if (!mainRider && !pendingAssignedRider && !company && !companyDeliveries.length && !shipmentRiders.length) {
             return `
               <div class="rounded-lg border border-yellow-400 border-opacity-30 bg-yellow-900 bg-opacity-20 p-4 my-4">
                 <p class="font-bold text-yellow-300">No rider assigned yet</p>
@@ -236,7 +328,10 @@
           return `
             <div class="rounded-lg border border-cyan-400 border-opacity-20 bg-blue-900 bg-opacity-20 p-4 my-4">
               <h4 class="font-bold text-accent-cyan mb-2">Assigned Rider / Delivery</h4>
+              ${pendingAssignedRider ? renderAssignedRiderLine("Offer Sent To", pendingAssignedRider) : ""}
+              ${pendingAssignedRider ? renderDispatchTelemetry(order, pendingAssignedRider, "Waiting for rider accept/reject") : ""}
               ${mainRider ? renderAssignedRiderLine("Main Order Rider", mainRider) : ""}
+              ${mainRider ? renderDispatchTelemetry(order, mainRider, "Accepted active rider") : ""}
               ${
                 company && !companyDeliveries.length
                   ? `<p class="text-sm text-light-gray"><strong>Assigned Company:</strong> ${escapeHtml(assignedPersonName(company, "Assigned company"))} (${escapeHtml(assignedPersonPhone(company))})</p>`
@@ -277,6 +372,7 @@
                   ? { _id: order.rider }
                   : null;
             const hasAssignment =
+              Boolean(order.assignedRider) ||
               Boolean(rider) ||
               Boolean(order.company) ||
               Boolean(order.assignedToCompany) ||
@@ -287,13 +383,20 @@
               order.mainOrderStatus || "pending_payment"
             ).toLowerCase();
 
-            // Calculate potential rider payout (150/km per shipment)
-            let totalRiderPayout = 0;
+            const riderPayoutBreakdown = order.riderPayoutBreakdown || {};
+            const payoutShipmentBreakdowns = Array.isArray(
+              riderPayoutBreakdown.shipments,
+            )
+              ? riderPayoutBreakdown.shipments
+              : [];
+            let totalRiderPayout =
+              Number(order.riderPayoutAmount || riderPayoutBreakdown.amount || 0) ||
+              0;
             let totalVendorPayout = 0;
 
             if (order.shipments?.length) {
               order.shipments.forEach((shipment) => {
-                if (shipment.vendorLocation && order.userLocation) {
+                if (!totalRiderPayout && shipment.vendorLocation && order.userLocation) {
                   const distance = calculateDistance(
                     shipment.vendorLocation.latitude,
                     shipment.vendorLocation.longitude,
@@ -307,6 +410,21 @@
                   (shipment.subtotal || 0) - (shipment.platformFee || 0);
               });
             }
+            const riderDistanceKm = Number(
+              riderPayoutBreakdown.totalDistanceKm ||
+                payoutShipmentBreakdowns.reduce(
+                  (sum, item) => sum + Number(item.distanceKm || 0),
+                  0,
+                ) ||
+                0,
+            );
+            const riderRatePerKm = Number(riderPayoutBreakdown.ratePerKm || 150);
+            const riderPayoutMethod =
+              riderPayoutBreakdown.method === "shipping_share"
+                ? "shipping share fallback"
+                : riderPayoutBreakdown.method === "mixed"
+                  ? "mixed distance/fallback"
+                  : "distance rate";
 
             let itemsHtml = "";
             if (order.shipments?.length) {
@@ -474,6 +592,7 @@
                         <div>
                             <p class="text-sm text-gray-300">Total Rider Payout:</p>
                             <p class="text-xl font-bold ${order.mainOrderStatus === "delivered" ? "text-yellow-300" : "text-green-300"}">₦${totalRiderPayout.toFixed(2)}</p>
+                            <p class="text-xs text-gray-300">${riderDistanceKm.toFixed(2)} km × ₦${riderRatePerKm.toFixed(2)}/km • ${riderPayoutMethod}</p>
                         </div>
                     </div>
                     ${
