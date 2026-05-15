@@ -13,36 +13,23 @@
               '<p class="text-center text-light-gray">Loading withdrawal requests...</p>';
           }
           try {
-            // Fetch vendor withdrawals
-            const vendorRes = await fetch(
-              `${BASE_URL}/api/admin/vendors/withdrawals`,
+            const res = await fetch(
+              `${BASE_URL}/api/wallet/admin/pending-withdrawals?status=all&limit=300`,
               {
                 headers: { Authorization: `Bearer ${adminToken}` },
               },
             );
-
-            // Fetch rider withdrawals
-            const riderRes = await fetch(
-              `${BASE_URL}/api/admin/riders/withdrawals`,
-              {
-                headers: { Authorization: `Bearer ${adminToken}` },
-              },
-            );
-
-            let vendorWithdrawals = [];
-            let riderWithdrawals = [];
-
-            if (vendorRes.ok) {
-              const data = await vendorRes.json();
-              vendorWithdrawals = data.map((w) => ({ ...w, type: "vendor" }));
+            const data = await res.json();
+            if (!res.ok) {
+              throw new Error(data.message || "Failed to load withdrawals");
             }
 
-            if (riderRes.ok) {
-              const data = await riderRes.json();
-              riderWithdrawals = data.map((w) => ({ ...w, type: "rider" }));
-            }
-
-            allWithdrawals = [...vendorWithdrawals, ...riderWithdrawals];
+            allWithdrawals = (data.withdrawals || []).map((w) => ({
+              ...w,
+              type: w.userType || w.type || "user",
+              email: w.userEmail || w.email,
+              fullName: w.userName || w.fullName || w.businessName,
+            }));
 
             // Calculate totals
             const pendingWithdrawals = allWithdrawals.filter(
@@ -103,8 +90,10 @@
             const card = document.createElement("div");
             card.className = `card p-5 ${w.status === "pending" ? "pending-payout-card" : "payout-card"}`;
 
-            const userType = w.type === "vendor" ? "Vendor" : "Rider";
-            const userIcon = w.type === "vendor" ? "🏪" : "🏍️";
+            const userType =
+              w.type === "vendor" ? "Vendor" : w.type === "rider" ? "Rider" : "User";
+            const userIcon =
+              w.type === "vendor" ? "🏪" : w.type === "rider" ? "🏍️" : "👤";
 
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-4">
@@ -161,13 +150,13 @@
                           w.status === "pending"
                             ? `
                             <button class="btn btn-success px-4 py-2 text-sm process-withdrawal-btn" 
-                                data-id="${w._id || w.reference}" 
+                                data-id="${w.reference || w._id}" 
                                 data-type="${w.type}"
                                 data-amount="${w.amount}">
                                 Process
                             </button>
                             <button class="btn btn-danger px-4 py-2 text-sm reject-withdrawal-btn" 
-                                data-id="${w._id || w.reference}"
+                                data-id="${w.reference || w._id}"
                                 data-type="${w.type}">
                                 Reject
                             </button>
@@ -235,12 +224,7 @@
             return;
 
           try {
-            const endpoint =
-              userType === "vendor"
-                ? `${BASE_URL}/api/admin/vendors/withdrawals/${withdrawalId}/process`
-                : `${BASE_URL}/api/admin/riders/withdrawals/${withdrawalId}/process`;
-
-            const res = await fetch(endpoint, {
+            const res = await fetch(`${BASE_URL}/api/wallet/admin/process-withdrawal/${withdrawalId}`, {
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",
@@ -272,18 +256,13 @@
           if (!reason) return;
 
           try {
-            const endpoint =
-              userType === "vendor"
-                ? `${BASE_URL}/api/admin/vendors/withdrawals/${withdrawalId}/reject`
-                : `${BASE_URL}/api/admin/riders/withdrawals/${withdrawalId}/reject`;
-
-            const res = await fetch(endpoint, {
+            const res = await fetch(`${BASE_URL}/api/wallet/admin/process-withdrawal/${withdrawalId}`, {
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${adminToken}`,
               },
-              body: JSON.stringify({ status: "failed", reason }),
+              body: JSON.stringify({ status: "failed", failureReason: reason }),
             });
 
             const data = await res.json();
