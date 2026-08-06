@@ -10,6 +10,7 @@ if (adminToken) {
 
   displayMessage("Session restored", "success");
   initializeSocket();
+  initializeAdminActivityCenter();
 
   if (currentPage === "dashboard") {
     updateAnalyticsView();

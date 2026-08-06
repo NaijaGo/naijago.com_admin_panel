@@ -205,6 +205,7 @@
 
           socket.on("admin_notification", (data) => {
             showRealTimeNotification(data);
+            window.dispatchEvent(new CustomEvent("admin-activity-received", { detail: data }));
           });
 
           socket.on("rider_location_update", (data) => {
@@ -248,6 +249,131 @@
           socket.on("disconnect", () => {
             console.log("Disconnected from real-time server");
           });
+        }
+
+        async function initializeAdminActivityCenter() {
+          if (!adminToken || document.getElementById("adminActivityButton")) return;
+          const shell = document.createElement("div");
+          shell.id = "adminActivityCenter";
+          shell.style.cssText = "position:fixed;right:18px;bottom:18px;z-index:60;font-family:Inter,sans-serif";
+          shell.innerHTML = `
+            <button id="adminActivityButton" type="button" aria-label="Open admin activity"
+              style="width:54px;height:54px;border-radius:50%;border:1px solid rgba(100,255,218,.35);background:#10233f;color:#64ffda;box-shadow:0 12px 35px rgba(0,0,0,.35);font-size:22px;cursor:pointer;position:relative">
+              &#128276;<span id="adminActivityUnread" style="display:none;position:absolute;right:-3px;top:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:#ef4444;color:white;font:700 11px/20px Inter,sans-serif"></span>
+            </button>
+            <section id="adminActivityPanel" hidden style="position:absolute;right:0;bottom:64px;width:min(390px,calc(100vw - 28px));max-height:520px;overflow:hidden;border:1px solid rgba(100,255,218,.25);border-radius:20px;background:#0a192f;color:#ccd6f6;box-shadow:0 22px 60px rgba(0,0,0,.5)">
+              <header style="padding:16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(100,255,218,.14)">
+                <div><strong style="display:block;color:#fff">Platform activity</strong><small style="color:#a8b2d1">Live business events</small></div>
+                <button id="adminActivityReadAll" type="button" style="border:0;background:transparent;color:#64ffda;cursor:pointer;font-weight:700">Mark all read</button>
+              </header>
+              <div id="adminActivityItems" style="max-height:390px;overflow:auto;padding:10px"><p style="padding:18px;color:#a8b2d1">Loading activity...</p></div>
+              <footer style="padding:12px 16px;border-top:1px solid rgba(100,255,218,.14);display:flex;justify-content:space-between;align-items:center">
+                <span id="adminPushState" style="font-size:12px;color:#a8b2d1">Push not checked</span>
+                <button id="enableAdminPush" type="button" style="border:0;border-radius:9px;background:#64ffda;color:#0a192f;padding:8px 10px;font-weight:800;cursor:pointer">Enable push</button>
+              </footer>
+            </section>`;
+          document.body.appendChild(shell);
+
+          const panel = document.getElementById("adminActivityPanel");
+          document.getElementById("adminActivityButton")?.addEventListener("click", async () => {
+            panel.hidden = !panel.hidden;
+            if (!panel.hidden) await fetchAdminActivity();
+          });
+          document.getElementById("adminActivityReadAll")?.addEventListener("click", markAllAdminActivityRead);
+          document.getElementById("enableAdminPush")?.addEventListener("click", () => initializeAdminWebPush(true));
+          window.addEventListener("admin-activity-received", fetchAdminActivity);
+          await Promise.allSettled([fetchAdminActivity(), initializeAdminWebPush(false)]);
+        }
+
+        async function fetchAdminActivity() {
+          if (!adminToken) return;
+          try {
+            const response = await fetch(`${BASE_URL}/api/admin/activity?limit=30`, {
+              headers: { Authorization: `Bearer ${adminToken}` },
+            });
+            if (!response.ok) return;
+            const data = await response.json();
+            renderAdminActivity(data.events || [], Number(data.unread || 0));
+          } catch (error) {
+            console.warn("Admin activity fetch failed", error);
+          }
+        }
+
+        function renderAdminActivity(events, unread) {
+          const badge = document.getElementById("adminActivityUnread");
+          if (badge) {
+            badge.style.display = unread > 0 ? "block" : "none";
+            badge.textContent = unread > 99 ? "99+" : String(unread);
+          }
+          const container = document.getElementById("adminActivityItems");
+          if (!container) return;
+          if (!events.length) {
+            container.innerHTML = '<p style="padding:22px;text-align:center;color:#a8b2d1">No activity recorded yet.</p>';
+            return;
+          }
+          container.innerHTML = events.map((event) => {
+            const destination = event.destination?.page || "";
+            const color = event.severity === "critical" ? "#f87171" : event.severity === "warning" ? "#fbbf24" : "#64ffda";
+            return `<button type="button" data-event-id="${escapeHtml(event._id || "")}" data-destination="${escapeHtml(destination)}" style="display:block;width:100%;text-align:left;border:0;border-bottom:1px solid rgba(168,178,209,.12);background:transparent;color:#ccd6f6;padding:13px;cursor:pointer">
+              <span style="display:block;color:${color};font-size:11px;font-weight:800;text-transform:uppercase">${escapeHtml(event.category || "system")} · ${escapeHtml(event.severity || "info")}</span>
+              <strong style="display:block;color:#fff;margin-top:5px">${escapeHtml(event.title || "Activity")}</strong>
+              <span style="display:block;font-size:13px;line-height:1.45;margin-top:4px;color:#a8b2d1">${escapeHtml(event.message || "")}</span>
+              <small style="display:block;margin-top:6px;color:#718096">${formatDate(event.createdAt)}</small>
+            </button>`;
+          }).join("");
+          container.querySelectorAll("[data-event-id]").forEach((button) => {
+            button.addEventListener("click", async () => {
+              await markAdminActivityRead(button.dataset.eventId);
+              if (button.dataset.destination) window.location.href = `./${button.dataset.destination}`;
+            });
+          });
+        }
+
+        async function markAdminActivityRead(eventId) {
+          if (!eventId) return;
+          await fetch(`${BASE_URL}/api/admin/activity/${eventId}/read`, {
+            method: "PUT",
+            headers: { Authorization: `Bearer ${adminToken}` },
+          }).catch(() => {});
+          await fetchAdminActivity();
+        }
+
+        async function markAllAdminActivityRead() {
+          await fetch(`${BASE_URL}/api/admin/activity/read-all`, {
+            method: "PUT",
+            headers: { Authorization: `Bearer ${adminToken}` },
+          }).catch(() => {});
+          await fetchAdminActivity();
+        }
+
+        async function initializeAdminWebPush(requestPermission) {
+          const state = document.getElementById("adminPushState");
+          try {
+            const response = await fetch(`${BASE_URL}/api/admin/push-config`, {
+              headers: { Authorization: `Bearer ${adminToken}` },
+            });
+            const config = await response.json();
+            if (!config.enabled) {
+              if (state) state.textContent = "Admin push needs server configuration";
+              return;
+            }
+            if (!document.querySelector('script[data-onesignal-admin]')) {
+              const script = document.createElement("script");
+              script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+              script.defer = true;
+              script.dataset.onesignalAdmin = "true";
+              document.head.appendChild(script);
+            }
+            window.OneSignalDeferred = window.OneSignalDeferred || [];
+            window.OneSignalDeferred.push(async (OneSignal) => {
+              await OneSignal.init({ appId: config.appId, serviceWorkerPath: "OneSignalSDKWorker.js" });
+              await OneSignal.login(config.externalId);
+              if (requestPermission) await OneSignal.Notifications.requestPermission();
+              if (state) state.textContent = OneSignal.Notifications.permission ? "Admin push enabled" : "Push permission required";
+            });
+          } catch (error) {
+            if (state) state.textContent = "Push setup unavailable";
+          }
         }
 
         function showRealTimeNotification(data) {
