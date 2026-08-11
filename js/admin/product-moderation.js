@@ -21,6 +21,37 @@ const productSellerName = (product) =>
   product.sellerName ||
   (product.sellerType === "naijago" ? "NaijaGo" : product.vendor?.businessName || "Vendor unavailable");
 
+function populateCategorySelect(selectId) {
+  const select = catalogField(selectId);
+  if (!select) return;
+  select.innerHTML = '<option value="">Select category</option>' + Object.keys(NAIJAGO_CATALOG_TAXONOMY)
+    .map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
+    .join("");
+}
+
+function populateSubcategorySelect(categoryId, subcategoryId, selected = "") {
+  const category = catalogField(categoryId)?.value || "";
+  const select = catalogField(subcategoryId);
+  if (!select) return;
+  const options = NAIJAGO_CATALOG_TAXONOMY[category] || [];
+  select.innerHTML = '<option value="">Select subcategory</option>' + options
+    .map((subcategory) => `<option value="${escapeHtml(subcategory)}">${escapeHtml(subcategory)}</option>`)
+    .join("");
+  select.value = options.includes(selected) ? selected : "";
+}
+
+function taxonomyCategory(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return Object.keys(NAIJAGO_CATALOG_TAXONOMY)
+    .find((category) => category.toLowerCase() === normalized) || "";
+}
+
+function taxonomySubcategory(category, value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return (NAIJAGO_CATALOG_TAXONOMY[category] || [])
+    .find((subcategory) => subcategory.toLowerCase() === normalized) || "";
+}
+
 function toggleVendorField() {
   const vendorSelected = catalogSellerType?.value === "vendor";
   catalogVendorField?.classList.toggle("hidden", !vendorSelected);
@@ -68,8 +99,10 @@ function editCatalogProduct(productId) {
   catalogField("catalogName").value = product.name || "";
   catalogField("catalogBrand").value = product.brand || "";
   catalogField("catalogSku").value = product.sku || "";
-  catalogField("catalogCategory").value = product.category || "";
-  catalogField("catalogSubcategory").value = product.subcategory || "";
+  const categoryParts = String(product.category || "").split(">").map((part) => part.trim()).filter(Boolean);
+  const productCategory = taxonomyCategory(categoryParts[0]) || categoryParts[0] || "";
+  catalogField("catalogCategory").value = productCategory;
+  populateSubcategorySelect("catalogCategory", "catalogSubcategory", product.subcategory || categoryParts.slice(1).join(" > "));
   catalogField("catalogTags").value = (product.searchTags || []).join(", ");
   catalogField("catalogPrice").value = product.price ?? "";
   catalogField("catalogDiscountPrice").value = product.discountPrice ?? "";
@@ -328,8 +361,13 @@ function useAiCatalogDraft(index) {
   resetCatalogForm();
   catalogField("catalogName").value = draft.name || "";
   catalogField("catalogBrand").value = draft.brand || "";
-  catalogField("catalogCategory").value = draft.category || "";
-  catalogField("catalogSubcategory").value = draft.subcategory || "";
+  const draftCategory = taxonomyCategory(draft.category);
+  catalogField("catalogCategory").value = draftCategory;
+  populateSubcategorySelect(
+    "catalogCategory",
+    "catalogSubcategory",
+    taxonomySubcategory(draftCategory, draft.subcategory),
+  );
   catalogField("catalogTags").value = (draft.searchTags || []).join(", ");
   catalogField("catalogDescription").value = draft.description || "";
   catalogField("catalogSourceUrl").value = (draft.sourceUrls || [])[0] || "";
@@ -426,6 +464,8 @@ async function generateAiCatalogDrafts() {
 }
 
 catalogSellerType?.addEventListener("change", toggleVendorField);
+catalogField("catalogCategory")?.addEventListener("change", () => populateSubcategorySelect("catalogCategory", "catalogSubcategory"));
+catalogField("aiCatalogCategory")?.addEventListener("change", () => populateSubcategorySelect("aiCatalogCategory", "aiCatalogSubcategory"));
 catalogProductForm?.addEventListener("submit", saveCatalogProduct);
 cancelProductEditBtn?.addEventListener("click", resetCatalogForm);
 catalogField("refreshCatalogBtn")?.addEventListener("click", fetchCatalogProducts);
@@ -434,6 +474,10 @@ refreshProductModerationBtn?.addEventListener("click", fetchProductModerationQue
 catalogField("generateCatalogDraftsBtn")?.addEventListener("click", generateAiCatalogDrafts);
 
 if (currentPage === "product-moderation") {
+  populateCategorySelect("catalogCategory");
+  populateCategorySelect("aiCatalogCategory");
+  populateSubcategorySelect("catalogCategory", "catalogSubcategory");
+  populateSubcategorySelect("aiCatalogCategory", "aiCatalogSubcategory");
   toggleVendorField();
   Promise.all([loadApprovedVendors(), fetchCatalogProducts(), fetchProductModerationQueue(), fetchCatalogAiConfig()]);
 }

@@ -52,8 +52,8 @@
           <span id="catalogAiConfig" class="text-sm text-light-gray">Checking Gemini configuration...</span>
         </div>
         <div class="grid gap-3 mt-5 md:grid-cols-4">
-          <input id="aiCatalogCategory" class="input-field" placeholder="Category *" />
-          <input id="aiCatalogSubcategory" class="input-field" placeholder="Subcategory" />
+          <select id="aiCatalogCategory" class="input-field"><option value="">Select category</option></select>
+          <select id="aiCatalogSubcategory" class="input-field"><option value="">Select subcategory</option></select>
           <input id="aiCatalogCount" type="number" min="1" max="20" value="5" class="input-field" />
           <button id="generateCatalogDraftsBtn" class="btn btn-primary px-5 py-3 text-sm">Research drafts</button>
         </div>
@@ -78,8 +78,8 @@
           <label class="block"><span class="text-sm text-light-gray">Product name *</span><input id="catalogName" class="input-field mt-2 w-full" required /></label>
           <label class="block"><span class="text-sm text-light-gray">Brand</span><input id="catalogBrand" class="input-field mt-2 w-full" /></label>
           <label class="block"><span class="text-sm text-light-gray">SKU</span><input id="catalogSku" class="input-field mt-2 w-full" /></label>
-          <label class="block"><span class="text-sm text-light-gray">Category *</span><input id="catalogCategory" class="input-field mt-2 w-full" required placeholder="Fashion" /></label>
-          <label class="block"><span class="text-sm text-light-gray">Subcategory</span><input id="catalogSubcategory" class="input-field mt-2 w-full" placeholder="Men's Shoes" /></label>
+          <label class="block"><span class="text-sm text-light-gray">Category *</span><select id="catalogCategory" class="input-field mt-2 w-full" required><option value="">Select category</option></select></label>
+          <label class="block"><span class="text-sm text-light-gray">Subcategory</span><select id="catalogSubcategory" class="input-field mt-2 w-full"><option value="">Select subcategory</option></select></label>
           <label class="block"><span class="text-sm text-light-gray">Search tags</span><input id="catalogTags" class="input-field mt-2 w-full" placeholder="sneakers, men, casual" /></label>
           <label class="block"><span class="text-sm text-light-gray">Price (₦) *</span><input id="catalogPrice" type="number" min="0" step="0.01" class="input-field mt-2 w-full" required /></label>
           <label class="block"><span class="text-sm text-light-gray">Discount price (₦)</span><input id="catalogDiscountPrice" type="number" min="0" step="0.01" class="input-field mt-2 w-full" /></label>
@@ -130,6 +130,7 @@
     </div>
 
     <script src="js/admin/runtime.js"></script>
+    <script src="js/admin/catalog-taxonomy.js"></script>
     <script src="js/admin/product-moderation.js"></script>
     <script src="js/admin-panel.js"></script>
   </body>
