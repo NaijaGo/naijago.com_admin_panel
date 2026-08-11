@@ -10,6 +10,7 @@ const cancelProductEditBtn = document.getElementById("cancelProductEditBtn");
 const catalogFormStatus = document.getElementById("catalogFormStatus");
 
 let catalogProducts = [];
+let aiCatalogDrafts = [];
 
 const catalogField = (id) => document.getElementById(id);
 const productImage = (product) =>
@@ -47,6 +48,10 @@ async function loadApprovedVendors() {
 function resetCatalogForm() {
   catalogProductForm?.reset();
   catalogField("catalogProductId").value = "";
+  catalogField("catalogGeneratedImageUrl").value = "";
+  catalogField("catalogSource").value = "admin";
+  catalogField("catalogAiMetadata").value = "";
+  catalogField("catalogProvenance").value = "";
   catalogField("catalogFormTitle").textContent = "Add a real product";
   catalogField("saveCatalogProductBtn").textContent = "Create product";
   catalogField("mainImageRequiredLabel").textContent = "*";
@@ -71,9 +76,16 @@ function editCatalogProduct(productId) {
   catalogField("catalogStock").value = product.stockQuantity ?? 0;
   catalogField("catalogStatus").value = product.productStatus || (product.isActive ? "active" : "disabled");
   catalogField("catalogDescription").value = product.description || "";
+  catalogField("catalogSource").value = product.source || "admin";
+  catalogField("catalogAiMetadata").value = JSON.stringify(product.aiMetadata || {});
+  catalogField("catalogProvenance").value = JSON.stringify(product.provenance || {});
   catalogField("catalogLocationAddress").value = product.productLocation?.formattedAddress || "";
   catalogField("catalogLatitude").value = product.productLocation?.latitude ?? "";
   catalogField("catalogLongitude").value = product.productLocation?.longitude ?? "";
+  catalogField("catalogSupplierReference").value = product.provenance?.supplierReference || "";
+  catalogField("catalogSourceUrl").value = product.provenance?.sourceUrl || "";
+  catalogField("catalogVerified").checked = Boolean(product.provenance?.verifiedAt);
+  catalogField("catalogImageRights").checked = product.provenance?.imageRightsConfirmed === true;
   catalogSellerType.value = product.sellerType || (product.vendor ? "vendor" : "naijago");
   toggleVendorField();
   catalogSellerId.value = product.sellerId?._id || product.sellerId || product.vendor?._id || "";
@@ -86,6 +98,16 @@ function editCatalogProduct(productId) {
 
 function buildProductFormData() {
   const data = new FormData();
+  let savedProvenance = {};
+  try { savedProvenance = JSON.parse(catalogField("catalogProvenance").value || "{}"); } catch (_) {}
+  const verified = catalogField("catalogVerified").checked;
+  const provenance = {
+    ...savedProvenance,
+    sourceUrl: catalogField("catalogSourceUrl").value.trim(),
+    supplierReference: catalogField("catalogSupplierReference").value.trim(),
+    imageRightsConfirmed: catalogField("catalogImageRights").checked,
+    verifiedAt: verified ? new Date().toISOString() : null,
+  };
   const values = {
     name: catalogField("catalogName").value.trim(),
     brand: catalogField("catalogBrand").value.trim(),
@@ -103,6 +125,10 @@ function buildProductFormData() {
     productLocationAddress: catalogField("catalogLocationAddress").value.trim(),
     productLatitude: catalogField("catalogLatitude").value,
     productLongitude: catalogField("catalogLongitude").value,
+    generatedImageUrl: catalogField("catalogGeneratedImageUrl").value,
+    source: catalogField("catalogSource").value,
+    aiMetadata: catalogField("catalogAiMetadata").value,
+    provenance: JSON.stringify(provenance),
   };
   Object.entries(values).forEach(([key, value]) => data.append(key, value));
   const mainImage = catalogField("catalogMainImage").files[0];
@@ -115,7 +141,7 @@ function buildProductFormData() {
 async function saveCatalogProduct(event) {
   event.preventDefault();
   const productId = catalogField("catalogProductId").value;
-  if (!productId && !catalogField("catalogMainImage").files[0]) {
+  if (!productId && !catalogField("catalogMainImage").files[0] && !catalogField("catalogGeneratedImageUrl").value) {
     displayMessage("A main product image is required.", "error");
     return;
   }
@@ -278,14 +304,136 @@ async function updateProductModeration(productId, status) {
   } catch (error) { displayMessage(error.message, "error"); }
 }
 
+async function fetchCatalogAiConfig() {
+  const target = catalogField("catalogAiConfig");
+  if (!target) return;
+  try {
+    const response = await fetch(`${BASE_URL}/api/admin/catalog-ai/config`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Configuration unavailable.");
+    target.textContent = data.enabled
+      ? `Ready • ${data.catalogModel} + ${data.imageModel}`
+      : "GEMINI_API_KEY is not configured";
+    catalogField("generateCatalogDraftsBtn").disabled = !data.enabled;
+  } catch (error) {
+    target.textContent = error.message;
+  }
+}
+
+function useAiCatalogDraft(index) {
+  const draft = aiCatalogDrafts[index];
+  if (!draft) return;
+  resetCatalogForm();
+  catalogField("catalogName").value = draft.name || "";
+  catalogField("catalogBrand").value = draft.brand || "";
+  catalogField("catalogCategory").value = draft.category || "";
+  catalogField("catalogSubcategory").value = draft.subcategory || "";
+  catalogField("catalogTags").value = (draft.searchTags || []).join(", ");
+  catalogField("catalogDescription").value = draft.description || "";
+  catalogField("catalogSourceUrl").value = (draft.sourceUrls || [])[0] || "";
+  catalogField("catalogVerified").checked = false;
+  catalogField("catalogImageRights").checked = false;
+  catalogField("catalogPrice").value = draft.estimatedMarketPriceMin || "";
+  catalogField("catalogStock").value = 0;
+  catalogField("catalogStatus").value = "draft";
+  catalogField("catalogSource").value = "ai_assisted";
+  catalogField("catalogAiMetadata").value = JSON.stringify({
+    assisted: true,
+    provider: "gemini",
+    model: draft.aiMetadata?.model || "",
+    generatedAt: new Date().toISOString(),
+  });
+  catalogField("catalogProvenance").value = JSON.stringify({
+    sourceName: "Gemini grounded catalogue research",
+    sourceUrl: (draft.sourceUrls || [])[0] || "",
+    imageRightsConfirmed: false,
+  });
+  catalogField("catalogFormTitle").textContent = `Review AI draft: ${draft.name || "product"}`;
+  catalogField("mainImageRequiredLabel").textContent = "*";
+  window.scrollTo({ top: document.getElementById("catalogProductForm")?.offsetTop || 0, behavior: "smooth" });
+}
+
+async function generateAiCatalogImage(index) {
+  const draft = aiCatalogDrafts[index];
+  if (!draft) return;
+  useAiCatalogDraft(index);
+  const status = catalogField("catalogFormStatus");
+  status.textContent = "Generating review image...";
+  try {
+    const response = await fetch(`${BASE_URL}/api/admin/catalog-ai/image`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({ prompt: draft.imagePrompt }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Image generation failed.");
+    catalogField("catalogGeneratedImageUrl").value = data.imageUrl;
+    catalogField("mainImageRequiredLabel").textContent = "AI draft image attached—verify accuracy and rights";
+    displayMessage("AI draft image attached. Compare it carefully with the real product before publishing.", "success");
+  } catch (error) {
+    displayMessage(error.message, "error");
+  } finally {
+    status.textContent = "";
+  }
+}
+
+function renderAiCatalogDrafts() {
+  const target = catalogField("aiCatalogDrafts");
+  if (!target) return;
+  target.innerHTML = aiCatalogDrafts.map((draft, index) => {
+    const sources = (draft.sourceUrls || []).filter((url) => /^https:\/\//i.test(url));
+    return `<article class="rounded-xl border border-cyan-400 border-opacity-15 bg-blue-950 bg-opacity-30 p-4">
+      <p class="text-xs font-bold uppercase tracking-[0.2em] text-accent-cyan">${escapeHtml(draft.category || "")} › ${escapeHtml(draft.subcategory || "")}</p>
+      <h3 class="text-xl font-bold text-light-slate mt-2">${escapeHtml(draft.name || "Product")}</h3>
+      <p class="text-sm text-light-gray">${escapeHtml(draft.brand || "Unbranded")} • Confidence ${Math.round(Number(draft.confidence || 0) * 100)}%</p>
+      <p class="text-light-gray mt-2">${escapeHtml(draft.description || "")}</p>
+      <p class="text-sm text-yellow-200 mt-2">Estimated only: ₦${Number(draft.estimatedMarketPriceMin || 0).toLocaleString()}–₦${Number(draft.estimatedMarketPriceMax || 0).toLocaleString()}</p>
+      <p class="text-xs text-light-gray mt-2">${escapeHtml(draft.verificationNotes || "Human verification required.")}</p>
+      <div class="flex flex-wrap gap-2 mt-3">${sources.slice(0, 3).map((url, sourceIndex) => `<a class="text-xs text-accent-cyan underline" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Source ${sourceIndex + 1}</a>`).join("")}</div>
+      <div class="flex flex-wrap gap-2 mt-4"><button class="use-ai-draft-btn btn btn-primary-alt px-4 py-2 text-sm" data-index="${index}">Use draft</button><button class="image-ai-draft-btn btn btn-primary px-4 py-2 text-sm" data-index="${index}">Use + generate image</button></div>
+    </article>`;
+  }).join("");
+  document.querySelectorAll(".use-ai-draft-btn").forEach((button) => button.addEventListener("click", () => useAiCatalogDraft(Number(button.dataset.index))));
+  document.querySelectorAll(".image-ai-draft-btn").forEach((button) => button.addEventListener("click", () => generateAiCatalogImage(Number(button.dataset.index))));
+}
+
+async function generateAiCatalogDrafts() {
+  const category = catalogField("aiCatalogCategory").value.trim();
+  if (!category) return displayMessage("Choose a category for AI research.", "error");
+  const status = catalogField("aiCatalogStatus");
+  status.textContent = "Gemini is researching real products and sources...";
+  try {
+    const response = await fetch(`${BASE_URL}/api/admin/catalog-ai/drafts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({
+        category,
+        subcategory: catalogField("aiCatalogSubcategory").value.trim(),
+        count: Number(catalogField("aiCatalogCount").value || 5),
+        market: "Nigeria",
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Draft generation failed.");
+    aiCatalogDrafts = data.products || [];
+    status.textContent = `${aiCatalogDrafts.length} drafts generated with ${data.model}. Human verification is mandatory.`;
+    renderAiCatalogDrafts();
+  } catch (error) {
+    status.textContent = error.message;
+  }
+}
+
 catalogSellerType?.addEventListener("change", toggleVendorField);
 catalogProductForm?.addEventListener("submit", saveCatalogProduct);
 cancelProductEditBtn?.addEventListener("click", resetCatalogForm);
 catalogField("refreshCatalogBtn")?.addEventListener("click", fetchCatalogProducts);
 catalogField("catalogSearch")?.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); fetchCatalogProducts(); } });
 refreshProductModerationBtn?.addEventListener("click", fetchProductModerationQueue);
+catalogField("generateCatalogDraftsBtn")?.addEventListener("click", generateAiCatalogDrafts);
 
 if (currentPage === "product-moderation") {
   toggleVendorField();
-  Promise.all([loadApprovedVendors(), fetchCatalogProducts(), fetchProductModerationQueue()]);
+  Promise.all([loadApprovedVendors(), fetchCatalogProducts(), fetchProductModerationQueue(), fetchCatalogAiConfig()]);
 }

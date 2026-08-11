@@ -44,6 +44,24 @@
       <div id="messageContainer" class="mb-4"></div>
 
       <div class="card p-6 mb-8">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 class="text-3xl font-bold text-accent-cyan">AI catalogue draft builder</h2>
+            <p class="text-light-gray mt-2 max-w-3xl">Research real products and prepare listing drafts. AI results are never live automatically; supplier availability, identity, price, stock, specifications, fulfilment and image rights must be verified by an admin.</p>
+          </div>
+          <span id="catalogAiConfig" class="text-sm text-light-gray">Checking Gemini configuration...</span>
+        </div>
+        <div class="grid gap-3 mt-5 md:grid-cols-4">
+          <input id="aiCatalogCategory" class="input-field" placeholder="Category *" />
+          <input id="aiCatalogSubcategory" class="input-field" placeholder="Subcategory" />
+          <input id="aiCatalogCount" type="number" min="1" max="20" value="5" class="input-field" />
+          <button id="generateCatalogDraftsBtn" class="btn btn-primary px-5 py-3 text-sm">Research drafts</button>
+        </div>
+        <p id="aiCatalogStatus" class="text-light-gray mt-4"></p>
+        <div id="aiCatalogDrafts" class="grid gap-4 mt-5 lg:grid-cols-2"></div>
+      </div>
+
+      <div class="card p-6 mb-8">
         <div class="flex flex-col gap-3 mb-6 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 id="catalogFormTitle" class="text-3xl font-bold text-accent-cyan">Add a real product</h2>
@@ -53,6 +71,10 @@
         </div>
         <form id="catalogProductForm" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <input id="catalogProductId" type="hidden" />
+          <input id="catalogGeneratedImageUrl" type="hidden" />
+          <input id="catalogSource" type="hidden" value="admin" />
+          <input id="catalogAiMetadata" type="hidden" />
+          <input id="catalogProvenance" type="hidden" />
           <label class="block"><span class="text-sm text-light-gray">Product name *</span><input id="catalogName" class="input-field mt-2 w-full" required /></label>
           <label class="block"><span class="text-sm text-light-gray">Brand</span><input id="catalogBrand" class="input-field mt-2 w-full" /></label>
           <label class="block"><span class="text-sm text-light-gray">SKU</span><input id="catalogSku" class="input-field mt-2 w-full" /></label>
@@ -68,6 +90,10 @@
           <label class="block"><span class="text-sm text-light-gray">Fulfilment address *</span><input id="catalogLocationAddress" class="input-field mt-2 w-full" placeholder="Pickup/warehouse address" /></label>
           <label class="block"><span class="text-sm text-light-gray">Latitude *</span><input id="catalogLatitude" type="number" step="any" class="input-field mt-2 w-full" /></label>
           <label class="block"><span class="text-sm text-light-gray">Longitude *</span><input id="catalogLongitude" type="number" step="any" class="input-field mt-2 w-full" /></label>
+          <label class="block"><span class="text-sm text-light-gray">Supplier/reference</span><input id="catalogSupplierReference" class="input-field mt-2 w-full" /></label>
+          <label class="block md:col-span-2"><span class="text-sm text-light-gray">Primary source URL</span><input id="catalogSourceUrl" type="url" class="input-field mt-2 w-full" /></label>
+          <label class="flex items-center gap-3 text-sm text-light-gray"><input id="catalogVerified" type="checkbox" /> I verified the real product, supplier, price and stock</label>
+          <label class="flex items-center gap-3 text-sm text-light-gray"><input id="catalogImageRights" type="checkbox" /> Image rights/accuracy confirmed</label>
           <label class="block xl:col-span-3"><span class="text-sm text-light-gray">Description *</span><textarea id="catalogDescription" class="input-field mt-2 w-full min-h-28" required></textarea></label>
           <label class="block"><span class="text-sm text-light-gray">Main image <span id="mainImageRequiredLabel">*</span></span><input id="catalogMainImage" type="file" accept="image/*" class="input-field mt-2 w-full" /></label>
           <label class="block md:col-span-1 xl:col-span-2"><span class="text-sm text-light-gray">Additional images (up to 10)</span><input id="catalogExtraImages" type="file" accept="image/*" multiple class="input-field mt-2 w-full" /></label>
