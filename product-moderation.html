@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Product Moderation | NaijaGo Admin Panel</title>
+    <title>Product Catalogue | NaijaGo Admin Panel</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -21,10 +21,10 @@
             Protected Admin Workspace
           </p>
           <h1 class="text-5xl font-extrabold text-light-slate shimmer-text">
-            Product Moderation
+            Product Catalogue & Moderation
           </h1>
           <p class="text-light-gray mt-3 max-w-2xl">
-            Approve or reject restaurant food and pharmacy listings before they go live.
+            Manage real NaijaGo and vendor products from one seller-neutral catalogue.
           </p>
         </div>
         <button id="logoutAdminBtn" class="btn btn-danger px-6 py-3 rounded-lg text-sm self-start md:self-auto">
@@ -36,12 +36,58 @@
         <a href="index.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Dashboard</a>
         <a href="vendor-requests.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Vendor Requests</a>
         <a href="pharmacist-requests.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Pharmacists</a>
-        <a href="product-moderation.html" class="btn btn-primary px-4 py-3 text-sm text-center">Product Moderation</a>
+        <a href="product-moderation.html" class="btn btn-primary px-4 py-3 text-sm text-center">Product Catalogue</a>
         <a href="orders.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Orders</a>
         <a href="carousel-slides.html" class="btn btn-primary-alt px-4 py-3 text-sm text-center">Carousel Slides</a>
       </nav>
 
       <div id="messageContainer" class="mb-4"></div>
+
+      <div class="card p-6 mb-8">
+        <div class="flex flex-col gap-3 mb-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 id="catalogFormTitle" class="text-3xl font-bold text-accent-cyan">Add a real product</h2>
+            <p class="text-light-gray mt-2">NaijaGo is selected by default. Active products must have verified stock, price, fulfilment location and image rights.</p>
+          </div>
+          <button id="cancelProductEditBtn" type="button" class="btn btn-primary-alt px-5 py-3 text-sm hidden">Cancel edit</button>
+        </div>
+        <form id="catalogProductForm" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <input id="catalogProductId" type="hidden" />
+          <label class="block"><span class="text-sm text-light-gray">Product name *</span><input id="catalogName" class="input-field mt-2 w-full" required /></label>
+          <label class="block"><span class="text-sm text-light-gray">Brand</span><input id="catalogBrand" class="input-field mt-2 w-full" /></label>
+          <label class="block"><span class="text-sm text-light-gray">SKU</span><input id="catalogSku" class="input-field mt-2 w-full" /></label>
+          <label class="block"><span class="text-sm text-light-gray">Category *</span><input id="catalogCategory" class="input-field mt-2 w-full" required placeholder="Fashion" /></label>
+          <label class="block"><span class="text-sm text-light-gray">Subcategory</span><input id="catalogSubcategory" class="input-field mt-2 w-full" placeholder="Men's Shoes" /></label>
+          <label class="block"><span class="text-sm text-light-gray">Search tags</span><input id="catalogTags" class="input-field mt-2 w-full" placeholder="sneakers, men, casual" /></label>
+          <label class="block"><span class="text-sm text-light-gray">Price (₦) *</span><input id="catalogPrice" type="number" min="0" step="0.01" class="input-field mt-2 w-full" required /></label>
+          <label class="block"><span class="text-sm text-light-gray">Discount price (₦)</span><input id="catalogDiscountPrice" type="number" min="0" step="0.01" class="input-field mt-2 w-full" /></label>
+          <label class="block"><span class="text-sm text-light-gray">Stock *</span><input id="catalogStock" type="number" min="0" class="input-field mt-2 w-full" required /></label>
+          <label class="block"><span class="text-sm text-light-gray">Seller</span><select id="catalogSellerType" class="input-field mt-2 w-full"><option value="naijago">NaijaGo</option><option value="vendor">Vendor</option></select></label>
+          <label id="catalogVendorField" class="block hidden"><span class="text-sm text-light-gray">Approved vendor</span><select id="catalogSellerId" class="input-field mt-2 w-full"><option value="">Select vendor</option></select></label>
+          <label class="block"><span class="text-sm text-light-gray">Status</span><select id="catalogStatus" class="input-field mt-2 w-full"><option value="active">Active</option><option value="out_of_stock">Out of stock</option><option value="disabled">Disabled</option><option value="draft">Draft</option></select></label>
+          <label class="block"><span class="text-sm text-light-gray">Fulfilment address *</span><input id="catalogLocationAddress" class="input-field mt-2 w-full" placeholder="Pickup/warehouse address" /></label>
+          <label class="block"><span class="text-sm text-light-gray">Latitude *</span><input id="catalogLatitude" type="number" step="any" class="input-field mt-2 w-full" /></label>
+          <label class="block"><span class="text-sm text-light-gray">Longitude *</span><input id="catalogLongitude" type="number" step="any" class="input-field mt-2 w-full" /></label>
+          <label class="block xl:col-span-3"><span class="text-sm text-light-gray">Description *</span><textarea id="catalogDescription" class="input-field mt-2 w-full min-h-28" required></textarea></label>
+          <label class="block"><span class="text-sm text-light-gray">Main image <span id="mainImageRequiredLabel">*</span></span><input id="catalogMainImage" type="file" accept="image/*" class="input-field mt-2 w-full" /></label>
+          <label class="block md:col-span-1 xl:col-span-2"><span class="text-sm text-light-gray">Additional images (up to 10)</span><input id="catalogExtraImages" type="file" accept="image/*" multiple class="input-field mt-2 w-full" /></label>
+          <div class="xl:col-span-3 flex flex-wrap gap-3">
+            <button id="saveCatalogProductBtn" class="btn btn-success px-6 py-3 text-sm" type="submit">Create product</button>
+            <span id="catalogFormStatus" class="text-light-gray self-center"></span>
+          </div>
+        </form>
+      </div>
+
+      <div class="card p-6 mb-8">
+        <div class="grid gap-3 md:grid-cols-4">
+          <input id="catalogSearch" class="input-field" placeholder="Search name, brand, SKU, tag..." />
+          <select id="catalogSellerFilter" class="input-field"><option value="all">All sellers</option><option value="naijago">NaijaGo</option><option value="vendor">Vendors</option></select>
+          <select id="catalogStatusFilter" class="input-field"><option value="all">All statuses</option><option value="active">Active</option><option value="out_of_stock">Out of stock</option><option value="disabled">Disabled</option><option value="draft">Draft</option></select>
+          <button id="refreshCatalogBtn" class="btn btn-primary px-5 py-3 text-sm">Search / Refresh</button>
+        </div>
+        <p id="catalogMeta" class="text-light-gray mt-4">Loading catalogue...</p>
+        <div id="catalogProductList" class="space-y-5 mt-5"></div>
+      </div>
 
       <div class="card p-6">
         <div class="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
