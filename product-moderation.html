@@ -97,6 +97,20 @@
           <label class="block xl:col-span-3"><span class="text-sm text-light-gray">Description *</span><textarea id="catalogDescription" class="input-field mt-2 w-full min-h-28" required></textarea></label>
           <label class="block"><span class="text-sm text-light-gray">Main image <span id="mainImageRequiredLabel">*</span></span><input id="catalogMainImage" type="file" accept="image/*" class="input-field mt-2 w-full" /></label>
           <label class="block md:col-span-1 xl:col-span-2"><span class="text-sm text-light-gray">Additional images (up to 10)</span><input id="catalogExtraImages" type="file" accept="image/*" multiple class="input-field mt-2 w-full" /></label>
+          <section id="catalogGeneratedImagePanel" class="hidden xl:col-span-3 rounded-xl border border-gray-700 bg-dark-card p-4">
+            <div class="grid gap-4 md:grid-cols-[180px_1fr] md:items-center">
+              <div id="catalogGeneratedImagePreview" class="flex h-44 items-center justify-center overflow-hidden rounded-lg border border-gray-700 bg-gray-900 text-center text-sm text-light-gray">No generated image</div>
+              <div>
+                <h3 class="font-semibold text-white">AI product image</h3>
+                <p id="catalogGeneratedImageState" class="mt-2 text-sm text-light-gray">Waiting to start.</p>
+                <p class="mt-2 text-xs text-yellow-300">Keep this page open. Generation may take 2–5 minutes. Verify the image against the real product before publishing.</p>
+                <div class="mt-4 flex flex-wrap gap-2">
+                  <button id="retryGeneratedImageBtn" type="button" class="btn btn-primary px-4 py-2 text-sm">Retry generation</button>
+                  <button id="removeGeneratedImageBtn" type="button" class="btn btn-primary-alt px-4 py-2 text-sm">Remove image</button>
+                </div>
+              </div>
+            </div>
+          </section>
           <div class="xl:col-span-3 flex flex-wrap gap-3">
             <button id="saveCatalogProductBtn" class="btn btn-success px-6 py-3 text-sm" type="submit">Create product</button>
             <span id="catalogFormStatus" class="text-light-gray self-center"></span>

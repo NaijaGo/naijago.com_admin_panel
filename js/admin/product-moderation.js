@@ -76,10 +76,36 @@ async function loadApprovedVendors() {
   }
 }
 
+let activeAiImageDraftIndex = null;
+
+function showGeneratedImageState(message, imageUrl = "", loading = false) {
+  const panel = catalogField("catalogGeneratedImagePanel");
+  const preview = catalogField("catalogGeneratedImagePreview");
+  panel?.classList.remove("hidden");
+  catalogField("catalogGeneratedImageState").textContent = message;
+  if (imageUrl) {
+    preview.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="Generated product draft" class="h-full w-full object-contain" />`;
+  } else if (loading) {
+    preview.innerHTML = `<div class="flex flex-col items-center gap-3"><span class="h-8 w-8 animate-spin rounded-full border-4 border-gray-600 border-t-cyan-400"></span><span>Generating…</span></div>`;
+  } else {
+    preview.textContent = "No generated image";
+  }
+  catalogField("retryGeneratedImageBtn").disabled = loading;
+  catalogField("removeGeneratedImageBtn").disabled = loading || !imageUrl;
+}
+
+function removeGeneratedImage() {
+  catalogField("catalogGeneratedImageUrl").value = "";
+  catalogField("mainImageRequiredLabel").textContent = "*";
+  showGeneratedImageState("Generated image removed. Retry or upload a real product photo.");
+}
+
 function resetCatalogForm() {
   catalogProductForm?.reset();
   catalogField("catalogProductId").value = "";
   catalogField("catalogGeneratedImageUrl").value = "";
+  activeAiImageDraftIndex = null;
+  catalogField("catalogGeneratedImagePanel")?.classList.add("hidden");
   catalogField("catalogSource").value = "admin";
   catalogField("catalogAiMetadata").value = "";
   catalogField("catalogProvenance").value = "";
@@ -397,8 +423,10 @@ async function generateAiCatalogImage(index) {
   const draft = aiCatalogDrafts[index];
   if (!draft) return;
   useAiCatalogDraft(index);
+  activeAiImageDraftIndex = index;
   const status = catalogField("catalogFormStatus");
-  status.textContent = "Generating review image...";
+  status.textContent = "Generating AI product image…";
+  showGeneratedImageState("Request sent to Gemini. Keep this page open while the image is created and stored.", "", true);
   try {
     const response = await fetch(`${BASE_URL}/api/admin/catalog-ai/image`, {
       method: "POST",
@@ -409,8 +437,10 @@ async function generateAiCatalogImage(index) {
     if (!response.ok) throw new Error(data.message || "Image generation failed.");
     catalogField("catalogGeneratedImageUrl").value = data.imageUrl;
     catalogField("mainImageRequiredLabel").textContent = "AI draft image attached—verify accuracy and rights";
+    showGeneratedImageState("Image generated and stored successfully. Review it carefully before saving.", data.imageUrl);
     displayMessage("AI draft image attached. Compare it carefully with the real product before publishing.", "success");
   } catch (error) {
+    showGeneratedImageState(error.message || "Image generation failed. Retry once or upload a real product photo.");
     displayMessage(error.message, "error");
   } finally {
     status.textContent = "";
@@ -472,6 +502,10 @@ catalogField("refreshCatalogBtn")?.addEventListener("click", fetchCatalogProduct
 catalogField("catalogSearch")?.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); fetchCatalogProducts(); } });
 refreshProductModerationBtn?.addEventListener("click", fetchProductModerationQueue);
 catalogField("generateCatalogDraftsBtn")?.addEventListener("click", generateAiCatalogDrafts);
+catalogField("retryGeneratedImageBtn")?.addEventListener("click", () => {
+  if (activeAiImageDraftIndex !== null) generateAiCatalogImage(activeAiImageDraftIndex);
+});
+catalogField("removeGeneratedImageBtn")?.addEventListener("click", removeGeneratedImage);
 
 if (currentPage === "product-moderation") {
   populateCategorySelect("catalogCategory");
