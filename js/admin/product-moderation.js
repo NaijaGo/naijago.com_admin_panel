@@ -11,6 +11,7 @@ const catalogFormStatus = document.getElementById("catalogFormStatus");
 
 let catalogProducts = [];
 let aiCatalogDrafts = [];
+let defaultNaijagoWarehouse = null;
 
 const catalogField = (id) => document.getElementById(id);
 const productImage = (product) =>
@@ -56,6 +57,73 @@ function toggleVendorField() {
   const vendorSelected = catalogSellerType?.value === "vendor";
   catalogVendorField?.classList.toggle("hidden", !vendorSelected);
   if (catalogSellerId) catalogSellerId.required = vendorSelected;
+}
+
+function applyDefaultWarehouse({ overwrite = false } = {}) {
+  if (catalogSellerType?.value !== "naijago" || !defaultNaijagoWarehouse) return;
+  [["catalogLocationAddress", defaultNaijagoWarehouse.formattedAddress], ["catalogLatitude", defaultNaijagoWarehouse.latitude], ["catalogLongitude", defaultNaijagoWarehouse.longitude]]
+    .forEach(([id, value]) => {
+      const field = catalogField(id);
+      if (field && (overwrite || !field.value)) field.value = value ?? "";
+    });
+}
+
+async function loadWarehouseSettings() {
+  const status = catalogField("warehouseSettingsStatus");
+  try {
+    const response = await fetch(`${BASE_URL}/api/admin/catalog/settings`, { headers: { Authorization: `Bearer ${adminToken}` } });
+    const data = await response.json();
+    if (handleAdminSessionExpiry(response.status)) return;
+    if (!response.ok) throw new Error(data.message || "Unable to load warehouse settings.");
+    defaultNaijagoWarehouse = data.warehouse;
+    if (defaultNaijagoWarehouse?.formattedAddress) {
+      catalogField("warehouseAddress").value = defaultNaijagoWarehouse.formattedAddress;
+      catalogField("warehouseLatitude").value = defaultNaijagoWarehouse.latitude ?? "";
+      catalogField("warehouseLongitude").value = defaultNaijagoWarehouse.longitude ?? "";
+      status.textContent = "Saved and ready";
+      applyDefaultWarehouse();
+    } else status.textContent = "Not configured yet";
+  } catch (error) {
+    status.textContent = error.message;
+  }
+}
+
+async function saveWarehouseSettings(event) {
+  event.preventDefault();
+  const status = catalogField("warehouseSettingsStatus");
+  status.textContent = "Saving…";
+  try {
+    const response = await fetch(`${BASE_URL}/api/admin/catalog/settings`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({ formattedAddress: catalogField("warehouseAddress").value.trim(), latitude: Number(catalogField("warehouseLatitude").value), longitude: Number(catalogField("warehouseLongitude").value) }),
+    });
+    const data = await response.json();
+    if (handleAdminSessionExpiry(response.status)) return;
+    if (!response.ok) throw new Error(data.message || "Unable to save warehouse settings.");
+    defaultNaijagoWarehouse = data.warehouse;
+    applyDefaultWarehouse({ overwrite: true });
+    status.textContent = "Saved and ready";
+    displayMessage(data.message, "success");
+  } catch (error) {
+    status.textContent = "Save failed";
+    displayMessage(error.message, "error");
+  }
+}
+
+function useBrowserWarehouseLocation() {
+  const status = catalogField("warehouseSettingsStatus");
+  if (!navigator.geolocation) return displayMessage("Location is not available in this browser.", "error");
+  status.textContent = "Getting location…";
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      catalogField("warehouseLatitude").value = position.coords.latitude.toFixed(7);
+      catalogField("warehouseLongitude").value = position.coords.longitude.toFixed(7);
+      status.textContent = "Location captured—enter the address and save";
+    },
+    () => { status.textContent = "Location permission was not granted"; displayMessage("Allow location access, or enter the coordinates manually.", "error"); },
+    { enableHighAccuracy: true, timeout: 15000 },
+  );
 }
 
 async function loadApprovedVendors() {
@@ -116,6 +184,7 @@ function resetCatalogForm() {
   if (catalogSellerType) catalogSellerType.value = "naijago";
   if (catalogField("catalogStatus")) catalogField("catalogStatus").value = "active";
   toggleVendorField();
+  applyDefaultWarehouse();
 }
 
 function editCatalogProduct(productId) {
@@ -493,7 +562,7 @@ async function generateAiCatalogDrafts() {
   }
 }
 
-catalogSellerType?.addEventListener("change", toggleVendorField);
+catalogSellerType?.addEventListener("change", () => { toggleVendorField(); applyDefaultWarehouse(); });
 catalogField("catalogCategory")?.addEventListener("change", () => populateSubcategorySelect("catalogCategory", "catalogSubcategory"));
 catalogField("aiCatalogCategory")?.addEventListener("change", () => populateSubcategorySelect("aiCatalogCategory", "aiCatalogSubcategory"));
 catalogProductForm?.addEventListener("submit", saveCatalogProduct);
@@ -506,8 +575,11 @@ catalogField("retryGeneratedImageBtn")?.addEventListener("click", () => {
   if (activeAiImageDraftIndex !== null) generateAiCatalogImage(activeAiImageDraftIndex);
 });
 catalogField("removeGeneratedImageBtn")?.addEventListener("click", removeGeneratedImage);
+catalogField("warehouseSettingsForm")?.addEventListener("submit", saveWarehouseSettings);
+catalogField("useBrowserLocationBtn")?.addEventListener("click", useBrowserWarehouseLocation);
 
 if (currentPage === "product-moderation") {
+  loadWarehouseSettings();
   populateCategorySelect("catalogCategory");
   populateCategorySelect("aiCatalogCategory");
   populateSubcategorySelect("catalogCategory", "catalogSubcategory");

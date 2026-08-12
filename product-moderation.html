@@ -46,6 +46,26 @@
       <div class="card p-6 mb-8">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
+            <h2 class="text-3xl font-bold text-accent-cyan">Default NaijaGo warehouse</h2>
+            <p class="text-light-gray mt-2">Save this once. It automatically fills the fulfilment address and map location for every new NaijaGo product.</p>
+          </div>
+          <span id="warehouseSettingsStatus" class="text-sm text-light-gray">Loading warehouse…</span>
+        </div>
+        <form id="warehouseSettingsForm" class="grid gap-3 mt-5 md:grid-cols-3">
+          <label class="block"><span class="text-sm text-light-gray">Warehouse address *</span><input id="warehouseAddress" class="input-field mt-2 w-full" required placeholder="Full pickup/warehouse address" /></label>
+          <label class="block"><span class="text-sm text-light-gray">Latitude *</span><input id="warehouseLatitude" type="number" step="any" min="-90" max="90" class="input-field mt-2 w-full" required /></label>
+          <label class="block"><span class="text-sm text-light-gray">Longitude *</span><input id="warehouseLongitude" type="number" step="any" min="-180" max="180" class="input-field mt-2 w-full" required /></label>
+          <div class="md:col-span-3 flex flex-wrap items-center gap-3">
+            <button class="btn btn-success px-5 py-3 text-sm" type="submit">Save default warehouse</button>
+            <button id="useBrowserLocationBtn" class="btn btn-primary-alt px-5 py-3 text-sm" type="button">Use my current location</button>
+            <span class="text-xs text-light-gray">Use current location only while physically at the warehouse.</span>
+          </div>
+        </form>
+      </div>
+
+      <div class="card p-6 mb-8">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
             <h2 class="text-3xl font-bold text-accent-cyan">AI catalogue draft builder</h2>
             <p class="text-light-gray mt-2 max-w-3xl">Research real products and prepare listing drafts. AI results are never live automatically; supplier availability, identity, price, stock, specifications, fulfilment and image rights must be verified by an admin.</p>
           </div>
@@ -77,7 +97,7 @@
           <input id="catalogProvenance" type="hidden" />
           <label class="block"><span class="text-sm text-light-gray">Product name *</span><input id="catalogName" class="input-field mt-2 w-full" required /></label>
           <label class="block"><span class="text-sm text-light-gray">Brand</span><input id="catalogBrand" class="input-field mt-2 w-full" /></label>
-          <label class="block"><span class="text-sm text-light-gray">SKU</span><input id="catalogSku" class="input-field mt-2 w-full" /></label>
+          <label class="block"><span class="text-sm text-light-gray">SKU</span><input id="catalogSku" class="input-field mt-2 w-full" placeholder="Generated automatically if blank" /></label>
           <label class="block"><span class="text-sm text-light-gray">Category *</span><select id="catalogCategory" class="input-field mt-2 w-full" required><option value="">Select category</option></select></label>
           <label class="block"><span class="text-sm text-light-gray">Subcategory</span><select id="catalogSubcategory" class="input-field mt-2 w-full"><option value="">Select subcategory</option></select></label>
           <label class="block"><span class="text-sm text-light-gray">Search tags</span><input id="catalogTags" class="input-field mt-2 w-full" placeholder="sneakers, men, casual" /></label>
