@@ -2,7 +2,7 @@ const NAIJAGO_CATALOG_TAXONOMY = Object.freeze({
   "Home & Office": ["Appliances", "Home & Kitchen", "Home Interior & Exterior", "Office Products", "Furniture", "Lighting", "Home Security", "Cleaning Supplies", "Storage & Organization", "Garden & Outdoor", "Bedding & Bath"],
   "Phones & Tablets": ["Mobile Phones", "Tablets", "Mobile Phone Accessories", "Wearable Technology", "Smartphones", "Feature Phones", "Phone Cases & Covers", "Screen Protectors", "Chargers & Cables", "Power Banks", "Bluetooth Accessories"],
   Fashion: ["Men's Fashion", "Women's Fashion", "Kids' Fashion", "Watches", "Luggages & Travel Gear", "Hair & Wigs", "Footwear", "Bags & Purses", "Jewelry", "Eyewear", "Belts & Accessories", "Traditional Attire", "Underwear & Lingerie", "Sportswear"],
-  "Health & Beauty": ["Make Up", "Fragrance", "Hair Care", "Oral Care", "Medicine", "Condoms", "Sex Toys", "Skin Care & Cosmetics", "Personal Care", "Shaving & Hair Removal", "Vitamins & Supplements", "First Aid", "Medical Equipment", "Feminine Care"],
+  "Cosmetics & Beauty": ["Make Up", "Fragrance", "Hair Care", "Oral Care", "Medicine", "Condoms", "Sex Toys", "Skin Care & Cosmetics", "Personal Care", "Shaving & Hair Removal", "Vitamins & Supplements", "First Aid", "Medical Equipment", "Feminine Care"],
   Electronics: ["Television & Video", "Camera & Photo", "Generator & Portable Power", "Audios", "Home Theater Systems", "Headphones & Earbuds", "Gadgets", "Drones", "Smart Home Devices", "Car Electronics", "Batteries & Power"],
   Computing: ["Computers", "Data Storage", "Anti Virus & Security", "Printers & Computer Accessories", "Keyboards & Mice"],
   Groceries: ["Beer, Wine & Spirits", "Food Cupboard", "House Hold Cleaning", "Fresh Produce", "Dairy & Eggs", "Seafood"],
@@ -22,6 +22,4 @@ const NAIJAGO_CATALOG_TAXONOMY = Object.freeze({
   "Toys & Games": ["Dolls", "Educational Toys", "Outdoor Toys", "Remote Control Toys", "Stuffed Animals", "Toy Vehicles"],
   Photography: ["Cameras", "Lenses", "Lighting Equipment", "Camera Bags & Cases", "Tripods & Supports"],
   "Food & Beverage": ["Restaurant Equipment", "Catering Supplies", "Baking Supplies", "Food Processing", "Beverage Equipment", "Kitchen Utensils", "Food Packaging"],
-  "Travel & Tourism": ["Travel Accessories", "Luggage", "Hotel Supplies"],
-  "Wedding & Events": ["Wedding Attire"],
 });

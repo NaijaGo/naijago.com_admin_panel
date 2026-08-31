@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang='en'>
+<head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Pickup Operations | NaijaGo Admin</title><script src='https://cdn.tailwindcss.com/3.4.1'></script><link rel='stylesheet' href='css/admin-panel.css'></head>
+<body class='p-8' data-page='pickup-orders'><main class='container mx-auto'>
+<header class='flex justify-between mb-8'><div><p class='text-accent-cyan font-semibold'>ORDER AHEAD AND PICK UP</p><h1 class='text-5xl font-extrabold text-light-slate'>Pickup Operations</h1><p class='text-light-gray mt-2'>Monitor preparation, collection and verification performance.</p></div><button id='logoutAdminBtn' class='btn btn-danger px-5 py-3'>Logout</button></header>
+<nav class='flex gap-3 mb-8'><a href='index.html' class='btn btn-primary-alt px-5 py-3'>Dashboard</a><a href='orders.html' class='btn btn-primary-alt px-5 py-3'>All Orders</a><button id='refreshPickupBtn' class='btn btn-primary px-5 py-3'>Refresh</button></nav><div id='messageContainer'></div>
+<section id='pickupMetrics' class='grid gap-4 md:grid-cols-3 xl:grid-cols-6 mb-8'></section>
+<section class='card p-6'><div class='flex justify-between mb-5'><h2 class='text-2xl font-bold text-accent-cyan'>Pickup orders</h2><select id='pickupStatus' class='text-black px-3 py-2 rounded-lg'><option value=''>All statuses</option><option value='processing'>Received</option><option value='accepted'>Accepted</option><option value='preparing'>Preparing</option><option value='ready_for_customer_pickup'>Ready</option><option value='picked_up'>Completed</option><option value='cancelled'>Cancelled</option></select></div><div id='pickupOrders' class='space-y-4'></div></section>
+</main><script src='js/admin/runtime.js'></script><script src='js/admin/pickup-orders.js'></script><script src='js/admin-panel.js'></script></body></html>
