@@ -190,6 +190,9 @@ function resetCatalogForm() {
 function editCatalogProduct(productId) {
   const product = catalogProducts.find((entry) => String(entry._id || entry.id) === String(productId));
   if (!product) return;
+  for (const [field, id] of [['gender', 'catalogGender'], ['ageGroup', 'catalogAgeGroup'], ['productType', 'catalogProductType']]) {
+    if (catalogField(id)) catalogField(id).value = product[field] || '';
+  }
   catalogField("catalogProductId").value = product._id || product.id;
   catalogField("catalogName").value = product.name || "";
   catalogField("catalogBrand").value = product.brand || "";
@@ -226,6 +229,9 @@ function editCatalogProduct(productId) {
 
 function buildProductFormData() {
   const data = new FormData();
+  for (const [field, id] of [['gender', 'catalogGender'], ['ageGroup', 'catalogAgeGroup'], ['productType', 'catalogProductType']]) {
+    if (catalogField(id)) data.append(field, catalogField(id).value.trim());
+  }
   let savedProvenance = {};
   try { savedProvenance = JSON.parse(catalogField("catalogProvenance").value || "{}"); } catch (_) {}
   const verified = catalogField("catalogVerified").checked;
