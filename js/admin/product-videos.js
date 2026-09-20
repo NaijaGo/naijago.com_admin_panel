@@ -55,7 +55,8 @@
 
   function renderVideo(asset) {
     const card = element('article', '', 'rounded-xl border border-slate-600 p-4');
-    card.append(element('h3', asset.product?.name || 'Product not yet saved', 'text-xl font-semibold text-light-slate'));
+    card.append(element('h3', asset.product?.name || (asset.purpose === 'campaign_video' ? 'Explore campaign video' : 'Product not yet saved'), 'text-xl font-semibold text-light-slate'));
+    if (asset.revocationState === 'pending') card.append(element('p', 'Access revocation is pending. Check Background work before approving again.', 'text-amber-300 my-2'));
     card.append(element('p', `${asset.ownerName} - ${Math.ceil(asset.duration || 0)} seconds`, 'text-light-gray my-2'));
     const player = document.createElement('video');
     player.controls = true;
@@ -77,6 +78,7 @@
     message.setAttribute('role', 'status');
     const actions = element('div', '', 'flex gap-3 mt-3');
     const approve = element('button', 'Approve video', 'btn btn-success px-4 py-2');
+    approve.disabled = asset.revocationState === 'pending';
     const reject = element('button', 'Reject video', 'btn btn-danger px-4 py-2');
     actions.append(approve, reject);
     card.append(reason, message, actions);
@@ -98,7 +100,7 @@
         await load();
       } catch (error) {
         message.textContent = error.message;
-        approve.disabled = false; reject.disabled = false;
+        approve.disabled = asset.revocationState === 'pending'; reject.disabled = false;
       }
     }
     approve.addEventListener('click', () => review('approved'));
