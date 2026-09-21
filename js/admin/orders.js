@@ -1,5 +1,25 @@
         // Orders Management – Enhanced with payout system
         // ──────────────────────────────────────────────
+        function orderNeedsPaymentReview(order) {
+          return order.mainOrderStatus === "payment_review" ||
+            order.paymentResult?.fulfillmentStatus === "needs_attention" ||
+            order.schedule?.state === "needs_attention";
+        }
+
+        function orderDispatchHoldReason(order) {
+          if (orderNeedsPaymentReview(order)) return "Payment needs support review. Do not dispatch, mark completed or ask the customer to pay again.";
+          if (order.isPaid !== true) return "Waiting for verified payment. Rider assignment is unavailable.";
+          if (order.isDelivered || ["pending_payment", "cancelled", "completed", "delivered"].includes(order.mainOrderStatus)) return "This order is not awaiting dispatch.";
+          if (order.schedule != null && order.schedule.mode !== "now") {
+            const schedule = order.schedule;
+            const at = Date.now();
+            if (schedule.mode !== "scheduled" || schedule.state !== "confirmed" ||
+                !(new Date(schedule.endAt).getTime() > at)) return "The scheduled delivery window needs review.";
+            if (!(new Date(schedule.dispatchAt).getTime() <= at)) return "Scheduled delivery confirmed. Rider assignment opens when dispatch is due.";
+          }
+          return null;
+        }
+
         let onlineRidersState = window.latestOnlineRiders || {
           individualRiders: [],
           companyRiders: [],
@@ -77,6 +97,7 @@
 
         function applyFilter(orders) {
           if (currentFilter === "all") return orders;
+          if (currentFilter === "payment_review") return orders.filter(orderNeedsPaymentReview);
           return orders.filter((o) => o.mainOrderStatus === currentFilter);
         }
 
@@ -126,6 +147,8 @@
         }
 
         function renderRiderAssignControls(order) {
+          const holdReason = orderDispatchHoldReason(order);
+          if (holdReason) return `<p class="text-sm text-yellow-200">${escapeHtml(holdReason)}</p>`;
           const riderChoices = getOnlineRiderChoices();
           const orderId = order._id || order.id || "";
           const onlineTotal =
@@ -269,6 +292,8 @@
         }
 
         function renderOrderAssignmentPanel(order, mainRider) {
+          const holdReason = orderDispatchHoldReason(order);
+          if (holdReason) return `<div role="status" class="rounded-lg border border-yellow-400 p-4 my-4 text-yellow-200">${escapeHtml(holdReason)}</div>`;
           const company = order.company || order.assignedToCompany;
           const pendingAssignedRider =
             order.assignedRider && !order.isClaimed ? order.assignedRider : null;
@@ -493,6 +518,12 @@
             const currentStatus = statusLower;
 
             const isDisabled = (target) => {
+              if (orderNeedsPaymentReview(order)) return true;
+              if (order.isPaid !== true && !["pending_payment", "cancelled"].includes(target)) return true;
+              if (order.isPaid && target === "pending_payment") return true;
+              if (order.schedule?.mode === "scheduled" &&
+                  (["pending_payment", "cancelled"].includes(target) ||
+                   (target !== "processing" && orderDispatchHoldReason(order)))) return true;
               switch (currentStatus) {
                 case "completed":
                 case "cancelled":
@@ -562,7 +593,7 @@
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-3">
                     <h3 class="text-2xl font-semibold text-accent-cyan">Order ID: ${order._id}</h3>
-                    ${hasAssignment ? `<span class="status-badge status-delivered">Rider Assigned</span>` : `<span class="status-badge status-pending">Awaiting Rider</span>`}
+                    ${orderNeedsPaymentReview(order) ? '<span class="status-badge status-pending">Payment Review</span>' : hasAssignment ? `<span class="status-badge status-delivered">Rider Assigned</span>` : `<span class="status-badge status-pending">Not Assigned</span>`}
                 </div>
                 <p class="text-light-gray mb-1"><strong>User:</strong> ${user.firstName || "N/A"} ${user.lastName || ""} (<span class="text-accent-cyan">${user.email || "N/A"}</span>)</p>
                 <p class="text-light-gray mb-1"><strong>Phone:</strong> ${user.phoneNumber || "N/A"}</p>
@@ -609,7 +640,8 @@
                     : ""
                 }
                 
-                <div class="mb-2"><strong>Status:</strong> <span class="font-bold text-lg ${order.mainOrderStatus === "delivered" ? "text-yellow-400" : order.mainOrderStatus === "completed" ? "text-green-400" : "text-blue-400"}">${order.mainOrderStatus || "N/A"}</span></div>
+                <div class="mb-2"><strong>Status:</strong> <span class="font-bold text-lg ${order.mainOrderStatus === "delivered" ? "text-yellow-400" : order.mainOrderStatus === "completed" ? "text-green-400" : "text-blue-400"}">${orderNeedsPaymentReview(order) ? "Payment review" : escapeHtml(order.mainOrderStatus || "N/A")}</span></div>
+                ${orderNeedsPaymentReview(order) ? `<p role="alert" class="rounded-lg border border-yellow-400 p-3 my-3 text-yellow-200">${order.isPaid === true ? "Payment received." : "Payment verification needs review."} Fulfilment is on hold. Check the verified transaction and reservation before resolving this order. Do not collect another payment or mark a refund without provider confirmation.</p>` : ""}
                 <div class="mb-4">
                     <strong>Shipping Address:</strong><br>
                     <span class="text-light-gray">${shipping.address || "N/A"}, ${shipping.city || "N/A"}, ${shipping.postalCode || "N/A"}, ${shipping.country || "N/A"}</span>
