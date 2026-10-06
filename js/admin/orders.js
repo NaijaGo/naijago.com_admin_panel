@@ -605,6 +605,30 @@
                     : ""
                 }
                 ${renderOrderAssignmentPanel(order, rider)}
+                ${
+                  !order.isPaid && order.mainOrderStatus === "pending_payment" && !order.paymentResult?.tx_ref
+                    ? `
+                    <div class="my-4 rounded-lg border border-amber-700 bg-amber-950/30 p-4">
+                      <h4 class="font-semibold text-amber-200">Delivery fee override</h4>
+                      <p class="my-1 text-xs text-light-gray">Available before payment starts. Saving this updates the amount the customer will be charged.</p>
+                      <div class="mt-3 flex flex-wrap items-end gap-3">
+                        <label class="text-sm">Final delivery fee (₦)
+                          <input class="delivery-override-fee input-field mt-1 w-36" type="number" min="0" step="0.01" value="${Number(order.totalShippingPrice || 0)}" />
+                        </label>
+                        <label class="min-w-56 flex-1 text-sm">Reason
+                          <input class="delivery-override-reason input-field mt-1 w-full" type="text" maxlength="500" placeholder="Required reason" />
+                        </label>
+                        <button class="delivery-fee-override-btn btn-primary-alt px-4 py-2" data-order-id="${order._id}">Save override</button>
+                      </div>
+                    </div>
+                    `
+                    : ""
+                }
+                ${
+                  Array.isArray(order.deliveryFeeOverrideHistory) && order.deliveryFeeOverrideHistory.length
+                    ? `<div class="my-3 rounded-lg border border-gray-700 p-3"><strong>Delivery fee override history</strong><ul class="mt-2 space-y-1 text-sm text-light-gray">${order.deliveryFeeOverrideHistory.map((entry) => `<li>Calculated ₦${Number(entry.calculatedFee || 0).toFixed(2)} → final ₦${Number(entry.finalFee || 0).toFixed(2)} (${Number(entry.adjustment || 0) >= 0 ? "+" : ""}₦${Number(entry.adjustment || 0).toFixed(2)}) · ${escapeHtml(entry.reason || "No reason")} · ${entry.changedAt ? new Date(entry.changedAt).toLocaleString() : ""}</li>`).join("")}</ul></div>`
+                    : ""
+                }
                 
                 <!-- Payout Information Box -->
                 ${
@@ -725,6 +749,36 @@
                 displayMessage("Refreshing online riders...", "success");
               });
             });
+
+          document.querySelectorAll(".delivery-fee-override-btn").forEach((button) => {
+            button.addEventListener("click", async () => {
+              const card = button.closest(".order-card");
+              const finalFee = Number(card?.querySelector(".delivery-override-fee")?.value);
+              const reason = card?.querySelector(".delivery-override-reason")?.value?.trim() || "";
+              if (!Number.isFinite(finalFee) || finalFee < 0 || !reason) {
+                displayMessage("Enter a valid fee and a reason for the override.", "error");
+                return;
+              }
+              button.disabled = true;
+              try {
+                const response = await fetch(`${BASE_URL}/api/admin/orders/${button.dataset.orderId}/delivery-fee-override`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${adminToken}`,
+                  },
+                  body: JSON.stringify({ finalFee, reason }),
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || "Unable to save delivery fee override.");
+                displayMessage("Delivery fee override saved. The updated amount will be charged at checkout.", "success");
+                fetchOrders();
+              } catch (error) {
+                displayMessage(error.message || "Unable to save delivery fee override.", "error");
+                button.disabled = false;
+              }
+            });
+          });
 
           document.querySelectorAll(".assign-rider-btn").forEach((button) => {
             button.addEventListener("click", () => {

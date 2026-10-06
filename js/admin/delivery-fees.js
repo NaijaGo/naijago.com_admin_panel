@@ -123,10 +123,124 @@
           deliveryMinimumFeeInput.value = Number(
             settings.minimumDeliveryFee || 0,
           );
+          const pricing = settings.deliveryPricing || {};
+          const payout = settings.riderPayoutPricing || {};
+          const campaign = settings.freeDeliveryCampaign || {};
+          const setValue = (id, value) => {
+            const input = document.getElementById(id);
+            if (input) input.value = value == null ? "" : value;
+          };
+          const setChecked = (id, value) => {
+            const input = document.getElementById(id);
+            if (input) input.checked = value === true;
+          };
+          setValue("deliveryPricingMode", pricing.mode || "zone");
+          setValue("deliveryBaseFee", pricing.baseFee || 0);
+          setValue("deliveryPricePerKm", pricing.pricePerKm || 0);
+          setValue("deliveryRoadMinimum", pricing.minimumFee || 0);
+          setValue("deliveryMaximumFee", pricing.maximumFee);
+          setValue("deliveryMaximumDistance", pricing.maximumDistanceKm);
+          setValue("riderBasePayout", payout.basePayout || 0);
+          setValue("riderPricePerKm", payout.pricePerKm || 0);
+          setValue("riderMinimumPayout", payout.minimumPayout || 0);
+          setValue("riderMaximumPayout", payout.maximumPayout);
+          setValue("riderMultiVendorAdjustment", payout.multiVendorAdjustment || 0);
+          setChecked("freeDeliveryEnabled", campaign.enabled);
+          setValue("freeDeliveryMinimumOrder", campaign.minimumOrderAmount || 0);
+          setValue("freeDeliveryMaximumDistance", campaign.maximumDistanceKm);
+          setValue("freeDeliveryCustomerEligibility", campaign.customerEligibility || "everyone");
+          setValue("freeDeliveryVendorIds", (campaign.vendorIds || []).join(", "));
+          setValue("freeDeliveryProductIds", (campaign.productIds || []).join(", "));
+          setValue("freeDeliveryAreas", (campaign.areas || []).join(", "));
+          setValue("freeDeliveryPromoCode", campaign.promoCode || "");
+          setValue("freeDeliveryStartsAt", toLocalDateTimeInput(campaign.startsAt));
+          setValue("freeDeliveryEndsAt", toLocalDateTimeInput(campaign.endsAt));
+          renderDeliveryPricingPreview(pricing);
+          renderDeliverySettingsAuditHistory(settings.deliverySettingsHistory || []);
+          const preview = document.getElementById("deliveryPricingPreview");
+          if (preview && preview.dataset.previewBound !== "true") {
+            ["deliveryPricingMode", "deliveryBaseFee", "deliveryPricePerKm", "deliveryRoadMinimum", "deliveryMaximumFee", "deliveryMaximumDistance"]
+              .forEach((id) => document.getElementById(id)?.addEventListener("input", refreshDeliveryPricingPreviewFromForm));
+            document.getElementById("deliveryPricingMode")?.addEventListener("change", refreshDeliveryPricingPreviewFromForm);
+            preview.dataset.previewBound = "true";
+          }
           renderDeliveryFeeZoneEditor(
             Array.isArray(settings.zones) ? settings.zones : [],
           );
           hasLoadedDeliveryFeeSettings = true;
+        }
+
+        function toLocalDateTimeInput(value) {
+          if (!value) return "";
+          const date = new Date(value);
+          if (!Number.isFinite(date.getTime())) return "";
+          const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+          return local.toISOString().slice(0, 16);
+        }
+
+        function renderDeliveryPricingPreview(pricing = {}) {
+          const container = document.getElementById("deliveryPricingPreview");
+          if (!container) return;
+          if (pricing.mode !== "road_km") {
+            container.innerHTML = '<p class="text-light-gray sm:col-span-2 lg:col-span-5">Road pricing is inactive. Existing zone/fallback fees remain authoritative.</p>';
+            return;
+          }
+          const rows = window.DeliveryPricingPreview.calculateDeliveryPricingPreview(pricing);
+          container.innerHTML = rows.map((row) => {
+            const distanceLabel = `Road distance: ${row.distanceKm} km`;
+            if (!row.available) {
+              const status = row.invalidPricing
+                ? "Invalid pricing values; correct them before saving."
+                : `OUTSIDE CURRENT DELIVERY AREA · Maximum allowed distance: ${row.maximumDistanceKm} km`;
+              return `<div class="rounded-xl border border-cyan-400 border-opacity-10 bg-[#10203D] p-3"><strong class="block text-light-gray">${distanceLabel}</strong><span class="block mt-2 font-semibold text-amber-300">${escapeHtml(status)}</span></div>`;
+            }
+
+            const adjustmentLabel = row.adjustment
+              ? `${row.adjustment.type === "minimum" ? "Minimum" : "Maximum"} fee applied: ${escapeHtml(formatCurrency(row.adjustment.appliedFee))}`
+              : "Minimum/maximum adjustment: none";
+            return `<div class="rounded-xl border border-cyan-400 border-opacity-10 bg-[#10203D] p-3">
+              <strong class="block text-light-gray">${distanceLabel}</strong>
+              <div class="mt-2 space-y-1 text-xs text-light-gray">
+                <div>Base delivery fee: ${escapeHtml(formatCurrency(row.baseFee))}</div>
+                <div>Distance charge: ${escapeHtml(formatCurrency(row.distanceCharge))} (${row.distanceKm} km × ${escapeHtml(formatCurrency(row.pricePerKm))}/km)</div>
+                <div>Raw delivery fee: ${escapeHtml(formatCurrency(row.rawFee))}</div>
+                <div>${adjustmentLabel}</div>
+              </div>
+              <strong class="block mt-2">Final customer delivery fee: ${escapeHtml(formatCurrency(row.finalFee))}</strong>
+            </div>`;
+          }).join("");
+        }
+
+        function refreshDeliveryPricingPreviewFromForm() {
+          renderDeliveryPricingPreview({
+            mode: document.getElementById("deliveryPricingMode")?.value || "zone",
+            baseFee: Number(document.getElementById("deliveryBaseFee")?.value || 0),
+            pricePerKm: Number(document.getElementById("deliveryPricePerKm")?.value || 0),
+            minimumFee: Number(document.getElementById("deliveryRoadMinimum")?.value || 0),
+            maximumFee: document.getElementById("deliveryMaximumFee")?.value === ""
+              ? null
+              : Number(document.getElementById("deliveryMaximumFee")?.value),
+            maximumDistanceKm: document.getElementById("deliveryMaximumDistance")?.value === ""
+              ? null
+              : Number(document.getElementById("deliveryMaximumDistance")?.value),
+          });
+        }
+
+        function renderDeliverySettingsAuditHistory(history = []) {
+          const container = document.getElementById("deliverySettingsAuditHistory");
+          if (!container) return;
+          if (!history.length) {
+            container.textContent = "No pricing changes recorded yet.";
+            return;
+          }
+          container.innerHTML = history.slice(0, 10).map((entry) => {
+            const changedAt = entry.changedAt ? formatDateTime(entry.changedAt) : "Unknown time";
+            const actor = entry.changedBy && typeof entry.changedBy === "object"
+              ? getAdminDisplayName(entry.changedBy)
+              : String(entry.changedBy || "Admin");
+            const categories = Object.keys(entry.newValue || {}).join(", ") || "Delivery settings";
+            return `<details class="rounded-lg border border-cyan-400 border-opacity-10 p-3"><summary class="cursor-pointer">${escapeHtml(changedAt)} · ${escapeHtml(actor)} · ${escapeHtml(categories)}</summary><div class="mt-3 grid gap-3 md:grid-cols-2"><div><strong>Old values</strong><pre class="mt-1 overflow-auto whitespace-pre-wrap">${escapeHtml(JSON.stringify(entry.oldValue || {}, null, 2))}</pre></div><div><strong>New values</strong><pre class="mt-1 overflow-auto whitespace-pre-wrap">${escapeHtml(JSON.stringify(entry.newValue || {}, null, 2))}</pre></div></div></details>`;
+          }).join("");
         }
 
         async function fetchDeliveryFeeSettings() {
@@ -228,6 +342,44 @@
             };
           });
 
+          const optionalNumber = (id) => {
+            const value = document.getElementById(id)?.value?.trim();
+            return value === "" || value == null ? null : Number(value);
+          };
+          const listValue = (id) => (document.getElementById(id)?.value || "")
+            .split(",").map((value) => value.trim()).filter(Boolean);
+          const dateValue = (id) => {
+            const value = document.getElementById(id)?.value;
+            return value ? new Date(value).toISOString() : null;
+          };
+          const deliveryPricing = {
+            mode: document.getElementById("deliveryPricingMode")?.value || "zone",
+            baseFee: Number(document.getElementById("deliveryBaseFee")?.value || 0),
+            pricePerKm: Number(document.getElementById("deliveryPricePerKm")?.value || 0),
+            minimumFee: Number(document.getElementById("deliveryRoadMinimum")?.value || 0),
+            maximumFee: optionalNumber("deliveryMaximumFee"),
+            maximumDistanceKm: optionalNumber("deliveryMaximumDistance"),
+          };
+          const riderPayoutPricing = {
+            basePayout: Number(document.getElementById("riderBasePayout")?.value || 0),
+            pricePerKm: Number(document.getElementById("riderPricePerKm")?.value || 0),
+            minimumPayout: Number(document.getElementById("riderMinimumPayout")?.value || 0),
+            maximumPayout: optionalNumber("riderMaximumPayout"),
+            multiVendorAdjustment: Number(document.getElementById("riderMultiVendorAdjustment")?.value || 0),
+          };
+          const freeDeliveryCampaign = {
+            enabled: Boolean(document.getElementById("freeDeliveryEnabled")?.checked),
+            minimumOrderAmount: Number(document.getElementById("freeDeliveryMinimumOrder")?.value || 0),
+            maximumDistanceKm: optionalNumber("freeDeliveryMaximumDistance"),
+            customerEligibility: document.getElementById("freeDeliveryCustomerEligibility")?.value || "everyone",
+            vendorIds: listValue("freeDeliveryVendorIds"),
+            productIds: listValue("freeDeliveryProductIds"),
+            areas: listValue("freeDeliveryAreas"),
+            promoCode: document.getElementById("freeDeliveryPromoCode")?.value?.trim() || "",
+            startsAt: dateValue("freeDeliveryStartsAt"),
+            endsAt: dateValue("freeDeliveryEndsAt"),
+          };
+
           try {
             const res = await fetch(
               `${BASE_URL}/api/admin/delivery-fee-settings`,
@@ -241,6 +393,9 @@
                   fallbackRatePerKm,
                   minimumDeliveryFee,
                   zones,
+                  deliveryPricing,
+                  riderPayoutPricing,
+                  freeDeliveryCampaign,
                 }),
               },
             );

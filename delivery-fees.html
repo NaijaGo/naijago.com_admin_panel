@@ -227,6 +227,65 @@
                 </div>
               </div>
 
+              <section class="rounded-2xl border border-cyan-400 border-opacity-20 bg-blue-950 bg-opacity-30 p-5 space-y-5">
+                <div>
+                  <p class="text-sm font-semibold uppercase tracking-[0.25em] text-accent-cyan">Customer Delivery Pricing</p>
+                  <p class="text-sm text-light-gray mt-2">Road KM mode uses the server-side Mapbox driving route in the stored pickup order. Save in Zone mode to keep existing pricing active.</p>
+                </div>
+                <div class="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label for="deliveryPricingMode" class="block text-sm font-semibold text-light-gray mb-2">Pricing Method</label>
+                    <select id="deliveryPricingMode" class="input-field w-full">
+                      <option value="zone">Existing zone / fallback pricing</option>
+                      <option value="road_km">Road distance (KM)</option>
+                    </select>
+                  </div>
+                  <div><label for="deliveryBaseFee" class="block text-sm font-semibold text-light-gray mb-2">Base Fee (₦)</label><input id="deliveryBaseFee" type="number" min="0" step="0.01" class="input-field w-full" /></div>
+                  <div><label for="deliveryPricePerKm" class="block text-sm font-semibold text-light-gray mb-2">Price per Road KM (₦)</label><input id="deliveryPricePerKm" type="number" min="0" step="0.01" class="input-field w-full" /></div>
+                  <div><label for="deliveryRoadMinimum" class="block text-sm font-semibold text-light-gray mb-2">Minimum Fee (₦)</label><input id="deliveryRoadMinimum" type="number" min="0" step="0.01" class="input-field w-full" /></div>
+                  <div><label for="deliveryMaximumFee" class="block text-sm font-semibold text-light-gray mb-2">Maximum Fee (optional)</label><input id="deliveryMaximumFee" type="number" min="0" step="0.01" class="input-field w-full" placeholder="No cap" /></div>
+                  <div><label for="deliveryMaximumDistance" class="block text-sm font-semibold text-light-gray mb-2">Maximum Delivery Distance KM (optional)</label><input id="deliveryMaximumDistance" type="number" min="0.1" step="0.1" class="input-field w-full" placeholder="No limit" /></div>
+                </div>
+                <div class="border-t border-cyan-400 border-opacity-10 pt-5">
+                  <p class="text-sm font-semibold uppercase tracking-[0.25em] text-accent-cyan mb-4">Rider Payout (separate from customer fee)</p>
+                  <div class="grid gap-4 md:grid-cols-2">
+                    <div><label for="riderBasePayout" class="block text-sm font-semibold text-light-gray mb-2">Base Payout (₦)</label><input id="riderBasePayout" type="number" min="0" step="0.01" class="input-field w-full" /></div>
+                    <div><label for="riderPricePerKm" class="block text-sm font-semibold text-light-gray mb-2">Payout per Road KM (₦)</label><input id="riderPricePerKm" type="number" min="0" step="0.01" class="input-field w-full" /></div>
+                    <div><label for="riderMinimumPayout" class="block text-sm font-semibold text-light-gray mb-2">Minimum Payout (₦)</label><input id="riderMinimumPayout" type="number" min="0" step="0.01" class="input-field w-full" /></div>
+                    <div><label for="riderMaximumPayout" class="block text-sm font-semibold text-light-gray mb-2">Maximum Payout (optional)</label><input id="riderMaximumPayout" type="number" min="0" step="0.01" class="input-field w-full" placeholder="No cap" /></div>
+                    <div><label for="riderMultiVendorAdjustment" class="block text-sm font-semibold text-light-gray mb-2">Extra per Additional Vendor Stop (₦)</label><input id="riderMultiVendorAdjustment" type="number" min="0" step="0.01" class="input-field w-full" /></div>
+                  </div>
+                </div>
+                <div class="border-t border-cyan-400 border-opacity-10 pt-5">
+                  <div class="flex items-center justify-between gap-4 mb-4">
+                    <div>
+                      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-accent-cyan">Free Delivery Campaign</p>
+                      <p class="text-xs text-light-gray mt-1">Campaign eligibility is checked by the backend at quote and order creation.</p>
+                    </div>
+                    <label class="flex items-center gap-2 text-sm text-light-gray"><input id="freeDeliveryEnabled" type="checkbox" class="h-4 w-4" />Enabled</label>
+                  </div>
+                  <div class="grid gap-4 md:grid-cols-2">
+                    <div><label for="freeDeliveryMinimumOrder" class="block text-sm font-semibold text-light-gray mb-2">Minimum Order (₦)</label><input id="freeDeliveryMinimumOrder" type="number" min="0" step="0.01" class="input-field w-full" /></div>
+                    <div><label for="freeDeliveryMaximumDistance" class="block text-sm font-semibold text-light-gray mb-2">Maximum Distance KM (optional)</label><input id="freeDeliveryMaximumDistance" type="number" min="0.1" step="0.1" class="input-field w-full" placeholder="No limit" /></div>
+                    <div><label for="freeDeliveryCustomerEligibility" class="block text-sm font-semibold text-light-gray mb-2">Eligible Customers</label><select id="freeDeliveryCustomerEligibility" class="input-field w-full"><option value="everyone">Everyone</option><option value="first_order">First order (no prior active order)</option></select></div>
+                    <div><label for="freeDeliveryVendorIds" class="block text-sm font-semibold text-light-gray mb-2">Eligible Vendor IDs (comma-separated, blank = all)</label><input id="freeDeliveryVendorIds" class="input-field w-full" /></div>
+                    <div><label for="freeDeliveryProductIds" class="block text-sm font-semibold text-light-gray mb-2">Eligible Product IDs (comma-separated, blank = all)</label><input id="freeDeliveryProductIds" class="input-field w-full" /></div>
+                    <div><label for="freeDeliveryAreas" class="block text-sm font-semibold text-light-gray mb-2">Eligible Areas (comma-separated, blank = all)</label><input id="freeDeliveryAreas" class="input-field w-full" /></div>
+                    <div><label for="freeDeliveryPromoCode" class="block text-sm font-semibold text-light-gray mb-2">Promo Code (optional)</label><input id="freeDeliveryPromoCode" class="input-field w-full" /></div>
+                    <div><label for="freeDeliveryStartsAt" class="block text-sm font-semibold text-light-gray mb-2">Starts At</label><input id="freeDeliveryStartsAt" type="datetime-local" class="input-field w-full" /></div>
+                    <div><label for="freeDeliveryEndsAt" class="block text-sm font-semibold text-light-gray mb-2">Ends At</label><input id="freeDeliveryEndsAt" type="datetime-local" class="input-field w-full" /></div>
+                  </div>
+                </div>
+                <div class="border-t border-cyan-400 border-opacity-10 pt-5">
+                  <p class="text-sm font-semibold uppercase tracking-[0.25em] text-accent-cyan mb-3">Pricing Preview (current form values)</p>
+                  <div id="deliveryPricingPreview" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5 text-sm text-light-slate">Save settings to refresh the preview.</div>
+                </div>
+                <div class="border-t border-cyan-400 border-opacity-10 pt-5">
+                  <p class="text-sm font-semibold uppercase tracking-[0.25em] text-accent-cyan mb-3">Pricing Change Audit</p>
+                  <div id="deliverySettingsAuditHistory" class="space-y-2 text-sm text-light-gray">No pricing changes recorded yet.</div>
+                </div>
+              </section>
+
               <div>
                 <div class="flex items-center justify-between gap-4 mb-4">
                   <div>
@@ -265,6 +324,7 @@
 
     <script src="js/admin/runtime.js"></script>
     <script src="js/admin/referral-settings.js"></script>
+    <script src="js/admin/delivery-pricing-preview.js"></script>
     <script src="js/admin/delivery-fees.js"></script>
     <script src="js/admin/pharmacy-chat-prices.js"></script>
     <script src="js/admin/carousel-slides.js"></script>
