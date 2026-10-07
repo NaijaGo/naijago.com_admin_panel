@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Customer Reviews | NaijaGo Admin</title>
+  <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+  <link rel="stylesheet" href="css/admin-panel.css" />
+</head>
+<body class="p-8" data-page="review-moderation">
+  <main class="container mx-auto">
+    <header class="flex flex-wrap justify-between items-center gap-4 mb-6">
+      <div><p class="text-accent-cyan text-sm uppercase">NaijaGo Admin</p><h1 class="text-4xl font-bold text-light-slate">Customer Reviews</h1></div>
+      <button id="logoutAdminBtn" class="btn btn-danger px-5 py-3">Logout</button>
+    </header>
+    <nav class="flex flex-wrap gap-3 mb-8">
+      <a href="index.html" class="btn btn-primary-alt px-4 py-3">Dashboard</a>
+      <a href="product-moderation.html" class="btn btn-primary-alt px-4 py-3">Product Catalogue</a>
+    </nav>
+    <div id="messageContainer" role="status"></div>
+    <section class="card p-6">
+      <div class="flex flex-wrap gap-4 items-center mb-5">
+        <label class="text-light-gray" for="reviewFilter">Review queue</label>
+        <select id="reviewFilter" class="input-field"><option value="pending">Awaiting approval</option><option value="reported">Reported</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select>
+        <button id="reviewRefresh" class="btn btn-primary px-4 py-2">Refresh</button>
+      </div>
+      <p class="text-light-gray mb-5">Check that photos show the purchased product and contain no private information, abuse or unrelated content. Only approved reviews appear publicly.</p>
+      <p id="reviewStatus" role="status" class="text-light-gray mb-4"></p>
+      <div id="reviewList" class="grid gap-5 lg:grid-cols-2"></div>
+      <button id="reviewMore" class="btn btn-primary-alt px-5 py-3 mt-5 hidden">Load more</button>
+    </section>
+  </main>
+  <script src="js/admin/runtime.js"></script>
+  <script src="js/admin/review-moderation.js"></script>
+</body>
+</html>

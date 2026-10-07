@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Operations & Visitors | NaijaGo Admin</title>
+  <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <link rel="stylesheet" href="css/admin-panel.css">
+</head>
+<body class="p-4 md:p-8" data-page="operations-monitor">
+<main class="container mx-auto space-y-6">
+  <header class="flex flex-wrap justify-between gap-4 items-center">
+    <div><a href="index.html" class="text-accent-cyan">&larr; Dashboard</a>
+      <h1 class="text-3xl font-bold text-light-slate mt-3">Operations &amp; Visitors</h1>
+      <p class="text-light-gray mt-2">Verified activity, anonymous visitors and scheduled operational updates.</p></div>
+    <button id="logoutAdminBtn" class="btn btn-danger px-4 py-2">Log out</button>
+  </header>
+  <div id="messageContainer" role="status"></div>
+  <p id="monitorStatus" class="text-light-gray" role="status">Loading monitoring settings…</p>
+  <section class="card p-6">
+    <h2 class="text-xl font-bold text-light-slate mb-4">Monitoring controls</h2>
+    <form id="monitorSettings" class="space-y-4">
+      <label class="flex gap-3 items-center"><input type="checkbox" id="visitorTrackingEnabled">Enable consent-based visitor statistics</label>
+      <label class="flex gap-3 items-center"><input type="checkbox" id="updatesEnabled">Enable scheduled operations updates</label>
+      <label class="flex gap-3 items-center"><input type="checkbox" id="pushEnabled">Send scheduled updates through existing Admin push</label>
+      <label class="block">Update interval
+        <select id="intervalMinutes" class="bg-slate-900 text-white border rounded p-2 ml-2">
+          <option value="15">15 minutes</option><option value="60">1 hour</option>
+          <option value="360">6 hours</option><option value="1440">24 hours</option>
+        </select>
+      </label>
+      <p id="providerStatus" class="text-sm text-light-gray"></p>
+      <p class="text-sm text-light-gray">Instant order and activity alerts continue through the existing notification bell. Scheduled updates run while the backend is running. AI is not connected pending approval.</p>
+      <button id="saveMonitor" type="submit" disabled class="btn btn-success px-5 py-3">Save monitoring settings</button>
+    </form>
+  </section>
+  <section class="card p-6">
+    <div class="flex gap-4 justify-between items-center"><h2 class="text-xl font-bold">Operations — last 24 hours</h2>
+      <button id="refreshMonitor" class="btn btn-primary px-4 py-2">Refresh</button></div>
+    <p class="text-sm text-light-gray mt-2">Pending fulfilment and open disputes reflect the current backlog. Other figures cover the displayed reporting period.</p>
+    <div id="operationMetrics" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-5"></div>
+  </section>
+  <section class="card p-6">
+    <h2 class="text-xl font-bold mb-4">Operations feed</h2>
+    <div id="operationDigests" class="space-y-4"></div>
+  </section>
+  <section class="card p-6">
+    <div class="flex flex-wrap gap-3 justify-between items-center"><h2 class="text-xl font-bold">Anonymous guest visitors</h2>
+      <label>Period <select id="visitorDays" class="bg-slate-900 text-white border rounded p-2">
+        <option value="1">24 hours</option><option value="7">7 days</option><option value="30">30 days</option></select></label></div>
+    <p class="text-sm text-light-gray mt-2">Sessions are not identified people. Only consented visits are included; no names, contact details, precise locations or searches are collected here. Visitor events expire after 30 days.</p>
+    <p id="visitorSummary" class="my-4"></p>
+    <p id="visitorSources" class="text-sm text-light-gray mb-3"></p>
+    <div class="overflow-auto"><table class="w-full text-left"><thead><tr><th>Session</th><th>Platform</th><th>Page</th><th>Device</th><th>Time</th></tr></thead><tbody id="visitorRows"></tbody></table></div>
+    <div class="flex gap-3 mt-4"><button id="visitorPrevious" class="btn btn-primary px-3 py-2">Previous</button>
+      <span id="visitorPage" class="p-2"></span><button id="visitorNext" class="btn btn-primary px-3 py-2">Next</button></div>
+  </section>
+</main>
+<script src="js/admin/runtime.js"></script>
+<script src="js/admin/operations-monitor.js"></script>
+</body>
+</html>

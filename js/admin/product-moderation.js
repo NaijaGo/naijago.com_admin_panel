@@ -12,6 +12,9 @@ const catalogFormStatus = document.getElementById("catalogFormStatus");
 let catalogProducts = [];
 let aiCatalogDrafts = [];
 let defaultNaijagoWarehouse = null;
+let costLowStoreVendor = null;
+let approvedCatalogVendors = [];
+let costLowStoreSaving = false;
 
 const catalogField = (id) => document.getElementById(id);
 const productImage = (product) =>
@@ -126,6 +129,77 @@ function useBrowserWarehouseLocation() {
   );
 }
 
+function populateCostLowStoreVendors() {
+  const select = catalogField("costLowStoreVendor");
+  if (!select) return;
+  const current = select.value || String(costLowStoreVendor?._id || "");
+  select.replaceChildren(new Option("Select approved vendor", ""));
+  for (const vendor of approvedCatalogVendors) {
+    const name = vendor.businessName || vendor.name || "Vendor";
+    const label = vendor.email ? `${name} — ${vendor.email}` : name;
+    select.add(new Option(label, vendor._id || vendor.id));
+  }
+  // Keep the saved binding selectable even if it lies beyond the vendor list's page.
+  if (costLowStoreVendor && costLowStoreVendor.vendorStatus === "approved" &&
+      !Array.from(select.options).some(option => option.value === String(costLowStoreVendor._id))) {
+    select.add(new Option(costLowStoreVendor.businessName || "Linked vendor", costLowStoreVendor._id));
+  }
+  select.value = current;
+}
+
+async function loadCostLowStoreSettings() {
+  if (!adminToken || !catalogField("costLowStoreForm")) return;
+  const status = catalogField("costLowStoreStatus");
+  try {
+    const response = await fetch(`${BASE_URL}/api/admin/cost-low/settings`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const data = await response.json();
+    if (handleAdminSessionExpiry(response.status)) return;
+    if (!response.ok) throw new Error(data.message || "Unable to load store settings.");
+    costLowStoreVendor = data.vendor;
+    populateCostLowStoreVendors();
+    catalogField("costLowStoreVendor").value = data.configured ? String(data.vendorId) : "";
+    status.textContent = data.configured
+      ? `Linked to ${data.vendor.businessName || "approved vendor"}. Post active products using this vendor account.`
+      : data.vendorId
+        ? "The linked account is missing or not approved. Approve the correct vendor or select another approved account."
+        : "Not configured. Select the Low Cost World vendor account and click Link Store.";
+  } catch (error) {
+    status.textContent = "Could not load store settings. Refresh to try again.";
+    displayMessage(error.message || "Unable to load store settings.", "error");
+  }
+}
+
+async function saveCostLowStoreSettings(event) {
+  event.preventDefault();
+  if (!adminToken || costLowStoreSaving) return;
+  const vendorId = catalogField("costLowStoreVendor").value;
+  if (!vendorId) return displayMessage("Select the approved Low Cost World vendor account.", "error");
+  const button = catalogField("saveCostLowStoreBtn");
+  costLowStoreSaving = true;
+  button.disabled = true;
+  try {
+    const response = await fetch(`${BASE_URL}/api/admin/cost-low/settings`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${adminToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ vendorId }),
+    });
+    const data = await response.json();
+    if (handleAdminSessionExpiry(response.status)) return;
+    if (!response.ok) throw new Error(data.message || "Unable to link the store.");
+    costLowStoreVendor = data.vendor;
+    populateCostLowStoreVendors();
+    catalogField("costLowStoreStatus").textContent = `Linked to ${data.vendor.businessName || "approved vendor"}. Active products from this account appear in Low Cost World.`;
+    displayMessage(data.message, "success");
+  } catch (error) {
+    displayMessage(error.message || "Unable to link the store.", "error");
+  } finally {
+    costLowStoreSaving = false;
+    button.disabled = false;
+  }
+}
+
 async function loadApprovedVendors() {
   if (!adminToken || !catalogSellerId) return;
   try {
@@ -136,6 +210,8 @@ async function loadApprovedVendors() {
     if (handleAdminSessionExpiry(response.status)) return;
     if (!response.ok) throw new Error(data.message || "Unable to load vendors.");
     const vendors = data.vendors || [];
+    approvedCatalogVendors = vendors;
+    populateCostLowStoreVendors();
     catalogSellerId.innerHTML = '<option value="">Select approved vendor</option>' + vendors
       .map((vendor) => `<option value="${escapeHtml(vendor._id || vendor.id || "")}">${escapeHtml(vendor.businessName || vendor.name || vendor.email || "Vendor")}</option>`)
       .join("");
@@ -583,9 +659,14 @@ catalogField("retryGeneratedImageBtn")?.addEventListener("click", () => {
 catalogField("removeGeneratedImageBtn")?.addEventListener("click", removeGeneratedImage);
 catalogField("warehouseSettingsForm")?.addEventListener("submit", saveWarehouseSettings);
 catalogField("useBrowserLocationBtn")?.addEventListener("click", useBrowserWarehouseLocation);
+catalogField("costLowStoreForm")?.addEventListener("submit", saveCostLowStoreSettings);
+catalogField("refreshCostLowStoreBtn")?.addEventListener("click", () => {
+  if (!costLowStoreSaving) Promise.all([loadApprovedVendors(), loadCostLowStoreSettings()]);
+});
 
 if (currentPage === "product-moderation") {
   loadWarehouseSettings();
+  loadCostLowStoreSettings();
   populateCategorySelect("catalogCategory");
   populateCategorySelect("aiCatalogCategory");
   populateSubcategorySelect("catalogCategory", "catalogSubcategory");

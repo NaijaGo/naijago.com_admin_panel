@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Explore Videos | NaijaGo Admin</title>
+  <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+  <link rel="stylesheet" href="css/admin-panel.css" />
+</head>
+<body class="p-8" data-page="explore-videos">
+  <main class="container mx-auto">
+    <header class="flex flex-wrap justify-between items-center gap-4 mb-6">
+      <div><p class="text-accent-cyan text-sm uppercase">NaijaGo Admin</p><h1 class="text-4xl font-bold text-light-slate">Explore Videos</h1></div>
+      <button id="logoutAdminBtn" class="btn btn-danger px-5 py-3">Logout</button>
+    </header>
+    <nav class="flex flex-wrap gap-3 mb-8">
+      <a href="index.html" class="btn btn-primary-alt px-4 py-3">Dashboard</a>
+      <a href="product-moderation.html" class="btn btn-primary-alt px-4 py-3">Product Catalogue</a>
+    </nav>
+    <div id="messageContainer" role="status"></div>
+    <section class="card p-6 mb-8">
+      <h2 class="text-2xl font-bold text-accent-cyan">Publish to Customer Explore</h2>
+      <p class="text-light-gray mt-2">Upload videos from this device using your Admin account. Product linking is optional. Share videos you have permission to publish; avoid misleading claims, harmful content and private information.</p>
+      <form id="explorePublishForm" class="grid gap-4 mt-5">
+        <label class="block"><span class="text-light-gray">Video *</span><input id="exploreVideoFile" type="file" accept="video/*,.mp4,.mov,.webm,.m4v,.3gp,.3g2,.avi,.mkv,.mpg,.mpeg,.wmv,.flv" required class="input-field w-full mt-2" /></label>
+        <p class="text-sm text-light-gray">Up to 90 MB. No 90-second limit. Videos are processed for mobile playback.</p>
+        <video id="exploreLocalPreview" controls preload="metadata" class="hidden rounded-xl w-full max-h-80 bg-black"></video>
+        <label class="block"><span class="text-light-gray">Caption *</span><textarea id="exploreCaption" required maxlength="500" rows="3" class="input-field w-full mt-2" placeholder="Introduce your video…"></textarea></label>
+        <label class="block"><span class="text-light-gray">Link a product (optional)</span><select id="exploreProductId" class="input-field w-full mt-2"><option value="">No product</option></select></label>
+        <p id="exploreProductStatus" class="text-sm text-light-gray" role="status"></p>
+        <button id="explorePublishBtn" type="submit" class="btn btn-success px-5 py-3 justify-self-start">Publish to Explore</button>
+        <progress id="exploreUploadProgress" value="0" max="100" class="hidden w-full"></progress>
+        <p id="exploreUploadStatus" role="status" class="text-light-gray"></p>
+      </form>
+    </section>
+    <section class="card p-6">
+      <div class="flex flex-wrap justify-between items-center gap-3"><h2 class="text-2xl font-bold text-accent-cyan">My Explore Videos</h2><button id="exploreRefreshBtn" class="btn btn-primary-alt px-4 py-2">Refresh Videos</button></div>
+      <p class="text-light-gray mt-2">Videos published by the currently signed-in account. Unpublishing hides a video from the customer feed.</p>
+      <p id="exploreListStatus" role="status" class="text-light-gray mt-4"></p>
+      <div id="exploreVideoList" class="grid gap-5 mt-5 lg:grid-cols-2"></div>
+      <button id="exploreMoreBtn" class="btn btn-primary-alt px-5 py-3 mt-5 hidden">Load more videos</button>
+    </section>
+  </main>
+  <script src="js/admin/runtime.js"></script>
+  <script src="js/admin/explore-publishing.js"></script>
+</body>
+</html>
