@@ -20,14 +20,28 @@
   const profiles = [['standard', 'White background + centering + soft shadow'], ['relight', 'Also improve lighting (check colours carefully)']];
   const profile = select('Batch image style', profiles);
   const rights = checkbox('I have permission to send these product images to Photoroom for refinement.');
+  const inspect = button('Preview selected photos');
+  const previewList = el('div', '', 'space-y-3 my-4');
   const queue = button('Queue selected images'), batchStatus = el('p', '', 'text-light-gray my-3'); batchStatus.setAttribute('role', 'status');
-  batch.append(term, find, choices, previous, next, profile, rights.label, queue, batchStatus); panel.append(batch);
+  queue.disabled = inspect.disabled = true;
+  batch.append(term, find, choices, previous, next, profile, inspect, previewList, rights.label, queue, batchStatus); panel.append(batch);
   const controls = el('div', '', 'flex flex-wrap gap-3 my-4');
   const state = select('Image review status', [['', 'All image states'], ...['queued', 'preserving', 'generating', 'pending_review', 'publishing', 'approved', 'rejected', 'failed', 'uncertain', 'obsolete'].map((value) => [value, value.replaceAll('_', ' ')])]);
   const refresh = button('Refresh reviews'), more = button('More reviews'); more.hidden = true;
   const list = el('div', '', 'space-y-5'); controls.append(state, refresh); panel.append(controls, list, more); anchor.before(panel);
   const selected = new Set(), cards = new Map();
   let page = 1, cursor = null, processingEnabled = false, epoch = 0, searchEpoch = 0, busy = false, pollCount = 0, activeState = '';
+  let previewKey = '', previewImages = 0, previewEpoch = 0, inspecting = false, queueing = false;
+  const selectionKey = () => [...selected].sort().join(',');
+  function syncBatch() {
+    inspect.disabled = !processingEnabled || !selected.size || inspecting || queueing;
+    queue.disabled = !processingEnabled || !rights.input.checked || !selected.size ||
+      previewKey !== selectionKey() || !previewImages || inspecting || queueing;
+  }
+  function invalidatePreview() {
+    ++previewEpoch; previewKey = ''; previewImages = 0; inspecting = false;
+    previewList.replaceChildren(); syncBatch();
+  }
   async function api(path, options = {}, catalog = false) {
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 30000);
     try {
@@ -53,8 +67,10 @@
         const item = checkbox(`${product.name} | ${product.sellerName || product.vendor?.storeName || 'NaijaGo'} | ${product.productStatus || ''}`);
         item.input.checked = selected.has(product._id);
         item.input.onchange = () => {
+          if (queueing) { item.input.checked = selected.has(product._id); return; }
           if (item.input.checked && selected.size >= 20) { item.input.checked = false; batchStatus.textContent = 'Select at most 20 products per batch.'; return; }
           if (item.input.checked) selected.add(product._id); else selected.delete(product._id);
+          invalidatePreview();
           batchStatus.textContent = `${selected.size} products selected.`;
         };
         choices.append(item.label);
@@ -64,6 +80,31 @@
     } catch (error) { batchStatus.textContent = error.message; }
     finally { if (version === searchEpoch) find.disabled = previous.disabled = next.disabled = false; }
   }
+  inspect.onclick = async () => {
+    const version = ++previewEpoch, key = selectionKey();
+    inspecting = true; previewKey = ''; previewImages = 0; syncBatch();
+    batchStatus.textContent = 'Inspecting selected photos. No images are being processed yet.';
+    try {
+      const data = await api('/preview', { method: 'POST', body: JSON.stringify({ productIds: [...selected] }) });
+      if (version !== previewEpoch || key !== selectionKey()) return;
+      previewList.replaceChildren();
+      for (const product of data.products || []) {
+        const group = el('article', '', 'border border-slate-600 rounded-xl p-3');
+        group.append(el('h3', product.productName || 'Product unavailable', 'font-bold'),
+          el('p', `${product.newImages} new photos | ${product.skippedImages || 0} need re-upload${product.state === 'reupload_required' ? ' | Product requires individual review/re-upload' : ''}`, 'text-light-gray my-2'));
+        const photos = el('div', '', 'grid grid-cols-2 md:grid-cols-4 gap-3');
+        for (const image of product.images || []) {
+          if (!image.eligible) { photos.append(el('p', image.reason, 'text-amber-300 p-3')); continue; }
+          photos.append(picture(image.recordedState ? `Existing review: ${image.recordedState.replaceAll('_', ' ')}` : 'Original to process', image.sourceUrl));
+        }
+        group.append(photos); previewList.append(group);
+      }
+      previewKey = key; previewImages = data.newImages;
+      batchStatus.textContent = `${previewImages} new photos selected for processing. ${data.message}`;
+    } catch (error) { if (version === previewEpoch) batchStatus.textContent = error.message; }
+    finally { if (version === previewEpoch) { inspecting = false; syncBatch(); } }
+  };
+  rights.input.onchange = syncBatch;
   function picture(title, address) {
     const figure = el('figure', '', 'rounded-xl border border-slate-600 overflow-hidden'); figure.append(el('figcaption', title, 'font-bold p-3'));
     if (address) {
@@ -119,28 +160,28 @@
         if (background && existing.row.revision === row.revision && existing.row.state === row.state) continue;
         const node = card(row); if (existing) existing.node.replaceWith(node); else list.append(node); cards.set(row.id, { node, row });
       }
-      if (!background) { cursor = data.nextCursor; more.hidden = !cursor; status.textContent = cards.size ? 'Private links expire after five minutes. Refresh reviews to reload them.' : 'No image reviews yet. New vendor uploads or a selected batch are picked up by the background worker.'; }
+      if (!background) { cursor = data.nextCursor; more.hidden = !cursor; status.textContent = cards.size ? 'Private links expire after five minutes. Refresh reviews to reload them.' : 'No image reviews yet. Select an existing product batch above to start a review.'; }
     } catch (error) { status.textContent = error.message; }
     finally { busy = false; refresh.disabled = more.disabled = false; }
   }
   find.onclick = () => search(true); previous.onclick = () => { page--; search(); }; next.onclick = () => { page++; search(); };
   queue.onclick = async () => {
-    if (!selected.size || !rights.input.checked) { batchStatus.textContent = 'Select products and confirm image-processing permission.'; return; }
-    queue.disabled = true;
+    if (!selected.size || !rights.input.checked || previewKey !== selectionKey() || !previewImages || inspecting || queueing || !processingEnabled) { batchStatus.textContent = 'Preview the selected photos and confirm image-processing permission first.'; return; }
+    queueing = true; syncBatch(); profile.disabled = rights.input.disabled = true;
     try {
       const data = await api('/batch', { method: 'POST', body: JSON.stringify({ productIds: [...selected], profile: profile.value, rightsConfirmed: true }) });
       batchStatus.textContent = data.results.map((item) => `${item.productId}: ${item.state}${item.skipped ? ` (${item.skipped} images need re-upload)` : ''}`).join(' | ');
-      selected.clear(); for (const input of choices.querySelectorAll('input')) input.checked = false; await load();
+      selected.clear(); invalidatePreview(); for (const input of choices.querySelectorAll('input')) input.checked = false; await load();
     } catch (error) { batchStatus.textContent = error.message; }
-    finally { queue.disabled = !processingEnabled; }
+    finally { queueing = false; profile.disabled = rights.input.disabled = false; syncBatch(); }
   };
   refresh.onclick = () => load(); more.onclick = () => load(true); state.onchange = () => load();
   const timer = setInterval(() => { if (!document.hidden && !activeState && pollCount++ < 36 && [...cards.values()].some(({ row }) => pending(row))) load(false, true); }, 10000);
   window.addEventListener('pagehide', () => clearInterval(timer), { once: true });
   api('/config').then((config) => {
-    processingEnabled = config.processingEnabled; queue.disabled = !processingEnabled; batch.hidden = !config.enabled;
+    processingEnabled = config.processingEnabled; syncBatch(); batch.hidden = !config.enabled;
     if (!config.enabled) { status.textContent = 'Image refinement is disabled. Configure the backend and worker before enabling it.'; refresh.disabled = true; return; }
-    if (!processingEnabled) batchStatus.textContent = 'Processing key/storage configuration or a finite daily budget is missing. Existing reviews remain available.';
+    if (!processingEnabled) batchStatus.textContent = config.databaseReady === false ? 'The image-review database indexes need operator setup before processing can start.' : 'Processing key/storage configuration or a finite daily budget is missing. Existing reviews remain available.';
     load();
   }).catch((error) => { status.textContent = error.message; queue.disabled = true; });
 })();
