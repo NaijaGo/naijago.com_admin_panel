@@ -189,9 +189,12 @@
     const setup = missing.length ? `Required environment settings: ${missing.join(', ')}.` : '';
     const mode = config.keyModeMismatch ? 'A sandbox key cannot be used in live mode. Keep PHOTOROOM_SANDBOX=true while testing.' : '';
     const worker = 'Processing needs a separate Render background worker running npm run worker:image-refinements. A web-service deployment alone does not run it.';
+    const databaseIssues = Array.isArray(config.databaseChecks) ? config.databaseChecks.filter(check => check.status !== 'ready')
+      .map(check => `${check.collection}: ${check.status}${Array.isArray(check.missingIndexes) ? ` (${check.missingIndexes.map(index => Object.keys(index.key || {}).join(' + ')).join('; ')})` : ''}`).join('. ') : '';
     batch.append(el('p', worker, 'text-light-gray my-3'));
     setupStatus.textContent = [setup, mode,
       config.enabled && config.databaseReady === false ? 'Database/index readiness failed. Check the Image Studio collections, required indexes and database read permissions.' : '',
+      databaseIssues,
       !config.enabled ? 'Image refinement is disabled.' : '',
       processingEnabled ? `Processing configuration is ready${config.sandbox ? ' in sandbox mode (no customer publication)' : ''}; worker/provider operation still needs verification.` : '',
       worker].filter(Boolean).join(' ');
