@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NaijaGo Deals | Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+  <link rel="stylesheet" href="css/admin-panel.css" />
+</head>
+<body class="p-4 md:p-8" data-page="deals">
+  <main class="container mx-auto">
+    <header class="flex flex-wrap justify-between items-center gap-4 mb-6">
+      <div><p class="text-accent-cyan text-sm uppercase">Protected Admin Workspace</p><h1 class="text-4xl font-bold text-light-slate">NaijaGo Deals</h1><p class="text-light-gray mt-3">Review vendor-submitted timed offers. All changes are validated by the backend.</p></div>
+      <button id="logoutAdminBtn" class="btn btn-danger px-5 py-3">Logout</button>
+    </header>
+    <nav class="flex flex-wrap gap-3 mb-8" aria-label="Admin navigation">
+      <a href="index.html" class="btn btn-primary-alt px-4 py-3">Dashboard</a>
+      <a href="product-moderation.html" class="btn btn-primary-alt px-4 py-3">Product Catalogue</a>
+      <a href="vendors.html" class="btn btn-primary-alt px-4 py-3">Vendors</a>
+      <a href="deals.html" class="btn btn-primary px-4 py-3" aria-current="page">NaijaGo Deals</a>
+    </nav>
+    <div id="messageContainer" role="status" aria-live="polite" class="mb-4"></div>
+    <section class="card p-6">
+      <div class="flex flex-wrap items-end gap-4 mb-4">
+        <label><span class="block text-light-gray mb-2">Deal status</span><select id="dealsStatus" class="input-field">
+          <option value="">All</option><option value="draft">Draft</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="paused">Paused</option>
+        </select></label>
+        <label><span class="block text-light-gray mb-2">Page size</span><select id="dealsLimit" class="input-field"><option value="20">20</option><option value="50">50</option></select></label>
+        <button id="dealsRefresh" class="btn btn-primary-alt px-4 py-3">Refresh</button>
+      </div>
+      <p class="text-light-gray text-sm mb-3">Search is not supported by the current Deals API. Dates use your browser local timezone. Inactive Deals have no backend-calculated Deal price in the current API; no browser price calculation is used.</p>
+      <p id="dealsState" role="status" aria-live="polite" class="text-light-gray my-4"></p>
+      <button id="dealsRetry" class="btn btn-primary-alt px-4 py-2 mb-4" hidden>Retry</button>
+      <div class="overflow-x-auto" id="dealsTableContainer" aria-busy="false">
+        <table class="w-full text-sm text-left">
+          <caption class="sr-only">Vendor Deals and available moderation actions</caption>
+          <thead><tr class="border-b border-gray-600 text-accent-cyan">
+            <th scope="col" class="p-3">Product / vendor</th><th scope="col" class="p-3">Backend prices</th><th scope="col" class="p-3">Discount</th><th scope="col" class="p-3">Start / end</th><th scope="col" class="p-3">Status</th><th scope="col" class="p-3">Featured</th><th scope="col" class="p-3">Created</th><th scope="col" class="p-3">Actions</th>
+          </tr></thead>
+          <tbody id="dealsRows"></tbody>
+        </table>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-4 mt-5">
+        <p id="dealsPageInfo" class="text-light-gray"></p>
+        <div class="flex gap-3"><button id="dealsPrevious" class="btn btn-primary-alt px-4 py-2" disabled>Previous</button><button id="dealsNext" class="btn btn-primary-alt px-4 py-2" disabled>Next</button></div>
+      </div>
+    </section>
+  </main>
+  <script src="js/admin/runtime.js"></script>
+  <script src="js/admin/deals.js"></script>
+</body>
+</html>
