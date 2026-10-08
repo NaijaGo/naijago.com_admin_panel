@@ -11,8 +11,9 @@
   const checkbox = (text) => { const label = el('label', '', 'flex items-start gap-3 my-3'); const input = el('input'); input.type = 'checkbox'; label.append(input, el('span', text)); return { label, input }; };
   const panel = el('section', '', 'card p-6 mb-8'); panel.id = 'imageRefinements';
   const status = el('p', 'Checking image processing configuration...', 'text-light-gray my-3'); status.setAttribute('role', 'status');
+  const setupStatus = el('p', '', 'text-amber-300 my-3'); setupStatus.setAttribute('role', 'status');
   panel.append(el('h2', 'Product image studio', 'text-3xl font-bold text-accent-cyan'),
-    el('p', 'Originals are retained. Refined candidates stay private until you approve them. Check the exact product, labels, colours and quantity. This never changes stock, prices or product availability.', 'text-light-gray my-3'), status);
+    el('p', 'Originals are retained. Refined candidates stay private until you approve them. Check the exact product, labels, colours and quantity. This never changes stock, prices or product availability.', 'text-light-gray my-3'), setupStatus, status);
   const batch = el('details', '', 'border border-slate-600 rounded-xl p-4 my-4'); batch.append(el('summary', 'Refine existing products in a batch (up to 20)', 'font-bold cursor-pointer'));
   const term = el('input', '', 'input-field my-3'); term.placeholder = 'Product name, brand, SKU or category'; term.maxLength = 200; term.setAttribute('aria-label', 'Find products to refine');
   const find = button('Search products'), previous = button('Previous products'), next = button('More products');
@@ -37,6 +38,10 @@
     inspect.disabled = !processingEnabled || !selected.size || inspecting || queueing;
     queue.disabled = !processingEnabled || !rights.input.checked || !selected.size ||
       previewKey !== selectionKey() || !previewImages || inspecting || queueing;
+    for (const control of [inspect, queue]) {
+      control.style.opacity = control.disabled ? '0.5' : '1';
+      control.style.cursor = control.disabled ? 'not-allowed' : 'pointer';
+    }
   }
   function invalidatePreview() {
     ++previewEpoch; previewKey = ''; previewImages = 0; inspecting = false;
@@ -185,8 +190,12 @@
     const mode = config.keyModeMismatch ? 'A sandbox key cannot be used in live mode. Keep PHOTOROOM_SANDBOX=true while testing.' : '';
     const worker = 'Processing needs a separate Render background worker running npm run worker:image-refinements. A web-service deployment alone does not run it.';
     batch.append(el('p', worker, 'text-light-gray my-3'));
+    setupStatus.textContent = [setup, mode,
+      config.enabled && config.databaseReady === false ? 'Database/index readiness failed. Check the Image Studio collections, required indexes and database read permissions.' : '',
+      !config.enabled ? 'Image refinement is disabled.' : '',
+      processingEnabled ? `Processing configuration is ready${config.sandbox ? ' in sandbox mode (no customer publication)' : ''}; worker/provider operation still needs verification.` : '',
+      worker].filter(Boolean).join(' ');
     if (!config.enabled) { status.textContent = `Image refinement is disabled. ${setup} ${worker}`; refresh.disabled = true; return; }
-    if (!processingEnabled) batchStatus.textContent = [setup, mode, config.databaseReady === false ? 'The image-review database indexes need operator setup before processing can start.' : 'Check processing configuration.'].filter(Boolean).join(' ');
     load();
-  }).catch((error) => { status.textContent = error.message; queue.disabled = true; });
+  }).catch((error) => { setupStatus.textContent = `Configuration check unavailable: ${error.message}`; status.textContent = error.message; processingEnabled = false; syncBatch(); });
 })();
