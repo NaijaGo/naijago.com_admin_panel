@@ -346,15 +346,20 @@
           await fetchAdminActivity();
         }
 
+        let adminWebPushSdkInitialization;
         async function initializeAdminWebPush(requestPermission) {
           const state = document.getElementById("adminPushState");
           try {
             const response = await fetch(`${BASE_URL}/api/admin/push-config`, {
               headers: { Authorization: `Bearer ${adminToken}` },
             });
+            if (handleAdminSessionExpiry(response.status)) return;
+            if (!response.ok) throw new Error('Push configuration unavailable');
             const config = await response.json();
+            const missing = Array.isArray(config.missingConfiguration)
+              ? config.missingConfiguration.filter(name => /^ADMIN_ONESIGNAL_[A-Z_]+$/.test(name)) : [];
             if (!config.enabled) {
-              if (state) state.textContent = "Admin push needs server configuration";
+              if (state) state.textContent = `Admin push needs server configuration${missing.length ? `: ${missing.join(', ')}` : ''}`;
               return;
             }
             if (!document.querySelector('script[data-onesignal-admin]')) {
@@ -366,10 +371,20 @@
             }
             window.OneSignalDeferred = window.OneSignalDeferred || [];
             window.OneSignalDeferred.push(async (OneSignal) => {
-              await OneSignal.init({ appId: config.appId, serviceWorkerPath: "OneSignalSDKWorker.js" });
-              await OneSignal.login(config.externalId);
-              if (requestPermission) await OneSignal.Notifications.requestPermission();
-              if (state) state.textContent = OneSignal.Notifications.permission ? "Admin push enabled" : "Push permission required";
+              try {
+                if (!adminWebPushSdkInitialization) {
+                  adminWebPushSdkInitialization = OneSignal.init({ appId: config.appId, serviceWorkerPath: "OneSignalSDKWorker.js" })
+                    .catch(error => { adminWebPushSdkInitialization = null; throw error; });
+                }
+                await adminWebPushSdkInitialization;
+                await OneSignal.login(config.externalId);
+                if (requestPermission) await OneSignal.Notifications.requestPermission();
+                if (state) state.textContent = !OneSignal.Notifications.permission ? "Push permission required"
+                  : config.serverConfigured === false ? `Browser permission granted; backend push needs ${missing.join(', ') || 'server configuration'}`
+                  : "Push permission granted; delivery still needs verification";
+              } catch (_) {
+                if (state) state.textContent = "Push setup unavailable. Check the OneSignal website configuration and browser permissions.";
+              }
             });
           } catch (error) {
             if (state) state.textContent = "Push setup unavailable";

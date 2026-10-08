@@ -41,7 +41,11 @@ function formatDate(value) { return formatDateTime(value); }
       byId('intervalMinutes').append(option);
       byId('intervalMinutes').value = option.value;
     }
-    byId('providerStatus').textContent = data.pushConfigured ? 'Admin push provider configured.' : 'Admin push is not configured. Updates remain available in the notification bell.';
+    const missingPush = Array.isArray(data.missingPushConfiguration)
+      ? data.missingPushConfiguration.filter(name => /^ADMIN_ONESIGNAL_[A-Z_]+$/.test(name)) : [];
+    byId('providerStatus').textContent = data.pushConfigured
+      ? 'Admin push provider configured. Enable push in the notification bell and allow browser notifications to subscribe this browser.'
+      : `Admin push is not configured.${missingPush.length ? ` Required Render backend settings: ${missingPush.join(', ')}.` : ''} Updates remain available in the notification bell.`;
     byId('saveMonitor').disabled = false;
   }
   async function loadVisitors() {
