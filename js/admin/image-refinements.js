@@ -180,8 +180,13 @@
   window.addEventListener('pagehide', () => clearInterval(timer), { once: true });
   api('/config').then((config) => {
     processingEnabled = config.processingEnabled; syncBatch(); batch.hidden = !config.enabled;
-    if (!config.enabled) { status.textContent = 'Image refinement is disabled. Configure the backend and worker before enabling it.'; refresh.disabled = true; return; }
-    if (!processingEnabled) batchStatus.textContent = config.databaseReady === false ? 'The image-review database indexes need operator setup before processing can start.' : 'Processing key/storage configuration or a finite daily budget is missing. Existing reviews remain available.';
+    const missing = Array.isArray(config.missingConfiguration) ? config.missingConfiguration.filter(name => /^[A-Z_]+$/.test(name)) : [];
+    const setup = missing.length ? `Required environment settings: ${missing.join(', ')}.` : '';
+    const mode = config.keyModeMismatch ? 'A sandbox key cannot be used in live mode. Keep PHOTOROOM_SANDBOX=true while testing.' : '';
+    const worker = 'Processing needs a separate Render background worker running npm run worker:image-refinements. A web-service deployment alone does not run it.';
+    batch.append(el('p', worker, 'text-light-gray my-3'));
+    if (!config.enabled) { status.textContent = `Image refinement is disabled. ${setup} ${worker}`; refresh.disabled = true; return; }
+    if (!processingEnabled) batchStatus.textContent = [setup, mode, config.databaseReady === false ? 'The image-review database indexes need operator setup before processing can start.' : 'Check processing configuration.'].filter(Boolean).join(' ');
     load();
   }).catch((error) => { status.textContent = error.message; queue.disabled = true; });
 })();
