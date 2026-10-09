@@ -16,10 +16,11 @@ test('Image Studio browser readiness, preview, consent, duplicates and sandbox r
   const app = express(); app.use(express.json());
   const id = '111111111111111111111111', productId = '222222222222222222222222';
   const counts = { batches: 0, reviews: 0, setups: 0 }; let state = 'pending_review', initialized = false, externalConfigReads = 0;
-  const row = () => ({ id, productId, productName: 'Local studio fixture', state, storedState: state,
-    generation: 1, revision: state === 'pending_review' ? 0 : 1, profile: 'standard', sandbox: true, history: [], canRegenerate: false });
+  const row = req => ({ id, productId, productName: 'Local studio fixture', state, storedState: state,
+    generation: 1, revision: state === 'pending_review' ? 0 : 1, profile: 'standard',
+    ...(mode(req) === 'ready-unknown' ? {} : { sandbox: mode(req) !== 'ready-live' }), history: [], canRegenerate: false });
   const mode = req => new URL(req.headers.referer || 'http://127.0.0.1/?mode=ready').searchParams.get('mode');
-  const isReady = req => mode(req) === 'ready' || (mode(req) === 'initialize' && initialized) || (mode(req) === 'external' && externalConfigReads > 1);
+  const isReady = req => ['ready', 'ready-live', 'ready-unknown'].includes(mode(req)) || (mode(req) === 'initialize' && initialized) || (mode(req) === 'external' && externalConfigReads > 1);
   app.get('/studio', (_req, res) => res.type('html').send(`<!doctype html><html><head><title>Local Image Studio verification</title></head><body>
     <section class="card"><div id="productModerationList"></div></section>
     <script>const currentPage='product-moderation',adminToken='local-fixture',BASE_URL=window.location.origin;
@@ -41,17 +42,24 @@ test('Image Studio browser readiness, preview, consent, duplicates and sandbox r
     setTimeout(() => res.json({ ready: true, message: 'Image Studio database is ready. No images were queued or processed.' }), 100);
   });
   app.get('/api/image-refinements', (req, res) => !isReady(req)
-    ? res.status(503).json({ message: 'Image refinement is not enabled or is still preparing.' }) : res.json({ images: [row()], nextCursor: null }));
+    ? res.status(503).json({ message: 'Image refinement is not enabled or is still preparing.' }) : res.json({ images: [row(req)], nextCursor: null }));
   app.post('/api/image-refinements/preview', (_req, res) => res.json({ newImages: 1, products: [{ productId,
     productName: 'Local studio fixture', newImages: 1, skippedImages: 0, state: 'eligible', images: [{ eligible: true }] }], message: 'Local preview fixture' }));
   app.post('/api/image-refinements/batch', (_req, res) => { counts.batches++; setTimeout(() => res.status(202).json({ results: [{ productId, state: 'scheduled' }] }), 100); });
   app.put('/api/image-refinements/:id', (req, res) => {
-    assert.equal(req.body.action, 'reject'); assert.equal(req.body.reason, 'Local rejection');
-    counts.reviews++; state = 'rejected'; setTimeout(() => res.json(row()), 100);
+    if (mode(req) === 'ready-live') {
+      assert.equal(req.body.action, 'approve'); assert.equal(req.body.reason, 'Local approval');
+      assert.equal(req.body.identityConfirmed, true); assert.equal(req.body.revision, 0);
+      state = 'publishing';
+    } else {
+      assert.equal(mode(req), 'ready'); assert.equal(req.body.action, 'reject'); assert.equal(req.body.reason, 'Local rejection'); state = 'rejected';
+    }
+    counts.reviews++; setTimeout(() => res.json(row(req)), 100);
   });
   const server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
   try {
-    for (const selectedMode of ['blocked', 'external', 'manual-review', 'initialize', 'ready']) {
+    for (const selectedMode of ['blocked', 'external', 'manual-review', 'initialize', 'ready', 'ready-live', 'ready-unknown']) {
+      state = 'pending_review';
       const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'naijago-image-browser-'));
       const child = spawn(browser, ['--headless=new', '--disable-gpu', '--no-first-run', '--disable-background-networking',
         '--user-data-dir=' + profile, '--dump-dom', '--virtual-time-budget=20000',
@@ -65,9 +73,9 @@ test('Image Studio browser readiness, preview, consent, duplicates and sandbox r
       const result = stdout.match(/<pre id="studio-check-result" data-status="(pass|fail)">([^<]*)<\/pre>/);
       assert.ok(result, 'Browser did not complete ' + selectedMode + ' checks');
       assert.equal(result[1], 'pass', selectedMode + ': ' + result[2]);
-      if (selectedMode !== 'ready') { assert.equal(counts.batches, 0); assert.equal(counts.reviews, 0); }
+      if (!selectedMode.startsWith('ready')) { assert.equal(counts.batches, 0); assert.equal(counts.reviews, 0); }
     }
-    assert.equal(counts.batches, 1); assert.equal(counts.reviews, 1); assert.equal(counts.setups, 2);
+    assert.equal(counts.batches, 1); assert.equal(counts.reviews, 2); assert.equal(counts.setups, 2);
   } finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
 });
 
@@ -85,7 +93,24 @@ async function checks() {
     const selected = productLabel().querySelector('input'); selected.click();
     const queue = button('Queue selected images');
     const mode = new URL(location.href).searchParams.get('mode');
-    if (mode !== 'ready') {
+    if (mode === 'ready-live') {
+      phase = 'live publication controls';
+      await wait(() => button('Approve and publish'));
+      const approve = button('Approve and publish'); assert(!approve.disabled, 'Live candidate has no publication action');
+      approve.click(); assert(document.body.textContent.includes('Enter a review reason.'), 'Approval accepted without reason');
+      document.querySelector('textarea[aria-label="Image review reason"]').value = 'Local approval';
+      approve.click(); assert(document.body.textContent.includes('Confirm product accuracy and rights first.'), 'Approval accepted without identity confirmation');
+      [...document.querySelectorAll('label')].find(node => node.textContent.includes('I checked the real product identity')).querySelector('input').click();
+      approve.click(); approve.click();
+      await wait(() => document.querySelector('#imageRefinements article')?.textContent.includes('Publication is queued or processing.'));
+      assert(!button('Approve and publish'), 'Publication could be submitted again');
+    } else if (mode === 'ready-unknown') {
+      phase = 'unknown image mode';
+      await wait(() => button('Approve and publish'));
+      assert(button('Approve and publish').disabled, 'Unknown mode allowed publication');
+      button('Approve and publish').click();
+      assert(document.body.textContent.includes('image mode could not be verified'), 'Unknown-mode restriction not explained');
+    } else if (mode !== 'ready') {
       await wait(() => document.getElementById('imageRefinements').textContent.includes('collection_missing'));
       assert(queue.disabled && button('Preview selected photos').disabled, 'Unready processing controls enabled');
       selected.click();
@@ -123,7 +148,9 @@ async function checks() {
       assert(!queue.disabled, 'Preview and consent did not allow queueing'); queue.click(); queue.click();
       phase = 'batch response';
       await wait(() => !selected.checked && !document.querySelector('label input:disabled')); assert(queue.disabled, 'Completed batch retained queue eligibility');
-      await wait(() => button('Reject')); assert(!button('Approve and publish'), 'Sandbox candidate allowed publication');
+      await wait(() => button('Reject')); assert(button('Approve and publish')?.disabled, 'Sandbox candidate allowed publication');
+      button('Approve and publish').click();
+      assert(document.body.textContent.includes('Changing configuration does not make this existing sandbox image publishable.'), 'Sandbox publication restriction not explained');
       button('Reject').click(); assert(document.body.textContent.includes('Enter a review reason.'), 'Missing rejection reason accepted');
       document.querySelector('textarea[aria-label="Image review reason"]').value = 'Local rejection';
       button('Reject').click(); button('Reject').click();

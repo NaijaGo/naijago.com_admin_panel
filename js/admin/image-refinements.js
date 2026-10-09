@@ -138,6 +138,23 @@
     const node = el('article', '', 'border border-slate-600 rounded-xl p-5');
     node.append(el('h3', row.productName, 'text-xl font-bold'), el('p', `${row.state.replaceAll('_', ' ')} | Attempt ${row.generation}/3 | ${row.profile}${row.sandbox ? ' | SANDBOX - cannot publish' : ''}`, 'text-light-gray my-2'));
     const pair = el('div', '', 'grid grid-cols-1 md:grid-cols-2 gap-4 my-4'); pair.append(picture('Original (preserved)', row.originalUrl), picture('Refined candidate (review required)', row.candidateUrl)); node.append(pair);
+    const publishAllowed = row.sandbox === false;
+    if (row.state === 'pending_review') {
+      if (publishAllowed) {
+        node.append(el('p', 'Approve and publish replaces this product photo in the customer app after the worker completes publication. The original is retained. Confirm the product details and enter a review reason first.', 'text-light-gray my-3'));
+      } else {
+        const blocked = button('Approve and publish'); blocked.disabled = true;
+        blocked.style.opacity = '0.5'; blocked.style.cursor = 'not-allowed';
+        const explanation = row.sandbox === true
+          ? 'This is a sandbox test image and cannot replace a customer photo. Configure the backend and Image Studio worker with the live Photoroom key and PHOTOROOM_SANDBOX=false, then generate a new live candidate. Changing configuration does not make this existing sandbox image publishable.'
+          : 'Publication is unavailable because the image mode could not be verified. Refresh reviews before continuing.';
+        blocked.title = explanation; node.append(blocked, el('p', explanation, 'text-amber-300 my-3'));
+      }
+    } else if (row.state === 'publishing') {
+      node.append(el('p', 'Publication is queued or processing. The customer photo changes only after publication completes. Refresh reviews to check the result.', 'text-light-gray my-3'));
+    } else if (row.state === 'approved') {
+      node.append(el('p', 'Published to the product used by the customer app. Refresh the product in the customer app to load its updated photo. The original is retained.', 'text-light-gray my-3'));
+    }
     if (row.code) node.append(el('p', `Processing note: ${row.code.replaceAll('_', ' ')}.`, 'text-amber-300 my-2'));
     const history = el('details', '', 'my-3'); history.append(el('summary', 'Review history'));
     for (const event of row.history || []) history.append(el('p', `${new Date(event.at).toLocaleString()}: ${event.action} - ${event.reason || ''}`, 'text-light-gray text-sm my-2'));
@@ -147,7 +164,7 @@
     const style = select('Regeneration style', profiles); style.value = row.profile;
     const actions = el('div', '', 'flex flex-wrap gap-3'); const feedback = el('p', '', 'text-light-gray my-3'); feedback.setAttribute('role', 'status');
     const available = [];
-    if (row.state === 'pending_review') { if (!row.sandbox) available.push(['approve', 'Approve and publish']); available.push(['reject', 'Reject']); }
+    if (row.state === 'pending_review') { if (publishAllowed) available.push(['approve', 'Approve and publish']); available.push(['reject', 'Reject']); }
     if (row.canRegenerate) available.push(['regenerate', 'Regenerate (uses budget)']);
     if (row.state === 'uncertain' && row.storedState === 'publishing') available.push(['retry_publish', 'Retry approved publication']);
     for (const [action, label] of available) {
@@ -162,7 +179,7 @@
         } catch (error) { feedback.textContent = error.message; for (const item of actions.children) item.disabled = false; }
       };
     }
-    if (available.length) node.append(note, ...(row.state === 'pending_review' && !row.sandbox ? [confirmed.label] : []), ...(row.canRegenerate ? [style] : []), actions, feedback);
+    if (available.length) node.append(note, ...(row.state === 'pending_review' && publishAllowed ? [confirmed.label] : []), ...(row.canRegenerate ? [style] : []), actions, feedback);
     return node;
   }
   const pending = (row) => ['queued', 'preserving', 'generating', 'publishing'].includes(row.state);
