@@ -9,18 +9,19 @@ const browser = process.env.ADMIN_IMAGE_STUDIO_BROWSER_PATH;
 
 // Runs the real Image Studio JavaScript against local API fixtures only.
 // This is UI verification, not live authentication/provider verification.
-test('Image Studio browser readiness, preview, consent, duplicates and sandbox review', { skip: !browser, timeout: 90000 }, async () => {
+test('Image Studio browser readiness, consent, duplicates, sandbox and main-photo publication', { skip: !browser, timeout: 90000 }, async () => {
   // Load this optional local harness only when explicitly running the browser
   // check; ordinary Admin tests must also work in a standalone checkout.
   const express = createRequire(path.resolve(__dirname, '../../naijago_backend/package.json'))('express');
   const app = express(); app.use(express.json());
   const id = '111111111111111111111111', productId = '222222222222222222222222';
-  const counts = { batches: 0, reviews: 0, setups: 0 }; let state = 'pending_review', initialized = false, externalConfigReads = 0;
+  const counts = { batches: 0, reviews: 0, setups: 0 }; let state = 'pending_review', publicationTarget = 'source', initialized = false, externalConfigReads = 0;
   const row = req => ({ id, productId, productName: 'Local studio fixture', state, storedState: state,
     generation: 1, revision: state === 'pending_review' ? 0 : 1, profile: 'standard',
-    ...(mode(req) === 'ready-unknown' ? {} : { sandbox: mode(req) !== 'ready-live' }), history: [], canRegenerate: false });
+    ...(mode(req) === 'ready-unknown' ? {} : { sandbox: !['ready-live', 'ready-main', 'ready-promote'].includes(mode(req)) }),
+    publicationTarget, canSetAsMain: ['ready-live', 'ready-main', 'ready-promote'].includes(mode(req)) && publicationTarget !== 'main', history: [], canRegenerate: false });
   const mode = req => new URL(req.headers.referer || 'http://127.0.0.1/?mode=ready').searchParams.get('mode');
-  const isReady = req => ['ready', 'ready-live', 'ready-unknown'].includes(mode(req)) || (mode(req) === 'initialize' && initialized) || (mode(req) === 'external' && externalConfigReads > 1);
+  const isReady = req => ['ready', 'ready-live', 'ready-main', 'ready-promote', 'ready-unknown'].includes(mode(req)) || (mode(req) === 'initialize' && initialized) || (mode(req) === 'external' && externalConfigReads > 1);
   app.get('/studio', (_req, res) => res.type('html').send(`<!doctype html><html><head><title>Local Image Studio verification</title></head><body>
     <section class="card"><div id="productModerationList"></div></section>
     <script>const currentPage='product-moderation',adminToken='local-fixture',BASE_URL=window.location.origin;
@@ -47,9 +48,16 @@ test('Image Studio browser readiness, preview, consent, duplicates and sandbox r
     productName: 'Local studio fixture', newImages: 1, skippedImages: 0, state: 'eligible', images: [{ eligible: true }] }], message: 'Local preview fixture' }));
   app.post('/api/image-refinements/batch', (_req, res) => { counts.batches++; setTimeout(() => res.status(202).json({ results: [{ productId, state: 'scheduled' }] }), 100); });
   app.put('/api/image-refinements/:id', (req, res) => {
-    if (mode(req) === 'ready-live') {
+    if (mode(req) === 'ready-promote') {
+      assert.equal(req.body.action, 'set_main'); assert.equal(req.body.reason, 'Local promotion');
+      assert.equal(req.body.identityConfirmed, true); assert.equal(req.body.revision, 1);
+      assert.equal(Object.hasOwn(req.body, 'setAsMain'), false);
+      publicationTarget = 'main';
+    } else if (['ready-live', 'ready-main'].includes(mode(req))) {
       assert.equal(req.body.action, 'approve'); assert.equal(req.body.reason, 'Local approval');
       assert.equal(req.body.identityConfirmed, true); assert.equal(req.body.revision, 0);
+      assert.equal(req.body.setAsMain, mode(req) === 'ready-main');
+      publicationTarget = req.body.setAsMain ? 'main' : 'source';
       state = 'publishing';
     } else {
       assert.equal(mode(req), 'ready'); assert.equal(req.body.action, 'reject'); assert.equal(req.body.reason, 'Local rejection'); state = 'rejected';
@@ -58,8 +66,8 @@ test('Image Studio browser readiness, preview, consent, duplicates and sandbox r
   });
   const server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
   try {
-    for (const selectedMode of ['blocked', 'external', 'manual-review', 'initialize', 'ready', 'ready-live', 'ready-unknown']) {
-      state = 'pending_review';
+    for (const selectedMode of ['blocked', 'external', 'manual-review', 'initialize', 'ready', 'ready-live', 'ready-main', 'ready-promote', 'ready-unknown']) {
+      state = selectedMode === 'ready-promote' ? 'approved' : 'pending_review'; publicationTarget = 'source';
       const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'naijago-image-browser-'));
       const child = spawn(browser, ['--headless=new', '--disable-gpu', '--no-first-run', '--disable-background-networking',
         '--user-data-dir=' + profile, '--dump-dom', '--virtual-time-budget=20000',
@@ -75,7 +83,7 @@ test('Image Studio browser readiness, preview, consent, duplicates and sandbox r
       assert.equal(result[1], 'pass', selectedMode + ': ' + result[2]);
       if (!selectedMode.startsWith('ready')) { assert.equal(counts.batches, 0); assert.equal(counts.reviews, 0); }
     }
-    assert.equal(counts.batches, 1); assert.equal(counts.reviews, 2); assert.equal(counts.setups, 2);
+    assert.equal(counts.batches, 1); assert.equal(counts.reviews, 4); assert.equal(counts.setups, 2);
   } finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
 });
 
@@ -93,7 +101,18 @@ async function checks() {
     const selected = productLabel().querySelector('input'); selected.click();
     const queue = button('Queue selected images');
     const mode = new URL(location.href).searchParams.get('mode');
-    if (mode === 'ready-live') {
+    if (mode === 'ready-promote') {
+      phase = 'promoting an already-published gallery image';
+      await wait(() => button('Set as main customer photo'));
+      const promote = button('Set as main customer photo');
+      promote.click(); assert(document.body.textContent.includes('Enter a review reason.'), 'Promotion accepted without reason');
+      document.querySelector('textarea[aria-label="Image review reason"]').value = 'Local promotion';
+      promote.click(); assert(document.body.textContent.includes('Confirm product accuracy and rights first.'), 'Promotion accepted without identity confirmation');
+      [...document.querySelectorAll('label')].find(node => node.textContent.includes('I checked the real product identity')).querySelector('input').click();
+      promote.click(); promote.click();
+      await wait(() => document.body.textContent.includes('Published as the main customer photo.'));
+      assert(!button('Set as main customer photo'), 'Completed promotion could be submitted again');
+    } else if (mode === 'ready-live' || mode === 'ready-main') {
       phase = 'live publication controls';
       await wait(() => button('Approve and publish'));
       const approve = button('Approve and publish'); assert(!approve.disabled, 'Live candidate has no publication action');
@@ -101,8 +120,12 @@ async function checks() {
       document.querySelector('textarea[aria-label="Image review reason"]').value = 'Local approval';
       approve.click(); assert(document.body.textContent.includes('Confirm product accuracy and rights first.'), 'Approval accepted without identity confirmation');
       [...document.querySelectorAll('label')].find(node => node.textContent.includes('I checked the real product identity')).querySelector('input').click();
+      const mainOption = [...document.querySelectorAll('label')].find(node => node.textContent.includes('Use this refined image as the main customer photo.')).querySelector('input');
+      assert(!mainOption.checked, 'Gallery publication silently changed to main publication');
+      if (mode === 'ready-main') { mainOption.click(); assert(approve.textContent === 'Approve and set as main photo', 'Main-image action not explained'); }
       approve.click(); approve.click();
       await wait(() => document.querySelector('#imageRefinements article')?.textContent.includes('Publication is queued or processing.'));
+      if (mode === 'ready-main') assert(document.body.textContent.includes('This image will become the main customer photo.'), 'Main publication target was lost');
       assert(!button('Approve and publish'), 'Publication could be submitted again');
     } else if (mode === 'ready-unknown') {
       phase = 'unknown image mode';

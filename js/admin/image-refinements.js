@@ -142,6 +142,7 @@
     if (row.state === 'pending_review') {
       if (publishAllowed) {
         node.append(el('p', 'Approve and publish replaces this product photo in the customer app after the worker completes publication. The original is retained. Confirm the product details and enter a review reason first.', 'text-light-gray my-3'));
+        if (row.canSetAsMain === true) node.append(el('p', 'To use this refined photo as the main customer image, select the main-photo option below before approving. Other gallery photos are retained.', 'text-light-gray my-3'));
       } else {
         const blocked = button('Approve and publish'); blocked.disabled = true;
         blocked.style.opacity = '0.5'; blocked.style.cursor = 'not-allowed';
@@ -151,9 +152,9 @@
         blocked.title = explanation; node.append(blocked, el('p', explanation, 'text-amber-300 my-3'));
       }
     } else if (row.state === 'publishing') {
-      node.append(el('p', 'Publication is queued or processing. The customer photo changes only after publication completes. Refresh reviews to check the result.', 'text-light-gray my-3'));
+      node.append(el('p', `Publication is queued or processing.${row.publicationTarget === 'main' ? ' This image will become the main customer photo.' : ''} The customer photo changes only after publication completes. Refresh reviews to check the result.`, 'text-light-gray my-3'));
     } else if (row.state === 'approved') {
-      node.append(el('p', 'Published to the product used by the customer app. Refresh the product in the customer app to load its updated photo. The original is retained.', 'text-light-gray my-3'));
+      node.append(el('p', `Published${row.publicationTarget === 'main' ? ' as the main customer photo' : ' to the product used by the customer app'}. Refresh the product in the customer app to load its updated photo. The original is retained.`, 'text-light-gray my-3'));
     }
     if (row.code) node.append(el('p', `Processing note: ${row.code.replaceAll('_', ' ')}.`, 'text-amber-300 my-2'));
     const history = el('details', '', 'my-3'); history.append(el('summary', 'Review history'));
@@ -161,25 +162,34 @@
     node.append(history);
     const note = el('textarea', '', 'input-field w-full my-3'); note.placeholder = 'Reason for this decision'; note.maxLength = 1000; note.setAttribute('aria-label', 'Image review reason');
     const confirmed = checkbox('I checked the real product identity, colours, labels, quantity and image rights.');
+    const makeMain = checkbox('Use this refined image as the main customer photo.');
+    const canSetAsMain = row.canSetAsMain === true && publishAllowed && row.state === 'pending_review';
     const style = select('Regeneration style', profiles); style.value = row.profile;
     const actions = el('div', '', 'flex flex-wrap gap-3'); const feedback = el('p', '', 'text-light-gray my-3'); feedback.setAttribute('role', 'status');
     const available = [];
     if (row.state === 'pending_review') { if (publishAllowed) available.push(['approve', 'Approve and publish']); available.push(['reject', 'Reject']); }
     if (row.canRegenerate) available.push(['regenerate', 'Regenerate (uses budget)']);
+    const canPromote = row.state === 'approved' && publishAllowed && row.canSetAsMain === true;
+    if (canPromote) available.push(['set_main', 'Set as main customer photo']);
     if (row.state === 'uncertain' && row.storedState === 'publishing') available.push(['retry_publish', 'Retry approved publication']);
     for (const [action, label] of available) {
       const control = button(label); actions.append(control);
+      if (action === 'approve' && canSetAsMain) makeMain.input.onchange = () => {
+        control.textContent = makeMain.input.checked ? 'Approve and set as main photo' : label;
+      };
       control.onclick = async () => {
         if (!note.value.trim()) { feedback.textContent = 'Enter a review reason.'; note.focus(); return; }
-        if (action === 'approve' && !confirmed.input.checked) { feedback.textContent = 'Confirm product accuracy and rights first.'; return; }
+        if (['approve', 'set_main'].includes(action) && !confirmed.input.checked) { feedback.textContent = 'Confirm product accuracy and rights first.'; return; }
         for (const item of actions.children) item.disabled = true;
         try {
-          const result = await api(`/${row.id}`, { method: 'PUT', body: JSON.stringify({ action, reason: note.value.trim(), identityConfirmed: confirmed.input.checked, profile: style.value, revision: row.revision }) });
+          const result = await api(`/${row.id}`, { method: 'PUT', body: JSON.stringify({ action, reason: note.value.trim(), identityConfirmed: confirmed.input.checked, profile: style.value, revision: row.revision,
+            ...(action === 'approve' ? { setAsMain: canSetAsMain && makeMain.input.checked } : {}) }) });
           const updated = card(result); node.replaceWith(updated); cards.set(row.id, { node: updated, row: result }); pollCount = 0;
         } catch (error) { feedback.textContent = error.message; for (const item of actions.children) item.disabled = false; }
       };
     }
-    if (available.length) node.append(note, ...(row.state === 'pending_review' && publishAllowed ? [confirmed.label] : []), ...(row.canRegenerate ? [style] : []), actions, feedback);
+    if (canPromote) node.append(el('p', 'This live image is already published in the gallery. Set it as the main customer photo without regenerating it or using another Photoroom edit.', 'text-light-gray my-3'));
+    if (available.length) node.append(note, ...((row.state === 'pending_review' && publishAllowed) || canPromote ? [confirmed.label] : []), ...(canSetAsMain ? [makeMain.label] : []), ...(row.canRegenerate ? [style] : []), actions, feedback);
     return node;
   }
   const pending = (row) => ['queued', 'preserving', 'generating', 'publishing'].includes(row.state);
