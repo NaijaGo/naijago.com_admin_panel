@@ -14,6 +14,14 @@
   const setupStatus = el('p', '', 'text-amber-300 my-3'); setupStatus.setAttribute('role', 'status');
   panel.append(el('h2', 'Product image studio', 'text-3xl font-bold text-accent-cyan'),
     el('p', 'Originals are retained. Refined candidates stay private until you approve them. Check the exact product, labels, colours and quantity. This never changes stock, prices or product availability.', 'text-light-gray my-3'), setupStatus, status);
+  const refreshSetup = button('Refresh setup status');
+  const setupGroup = el('div', '', 'border border-slate-600 rounded-xl p-4 my-4'); setupGroup.hidden = true;
+  const setupConsent = checkbox('I authorize creating the three Image Studio collections and their required indexes.');
+  const initialize = button('Initialize Image Studio'); initialize.disabled = true;
+  const setupFeedback = el('p', '', 'text-light-gray my-3'); setupFeedback.setAttribute('role', 'status');
+  setupGroup.append(el('h3', 'Set up Image Studio database', 'font-bold'),
+    el('p', 'Creates imagerefinements, backgroundjobs and aiusagebuckets with their required indexes. This does not queue photos, call Photoroom or change products, orders, stock or prices.', 'text-light-gray my-3'), setupConsent.label, initialize);
+  panel.append(refreshSetup, setupGroup, setupFeedback);
   const batch = el('details', '', 'border border-slate-600 rounded-xl p-4 my-4'); batch.append(el('summary', 'Refine existing products in a batch (up to 20)', 'font-bold cursor-pointer'));
   const term = el('input', '', 'input-field my-3'); term.placeholder = 'Product name, brand, SKU or category'; term.maxLength = 200; term.setAttribute('aria-label', 'Find products to refine');
   const find = button('Search products'), previous = button('Previous products'), next = button('More products');
@@ -33,15 +41,21 @@
   const selected = new Set(), cards = new Map();
   let page = 1, cursor = null, processingEnabled = false, epoch = 0, searchEpoch = 0, busy = false, pollCount = 0, activeState = '';
   let previewKey = '', previewImages = 0, previewEpoch = 0, inspecting = false, queueing = false;
+  let setupAllowed = false, settingUp = false, configBusy = false;
   const selectionKey = () => [...selected].sort().join(',');
   function syncBatch() {
-    inspect.disabled = !processingEnabled || !selected.size || inspecting || queueing;
-    queue.disabled = !processingEnabled || !rights.input.checked || !selected.size ||
+    inspect.disabled = !processingEnabled || !selected.size || inspecting || queueing || settingUp || configBusy;
+    queue.disabled = !processingEnabled || !rights.input.checked || !selected.size || settingUp || configBusy ||
       previewKey !== selectionKey() || !previewImages || inspecting || queueing;
     for (const control of [inspect, queue]) {
       control.style.opacity = control.disabled ? '0.5' : '1';
       control.style.cursor = control.disabled ? 'not-allowed' : 'pointer';
     }
+  }
+  function syncSetup() {
+    initialize.disabled = !setupAllowed || !setupConsent.input.checked || settingUp || configBusy;
+    setupConsent.input.disabled = settingUp || configBusy;
+    refreshSetup.disabled = settingUp || configBusy;
   }
   function invalidatePreview() {
     ++previewEpoch; previewKey = ''; previewImages = 0; inspecting = false;
@@ -180,25 +194,50 @@
     } catch (error) { batchStatus.textContent = error.message; }
     finally { queueing = false; profile.disabled = rights.input.disabled = false; syncBatch(); }
   };
-  refresh.onclick = () => load(); more.onclick = () => load(true); state.onchange = () => load();
+  refresh.onclick = () => loadConfiguration(); more.onclick = () => load(true); state.onchange = () => load();
+  refreshSetup.onclick = () => loadConfiguration();
+  setupConsent.input.onchange = syncSetup;
+  initialize.onclick = async () => {
+    if (!setupAllowed || !setupConsent.input.checked || settingUp || configBusy) return;
+    settingUp = true; syncSetup(); syncBatch();
+    setupFeedback.textContent = 'Initializing Image Studio collections and indexes. No photos are being processed.';
+    try {
+      const data = await api('/setup', { method: 'POST', body: JSON.stringify({ confirmation: 'CREATE_IMAGE_STUDIO_COLLECTIONS_AND_INDEXES' }) });
+      if (data.ready !== true) throw new Error('Database readiness was not confirmed. Refresh setup status before retrying.');
+      setupFeedback.textContent = data.message || 'Image Studio database is ready. Worker/provider operation still needs verification.';
+      setupConsent.input.checked = false;
+    } catch (error) { setupFeedback.textContent = error.message; }
+    finally { settingUp = false; await loadConfiguration(); syncSetup(); syncBatch(); }
+  };
   const timer = setInterval(() => { if (!document.hidden && !activeState && pollCount++ < 36 && [...cards.values()].some(({ row }) => pending(row))) load(false, true); }, 10000);
   window.addEventListener('pagehide', () => clearInterval(timer), { once: true });
-  api('/config').then((config) => {
-    processingEnabled = config.processingEnabled; syncBatch(); batch.hidden = !config.enabled;
-    const missing = Array.isArray(config.missingConfiguration) ? config.missingConfiguration.filter(name => /^[A-Z_]+$/.test(name)) : [];
-    const setup = missing.length ? `Required environment settings: ${missing.join(', ')}.` : '';
-    const mode = config.keyModeMismatch ? 'A sandbox key cannot be used in live mode. Keep PHOTOROOM_SANDBOX=true while testing.' : '';
-    const worker = 'Processing needs a separate Render background worker running npm run worker:image-refinements. A web-service deployment alone does not run it.';
-    const databaseIssues = Array.isArray(config.databaseChecks) ? config.databaseChecks.filter(check => check.status !== 'ready')
-      .map(check => `${check.collection}: ${check.status}${Array.isArray(check.missingIndexes) ? ` (${check.missingIndexes.map(index => Object.keys(index.key || {}).join(' + ')).join('; ')})` : ''}`).join('. ') : '';
-    batch.append(el('p', worker, 'text-light-gray my-3'));
-    setupStatus.textContent = [setup, mode,
-      config.enabled && config.databaseReady === false ? 'Database/index readiness failed. Check the Image Studio collections, required indexes and database read permissions.' : '',
-      databaseIssues,
-      !config.enabled ? 'Image refinement is disabled.' : '',
-      processingEnabled ? `Processing configuration is ready${config.sandbox ? ' in sandbox mode (no customer publication)' : ''}; worker/provider operation still needs verification.` : '',
-      worker].filter(Boolean).join(' ');
-    if (!config.enabled) { status.textContent = `Image refinement is disabled. ${setup} ${worker}`; refresh.disabled = true; return; }
-    load();
-  }).catch((error) => { setupStatus.textContent = `Configuration check unavailable: ${error.message}`; status.textContent = error.message; processingEnabled = false; syncBatch(); });
+  const worker = 'Processing needs a separate Render background worker running npm run worker:image-refinements. A web-service deployment alone does not run it.';
+  batch.append(el('p', worker, 'text-light-gray my-3'));
+  async function loadConfiguration() {
+    if (configBusy || settingUp) return;
+    configBusy = true; syncSetup(); syncBatch();
+    try {
+      const config = await api('/config');
+      processingEnabled = config.processingEnabled; syncBatch(); batch.hidden = !config.enabled;
+      setupAllowed = config.setupAvailable === true; setupGroup.hidden = !setupAllowed;
+      const missing = Array.isArray(config.missingConfiguration) ? config.missingConfiguration.filter(name => /^[A-Z_]+$/.test(name)) : [];
+      const setup = missing.length ? `Required environment settings: ${missing.join(', ')}.` : '';
+      const mode = config.keyModeMismatch ? 'A sandbox key cannot be used in live mode. Keep PHOTOROOM_SANDBOX=true while testing.' : '';
+      const databaseIssues = Array.isArray(config.databaseChecks) ? config.databaseChecks.filter(check => check.status !== 'ready')
+        .map(check => `${check.collection}: ${check.status}${Array.isArray(check.missingIndexes) ? ` (${check.missingIndexes.map(index => Object.keys(index.key || {}).join(' + ')).join('; ')})` : ''}`).join('. ') : '';
+      setupStatus.textContent = [setup, mode,
+        config.enabled && config.databaseReady === false ? 'Database/index readiness failed. Check the Image Studio collections, required indexes and database read permissions.' : '',
+        databaseIssues,
+        !config.enabled ? 'Image refinement is disabled.' : '',
+        processingEnabled ? `Processing configuration is ready${config.sandbox ? ' in sandbox mode (no customer publication)' : ''}; worker/provider operation still needs verification.` : '',
+        worker].filter(Boolean).join(' ');
+      if (!config.enabled) { status.textContent = `Image refinement is disabled. ${setup} ${worker}`; refresh.disabled = true; return; }
+      if (config.databaseReady) await load();
+      else status.textContent = setupAllowed ? 'Confirm database setup above to prepare Image Studio.' : 'Database setup requires operator review. Refresh setup status after it is resolved.';
+    } catch (error) {
+      setupStatus.textContent = `Configuration check unavailable: ${error.message}`; status.textContent = error.message;
+      processingEnabled = false; setupAllowed = false; setupGroup.hidden = true;
+    } finally { configBusy = false; syncSetup(); syncBatch(); }
+  }
+  loadConfiguration();
 })();

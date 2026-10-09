@@ -15,10 +15,11 @@ test('Image Studio browser readiness, preview, consent, duplicates and sandbox r
   const express = createRequire(path.resolve(__dirname, '../../naijago_backend/package.json'))('express');
   const app = express(); app.use(express.json());
   const id = '111111111111111111111111', productId = '222222222222222222222222';
-  const counts = { batches: 0, reviews: 0 }; let state = 'pending_review';
+  const counts = { batches: 0, reviews: 0, setups: 0 }; let state = 'pending_review', initialized = false, externalConfigReads = 0;
   const row = () => ({ id, productId, productName: 'Local studio fixture', state, storedState: state,
     generation: 1, revision: state === 'pending_review' ? 0 : 1, profile: 'standard', sandbox: true, history: [], canRegenerate: false });
   const mode = req => new URL(req.headers.referer || 'http://127.0.0.1/?mode=ready').searchParams.get('mode');
+  const isReady = req => mode(req) === 'ready' || (mode(req) === 'initialize' && initialized) || (mode(req) === 'external' && externalConfigReads > 1);
   app.get('/studio', (_req, res) => res.type('html').send(`<!doctype html><html><head><title>Local Image Studio verification</title></head><body>
     <section class="card"><div id="productModerationList"></div></section>
     <script>const currentPage='product-moderation',adminToken='local-fixture',BASE_URL=window.location.origin;
@@ -27,10 +28,19 @@ test('Image Studio browser readiness, preview, consent, duplicates and sandbox r
   app.get('/image-refinements.js', (_req, res) => res.sendFile(path.resolve(__dirname, '../js/admin/image-refinements.js')));
   app.get('/checks.js', (_req, res) => res.type('js').send('(' + checks.toString() + ')();'));
   app.get('/api/products/admin/catalog', (_req, res) => res.json({ products: [{ _id: productId, name: 'Local studio fixture', productStatus: 'active' }], total: 1 }));
-  app.get('/api/image-refinements/config', (req, res) => res.json({ enabled: true, processingEnabled: mode(req) !== 'blocked', sandbox: true,
-    databaseReady: mode(req) !== 'blocked', missingConfiguration: [], databaseChecks: mode(req) === 'blocked'
-      ? [{ collection: 'imagerefinements', status: 'collection_missing' }] : [] }));
-  app.get('/api/image-refinements', (req, res) => mode(req) === 'blocked'
+  app.get('/api/image-refinements/config', (req, res) => {
+    if (mode(req) === 'external') externalConfigReads++;
+    return res.json({ enabled: true, processingEnabled: isReady(req), sandbox: true,
+    databaseReady: isReady(req), setupAvailable: !isReady(req), missingConfiguration: [], databaseChecks: !isReady(req)
+      ? [{ collection: 'imagerefinements', status: 'collection_missing' }] : [] });
+  });
+  app.post('/api/image-refinements/setup', (req, res) => {
+    assert.deepEqual(req.body, { confirmation: 'CREATE_IMAGE_STUDIO_COLLECTIONS_AND_INDEXES' }); counts.setups++;
+    if (mode(req) === 'manual-review') return res.status(409).json({ ready: false, message: 'A collection with missing indexes contains data. Manual rollout review required.' });
+    initialized = true;
+    setTimeout(() => res.json({ ready: true, message: 'Image Studio database is ready. No images were queued or processed.' }), 100);
+  });
+  app.get('/api/image-refinements', (req, res) => !isReady(req)
     ? res.status(503).json({ message: 'Image refinement is not enabled or is still preparing.' }) : res.json({ images: [row()], nextCursor: null }));
   app.post('/api/image-refinements/preview', (_req, res) => res.json({ newImages: 1, products: [{ productId,
     productName: 'Local studio fixture', newImages: 1, skippedImages: 0, state: 'eligible', images: [{ eligible: true }] }], message: 'Local preview fixture' }));
@@ -41,7 +51,7 @@ test('Image Studio browser readiness, preview, consent, duplicates and sandbox r
   });
   const server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
   try {
-    for (const selectedMode of ['blocked', 'ready']) {
+    for (const selectedMode of ['blocked', 'external', 'manual-review', 'initialize', 'ready']) {
       const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'naijago-image-browser-'));
       const child = spawn(browser, ['--headless=new', '--disable-gpu', '--no-first-run', '--disable-background-networking',
         '--user-data-dir=' + profile, '--dump-dom', '--virtual-time-budget=20000',
@@ -55,8 +65,9 @@ test('Image Studio browser readiness, preview, consent, duplicates and sandbox r
       const result = stdout.match(/<pre id="studio-check-result" data-status="(pass|fail)">([^<]*)<\/pre>/);
       assert.ok(result, 'Browser did not complete ' + selectedMode + ' checks');
       assert.equal(result[1], 'pass', selectedMode + ': ' + result[2]);
+      if (selectedMode !== 'ready') { assert.equal(counts.batches, 0); assert.equal(counts.reviews, 0); }
     }
-    assert.equal(counts.batches, 1); assert.equal(counts.reviews, 1);
+    assert.equal(counts.batches, 1); assert.equal(counts.reviews, 1); assert.equal(counts.setups, 2);
   } finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
 });
 
@@ -73,11 +84,34 @@ async function checks() {
     await wait(() => productLabel());
     const selected = productLabel().querySelector('input'); selected.click();
     const queue = button('Queue selected images');
-    if (new URL(location.href).searchParams.get('mode') === 'blocked') {
+    const mode = new URL(location.href).searchParams.get('mode');
+    if (mode !== 'ready') {
       await wait(() => document.getElementById('imageRefinements').textContent.includes('collection_missing'));
       assert(queue.disabled && button('Preview selected photos').disabled, 'Unready processing controls enabled');
       selected.click();
       assert(document.getElementById('imageRefinements').textContent.includes('collection_missing'), 'Product selection hid readiness error');
+      if (mode === 'external') {
+        phase = 'refreshing externally completed setup'; selected.click(); button('Refresh setup status').click();
+        await wait(() => !button('Preview selected photos').disabled);
+        assert(!document.getElementById('imageRefinements').textContent.includes('collection_missing'), 'Refresh did not clear stale setup errors');
+        assert(selected.checked && queue.disabled, 'Refresh changed selection or bypassed preview/consent');
+      } else if (mode !== 'blocked') {
+        phase = 'confirmed database setup'; selected.click();
+        const initialize = button('Initialize Image Studio');
+        assert(initialize.disabled, 'Database setup allowed without explicit confirmation');
+        [...document.querySelectorAll('label')].find(node => node.textContent.includes('I authorize creating')).querySelector('input').click();
+        assert(!initialize.disabled, 'Confirmation did not enable database setup'); initialize.click(); initialize.click();
+        if (mode === 'manual-review') {
+          await wait(() => document.body.textContent.includes('Manual rollout review required.'));
+          assert(queue.disabled && button('Preview selected photos').disabled, 'Failed setup enabled photo processing');
+        } else {
+          await wait(() => !button('Preview selected photos').disabled);
+          assert(!document.getElementById('imageRefinements').textContent.includes('collection_missing'), 'Successful setup left stale configuration errors');
+          assert(selected.checked, 'Setup discarded the selected product');
+          assert(queue.disabled, 'Database setup bypassed photo preview and consent');
+          assert(document.body.textContent.includes('No images were queued or processed.'), 'Setup success not explained');
+        }
+      }
     } else {
       phase = 'processing readiness';
       await wait(() => !button('Preview selected photos').disabled);
