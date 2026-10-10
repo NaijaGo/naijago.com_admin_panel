@@ -20,6 +20,6 @@ const NAIJAGO_CATALOG_TAXONOMY = Object.freeze({
   Agriculture: ["Fertilizers", "Pesticides"],
   "Jewelry & Watches": ["Fine Jewelry", "Fashion Jewelry", "Wrist Watches"],
   "Toys & Games": ["Dolls", "Educational Toys", "Outdoor Toys", "Remote Control Toys", "Stuffed Animals", "Toy Vehicles"],
-  Photography: ["Cameras", "Lenses", "Lighting Equipment", "Camera Bags & Cases", "Tripods & Supports"],
+  Photography: ["Cameras", "Lenses", "Lighting Equipment", "Camera Bags & Cases", "Tripods & Supports", "Content Creator Equipment"],
   "Food & Beverage": ["Restaurant Equipment", "Catering Supplies", "Baking Supplies", "Food Processing", "Beverage Equipment", "Kitchen Utensils", "Food Packaging"],
 });

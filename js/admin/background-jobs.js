@@ -5,7 +5,7 @@
   const el = (tag, text = '', cls = '') => { const node = document.createElement(tag); node.textContent = text; node.className = cls; return node; };
   const panel = el('section', '', 'card p-6 mb-8');
   panel.append(el('h2', 'Background work', 'text-2xl font-bold text-accent-cyan'),
-    el('p', 'Explore notifications and temporary video cleanup. A running backend worker is required. Fix the configuration or provider problem before retrying. Payment jobs are not controlled here.', 'text-light-gray my-3'));
+    el('p', 'Product request notifications and reviewed image processing. A running backend worker is required. Only failed product request notifications can be retried here; image retries use Image Studio review. Legacy Explore/media jobs are read-only. Payment jobs are not controlled here.', 'text-light-gray my-3'));
   const filter = el('select', '', 'input-field'); filter.setAttribute('aria-label', 'Job status');
   for (const state of ['failed', 'queued', 'running', 'completed', 'cancelled']) { const option = el('option', state); option.value = state; filter.append(option); }
   const refresh = el('button', 'Refresh jobs', 'btn btn-primary px-4 py-2 ml-3');
@@ -28,7 +28,7 @@
     item.append(el('h3', `${job.type} - ${job.state}`, 'font-bold'),
       el('p', `Job ${job._id} | Attempts ${job.attempts}/${job.maxAttempts}`, 'text-light-gray text-sm'),
       el('p', job.errorCode ? `Reason: ${job.errorCode}` : `Scheduled: ${new Date(job.runAt).toLocaleString('en-GB', { timeZone: 'Africa/Lagos' })} WAT`, 'text-light-gray my-2'));
-    if (job.state === 'failed' && (job.manualRetries || 0) < 3 && Date.now() - Date.parse(job.createdAt) < 7 * 86400000) {
+    if (job.type === 'request.notify' && job.state === 'failed' && (job.manualRetries || 0) < 3 && Date.now() - Date.parse(job.createdAt) < 7 * 86400000) {
       const reason = el('input', '', 'input-field w-full'); reason.placeholder = 'What did you fix before retrying?'; reason.maxLength = 500; reason.setAttribute('aria-label', 'Retry reason');
       const retry = el('button', 'Queue retry', 'btn btn-primary-alt px-4 py-2 mt-2');
       retry.onclick = async () => {
