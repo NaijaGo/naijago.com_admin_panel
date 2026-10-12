@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vendor Commissions | NaijaGo Admin</title>
+  <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+  <link rel="stylesheet" href="css/admin-panel.css">
+</head>
+<body class="p-4 md:p-8" data-page="vendor-commissions">
+<main class="container mx-auto space-y-6">
+  <header class="flex flex-wrap justify-between gap-4 items-center">
+    <div><a href="index.html" class="text-accent-cyan">&larr; Dashboard</a>
+      <h1 class="text-3xl font-bold text-light-slate mt-3">Vendor commissions</h1>
+      <p class="text-light-gray mt-2">Manage the percentage deducted from vendor product sales in each category.</p></div>
+    <button id="logoutAdminBtn" class="btn btn-danger px-4 py-2">Log out</button>
+  </header>
+  <div id="messageContainer" role="status"></div>
+  <p id="commissionStatus" role="status" aria-live="polite">Loading commission settings...</p>
+  <section class="card p-6">
+    <div class="flex flex-wrap gap-4 justify-between items-center mb-4">
+      <h2 class="text-xl font-bold">Category rates</h2>
+      <button id="refreshCommissions" class="btn btn-primary-alt px-4 py-2" type="button">Refresh rates</button>
+    </div>
+    <p class="text-light-gray mb-3">Enable a custom rate to apply it to all subcategories and vendors in that category. Turn it off to restore the existing default rules.</p>
+    <p id="commissionScope" class="text-light-gray mb-4"></p>
+    <form id="commissionForm">
+      <fieldset id="commissionFields" disabled>
+        <div class="overflow-auto"><table class="w-full text-left">
+          <thead><tr><th class="p-3">Category</th><th class="p-3">Default rates</th><th class="p-3">Custom rate</th><th class="p-3">Commission (%)</th></tr></thead>
+          <tbody id="commissionRows"></tbody>
+        </table></div>
+        <label class="block mt-5" for="commissionReason">Reason for these changes</label>
+        <textarea id="commissionReason" class="input-field mt-2 w-full" minlength="3" maxlength="500" required placeholder="Explain why you are updating these rates"></textarea>
+        <p id="commissionChanges" class="text-light-gray mt-3" aria-live="polite">No changes selected.</p>
+        <button id="saveCommissions" type="submit" class="btn btn-success px-5 py-3 mt-4" disabled>Save commission rates</button>
+      </fieldset>
+    </form>
+  </section>
+  <section class="card p-6">
+    <h2 class="text-xl font-bold mb-4">Change history</h2>
+    <div id="commissionHistory" class="space-y-3"></div>
+  </section>
+</main>
+<script src="js/admin/runtime.js"></script>
+<script src="js/admin/vendor-commissions.js"></script>
+</body>
+</html>
