@@ -156,6 +156,7 @@
         function renderActionOptions(selected = "none") {
           const options = [
             ["none", "No action"],
+            ["deals", "Open NaijaGo Deals"],
             ["restaurant", "Open restaurants"],
             ["pharmacy", "Open pharmacy"],
             ["category", "Open category"],
@@ -172,7 +173,7 @@
 
         function validateCarouselImageSize(file, placement) {
           const requirements = {
-            main: { width: 1200, height: 520, label: "1200 x 520 px" },
+            main: { width: 1080, height: 400, label: "at least 1080 x 400 px; recommended 1300 x 500 px (2.6:1)" },
             promo: { width: 1080, height: 360, label: "1080 x 360 px" },
           };
           const requirement = requirements[placement];
