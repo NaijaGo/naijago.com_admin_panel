@@ -16,11 +16,11 @@ class Node {
 const payload = () => ({ revision: 0, scope: 'New orders only; saved orders and Cost Low retain existing fees.', history: [],
   categories: hierarchy.categories.map(parent => ({ categoryId: parent.id, label: parent.label, subcategoryCount: parent.children.length, overridePercentage: null,
     defaultPercentage: 8, defaultRange: { minimum: 8, maximum: 8 } })) });
-function harness({ token = 'fixture', response = payload(), error = null } = {}) {
+function harness({ token = 'fixture', response = payload(), error = null, script = source } = {}) {
   const ids = new Map(); const calls = [];
   const document = { getElementById(id) { if (!ids.has(id)) ids.set(id, new Node(id)); return ids.get(id); }, createElement(tag) { return new Node(tag); } };
   let nextError = error;
-  vm.runInNewContext(source, { document, adminToken: token, BASE_URL: 'http://local-fixture.invalid', AbortSignal, Date, Map, Number, String, JSON,
+  vm.runInNewContext(script, { document, adminToken: token, BASE_URL: 'http://local-fixture.invalid', AbortSignal, Date, Map, Number, String, JSON,
     window: { confirm: () => true }, clearAdminSession() {}, redirectToLogin() {}, handleAdminSessionExpiry: () => false,
     async fetch(url, options) {
       calls.push({ url, options });
@@ -90,4 +90,57 @@ test('audit strings use text nodes rather than executable HTML', async () => {
   const h = harness({ response }); await h.settle();
   assert.equal(h.ids.get('commissionHistory').children[0].children[1].textContent, '<img onerror=alert(1)>');
   assert.doesNotMatch(source, /innerHTML/);
+});
+const lowCostSource = fs.readFileSync(path.join(__dirname, '../js/admin/low-cost-world-commission.js'), 'utf8');
+const lowCostPayload = () => ({ revision: 0, configured: true, vendorId: '69301d2e1e0bda27c09bcbc2', vendorName: 'Low Cost World', feePerItem: 57,
+  source: 'database', history: [], scope: 'Fixed fee per item for new orders.' });
+test('Low Cost World fixed-fee control is included on the commission page', () => {
+  const page = fs.readFileSync(path.join(__dirname, '../vendor-commissions.html'), 'utf8');
+  assert.match(page, /id="lowCostFeePerItem"/); assert.match(page, /Commission per item \(₦\)/);
+  assert.match(page, /js\/admin\/low-cost-world-commission\.js/);
+});
+test('Low Cost World renders its saved fee in naira including zero', async () => {
+  for (const feePerItem of [0, 57, 60.25]) {
+    const h = harness({ script: lowCostSource, response: { ...lowCostPayload(), feePerItem } }); await h.settle();
+    assert.equal(h.ids.get('lowCostFeePerItem').value, String(feePerItem));
+    assert.equal(h.ids.get('lowCostCurrentFee').textContent, `₦${feePerItem.toFixed(2)}`);
+    assert.equal(h.ids.get('saveLowCostCommission').disabled, true);
+  }
+});
+test('Low Cost World sends a naira fee with revision, linked vendor and audit reason', async () => {
+  const h = harness({ script: lowCostSource, response: lowCostPayload() }); await h.settle();
+  h.ids.get('lowCostFeePerItem').value = '60.25'; await h.ids.get('lowCostFeePerItem').trigger('input');
+  h.ids.get('lowCostCommissionReason').value = 'Updated store agreement';
+  assert.equal(h.ids.get('saveLowCostCommission').disabled, false);
+  await h.ids.get('lowCostCommissionForm').trigger('submit');
+  assert.match(h.calls[1].url, /commission-settings\/low-cost-world$/);
+  assert.deepEqual(JSON.parse(h.calls[1].options.body), { revision: 0, vendorId: lowCostPayload().vendorId, feePerItem: 60.25, reason: 'Updated store agreement' });
+});
+test('unlinked or unavailable store cannot enable fixed fee editing', async () => {
+  const h = harness({ script: lowCostSource, response: { ...lowCostPayload(), configured: false, vendorId: null } }); await h.settle();
+  assert.equal(h.ids.get('lowCostCommissionFields').disabled, true); assert.equal(h.ids.get('saveLowCostCommission').disabled, true);
+  assert.match(h.ids.get('lowCostCommissionStatus').textContent, /Link an approved/);
+  const failed = harness({ script: lowCostSource, error: 'Provider unavailable' }); await failed.settle();
+  assert.equal(failed.ids.get('lowCostCommissionFields').disabled, true);
+});
+test('Low Cost World preserves unsaved fee and reason after a failed save', async () => {
+  const h = harness({ script: lowCostSource, response: lowCostPayload() }); await h.settle();
+  h.ids.get('lowCostFeePerItem').value = '61'; h.ids.get('lowCostCommissionReason').value = 'New store contract'; h.setError('409 fixture');
+  await h.ids.get('lowCostCommissionForm').trigger('submit');
+  assert.equal(h.ids.get('lowCostFeePerItem').value, '61'); assert.equal(h.ids.get('lowCostCommissionReason').value, 'New store contract');
+  assert.match(h.ids.get('lowCostCommissionStatus').textContent, /edits are retained/);
+});
+test('Low Cost World zero is submitted while blank and negative values are blocked', async () => {
+  const h = harness({ script: lowCostSource, response: lowCostPayload() }); await h.settle();
+  for (const value of ['', '-1']) { h.ids.get('lowCostFeePerItem').value = value; await h.ids.get('lowCostCommissionForm').trigger('submit'); }
+  assert.equal(h.calls.length, 1);
+  h.ids.get('lowCostFeePerItem').value = '0'; await h.ids.get('lowCostCommissionForm').trigger('submit');
+  assert.equal(JSON.parse(h.calls[1].options.body).feePerItem, 0);
+});
+test('Low Cost World history uses inert text and displays kobo in naira', async () => {
+  const response = { ...lowCostPayload(), history: [{ changedAt: new Date().toISOString(), previousKoboPerUnit: 5700, newKoboPerUnit: 6000, reason: '<img onerror=alert(1)>' }] };
+  const h = harness({ script: lowCostSource, response }); await h.settle();
+  const card = h.ids.get('lowCostCommissionHistory').children[0];
+  assert.equal(card.children[1].textContent, '₦57.00 → ₦60.00 per item');
+  assert.equal(card.children[2].textContent, '<img onerror=alert(1)>'); assert.doesNotMatch(lowCostSource, /innerHTML/);
 });

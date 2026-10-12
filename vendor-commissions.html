@@ -19,6 +19,28 @@
   <p id="commissionStatus" role="status" aria-live="polite">Loading commission settings...</p>
   <section class="card p-6">
     <div class="flex flex-wrap gap-4 justify-between items-center mb-4">
+      <h2 class="text-xl font-bold">Low Cost World</h2>
+      <button id="refreshLowCostCommission" class="btn btn-primary-alt px-4 py-2" type="button">Refresh store fee</button>
+    </div>
+    <p id="lowCostCommissionStatus" role="status" aria-live="polite">Loading the linked store's commission...</p>
+    <p id="lowCostCommissionScope" class="text-light-gray my-3"></p>
+    <p class="text-light-gray mb-4">This store uses a fixed fee per purchased item. Category percentage changes do not override it.</p>
+    <p class="mb-4">Current fee per item: <strong id="lowCostCurrentFee">Loading...</strong></p>
+    <form id="lowCostCommissionForm">
+      <fieldset id="lowCostCommissionFields" disabled>
+        <label class="block" for="lowCostFeePerItem">Commission per item (₦)</label>
+        <input id="lowCostFeePerItem" class="input-field mt-2" type="number" min="0" step="0.01" required>
+        <label class="block mt-4" for="lowCostCommissionReason">Reason for this change</label>
+        <textarea id="lowCostCommissionReason" class="input-field mt-2 w-full" minlength="3" maxlength="500" required></textarea>
+        <button id="saveLowCostCommission" class="btn btn-success px-5 py-3 mt-4" type="submit" disabled>Save Low Cost World fee</button>
+      </fieldset>
+    </form>
+    <a href="product-moderation.html" class="text-accent-cyan block mt-4">Manage the linked Low Cost World vendor in Product Moderation</a>
+    <h3 class="font-semibold mt-6 mb-3">Store fee history</h3>
+    <div id="lowCostCommissionHistory" class="space-y-3"></div>
+  </section>
+  <section class="card p-6">
+    <div class="flex flex-wrap gap-4 justify-between items-center mb-4">
       <h2 class="text-xl font-bold">Category rates</h2>
       <button id="refreshCommissions" class="btn btn-primary-alt px-4 py-2" type="button">Refresh rates</button>
     </div>
@@ -44,5 +66,6 @@
 </main>
 <script src="js/admin/runtime.js"></script>
 <script src="js/admin/vendor-commissions.js"></script>
+<script src="js/admin/low-cost-world-commission.js"></script>
 </body>
 </html>
