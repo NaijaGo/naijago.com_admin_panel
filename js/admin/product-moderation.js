@@ -28,9 +28,19 @@ const productSellerName = (product) =>
 function populateCategorySelect(selectId) {
   const select = catalogField(selectId);
   if (!select) return;
+  const selected = select.value;
   select.innerHTML = '<option value="">Select category</option>' + Object.keys(NAIJAGO_CATALOG_TAXONOMY)
     .map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
     .join("");
+  preserveCatalogOption(select, selected);
+}
+
+function preserveCatalogOption(select, value) {
+  if (!select || !value) return;
+  if (!Array.from(select.options).some(option => option.value === value)) {
+    const option = document.createElement("option"); option.value = value; option.textContent = value; select.appendChild(option);
+  }
+  select.value = value;
 }
 
 function populateSubcategorySelect(categoryId, subcategoryId, selected = "") {
@@ -41,7 +51,7 @@ function populateSubcategorySelect(categoryId, subcategoryId, selected = "") {
   select.innerHTML = '<option value="">Select subcategory</option>' + options
     .map((subcategory) => `<option value="${escapeHtml(subcategory)}">${escapeHtml(subcategory)}</option>`)
     .join("");
-  select.value = options.includes(selected) ? selected : "";
+  preserveCatalogOption(select, selected);
 }
 
 function taxonomyCategory(value) {
@@ -245,6 +255,7 @@ function removeGeneratedImage() {
 }
 
 function resetCatalogForm() {
+  resetPhotoAnalysis(true);
   catalogProductForm?.reset();
   catalogField("catalogProductId").value = "";
   catalogField("catalogGeneratedImageUrl").value = "";
@@ -264,6 +275,7 @@ function resetCatalogForm() {
 }
 
 function editCatalogProduct(productId) {
+  resetPhotoAnalysis(true);
   const product = catalogProducts.find((entry) => String(entry._id || entry.id) === String(productId));
   if (!product) return;
   for (const [field, id] of [['gender', 'catalogGender'], ['ageGroup', 'catalogAgeGroup'], ['productType', 'catalogProductType']]) {
@@ -274,8 +286,8 @@ function editCatalogProduct(productId) {
   catalogField("catalogBrand").value = product.brand || "";
   catalogField("catalogSku").value = product.sku || "";
   const categoryParts = String(product.category || "").split(">").map((part) => part.trim()).filter(Boolean);
-  const productCategory = taxonomyCategory(categoryParts[0]) || categoryParts[0] || "";
-  catalogField("catalogCategory").value = productCategory;
+  const productCategory = categoryParts[0] || "";
+  preserveCatalogOption(catalogField("catalogCategory"), productCategory);
   populateSubcategorySelect("catalogCategory", "catalogSubcategory", product.subcategory || categoryParts.slice(1).join(" > "));
   catalogField("catalogTags").value = (product.searchTags || []).join(", ");
   catalogField("catalogPrice").value = product.price ?? "";
@@ -283,6 +295,7 @@ function editCatalogProduct(productId) {
   catalogField("catalogStock").value = product.stockQuantity ?? 0;
   catalogField("catalogStatus").value = product.productStatus || (product.isActive ? "active" : "disabled");
   catalogField("catalogDescription").value = product.description || "";
+  if (catalogField("catalogSpecifications")) catalogField("catalogSpecifications").value = JSON.stringify(product.specifications || {}, null, 2);
   catalogField("catalogSource").value = product.source || "admin";
   catalogField("catalogAiMetadata").value = JSON.stringify(product.aiMetadata || {});
   catalogField("catalogProvenance").value = JSON.stringify(product.provenance || {});
@@ -305,6 +318,12 @@ function editCatalogProduct(productId) {
 
 function buildProductFormData() {
   const data = new FormData();
+  const specifications = catalogField("catalogSpecifications")?.value.trim();
+  if (specifications) {
+    const parsed = JSON.parse(specifications);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("Attributes must be a JSON object.");
+    data.append("specifications", JSON.stringify(parsed));
+  }
   for (const [field, id] of [['gender', 'catalogGender'], ['ageGroup', 'catalogAgeGroup'], ['productType', 'catalogProductType']]) {
     if (catalogField(id)) data.append(field, catalogField(id).value.trim());
   }
@@ -340,6 +359,18 @@ function buildProductFormData() {
     aiMetadata: catalogField("catalogAiMetadata").value,
     provenance: JSON.stringify(provenance),
   };
+  const editingProduct = catalogProducts.find(entry => String(entry._id || entry.id) === catalogField("catalogProductId").value);
+  let categoryUnchanged = false;
+  if (editingProduct) {
+    const originalParts = String(editingProduct.category || "").split(">").map(part => part.trim()).filter(Boolean);
+    const originalChild = editingProduct.subcategory || originalParts.slice(1).join(" > ");
+    if (values.category === originalParts[0] && values.subcategory === originalChild) {
+      values.category = editingProduct.category;
+      values.subcategory = editingProduct.subcategory || "";
+      categoryUnchanged = true;
+    }
+  }
+  if (!categoryUnchanged) Object.assign(values, catalogCategoryReferences(values.category, values.subcategory));
   Object.entries(values).forEach(([key, value]) => data.append(key, value));
   const mainImage = catalogField("catalogMainImage").files[0];
   if (mainImage) data.append("mainImage", mainImage);
@@ -350,6 +381,9 @@ function buildProductFormData() {
 
 async function saveCatalogProduct(event) {
   event.preventDefault();
+  if (photoAnalysisBusy || (photoAnalysisApplied && !catalogField("catalogAnalysisReviewed")?.checked)) {
+    return displayMessage("Wait for image analysis and review the suggested details before saving.", "error");
+  }
   const productId = catalogField("catalogProductId").value;
   if (!productId && !catalogField("catalogMainImage").files[0] && !catalogField("catalogGeneratedImageUrl").value) {
     displayMessage("A main product image is required.", "error");
@@ -644,6 +678,68 @@ async function generateAiCatalogDrafts() {
   }
 }
 
+let photoAnalysisSequence = 0, photoAnalysisBusy = false, photoAnalysisApplied = false, photoAnalysisResult = null;
+let photoAnalysisAbort = null;
+const photoFields = { name: "catalogName", description: "catalogDescription", brand: "catalogBrand", tags: "catalogTags",
+  specifications: "catalogSpecifications", category: "catalogCategory", subcategory: "catalogSubcategory" };
+function photoSnapshot() {
+  return Object.fromEntries(Object.entries(photoFields).map(([key, id]) => [key, catalogField(id)?.value || ""]));
+}
+function resetPhotoAnalysis(clearApplied = false) {
+  photoAnalysisSequence++; photoAnalysisAbort?.abort(); photoAnalysisBusy = false; photoAnalysisResult = null;
+  if (clearApplied) photoAnalysisApplied = false;
+  if (catalogField("catalogAnalysisReviewed")) catalogField("catalogAnalysisReviewed").checked = false;
+  for (const id of ["catalogAnalysisStatus", "catalogAnalysisPreview"]) if (catalogField(id)) catalogField(id).textContent = "";
+  catalogField("catalogUseImageSuggestions")?.classList.add("hidden");
+}
+function applyPhotoSuggestions(snapshot, explicit = false) {
+  const current = photoSnapshot();
+  const changes = window.NaijaGoImageSuggestions.merge(current, explicit ? current : snapshot, photoAnalysisResult,
+    NAIJAGO_CATALOG_HIERARCHY, !explicit && Boolean(catalogField("catalogProductId").value));
+  if (changes.category) {
+    catalogField("catalogCategory").value = changes.category;
+    populateSubcategorySelect("catalogCategory", "catalogSubcategory", changes.subcategory);
+  }
+  for (const [key, value] of Object.entries(changes)) if (!["category", "subcategory"].includes(key)) catalogField(photoFields[key]).value = value;
+  if (Object.keys(changes).length) {
+    photoAnalysisApplied = true; catalogField("catalogAnalysisReviewed").checked = false;
+    catalogField("catalogSource").value = "ai_assisted";
+    catalogField("catalogVerified").checked = false; catalogField("catalogImageRights").checked = false;
+    catalogField("catalogAiMetadata").value = JSON.stringify({ assisted: true, provider: "gemini", model: photoAnalysisResult.model, generatedAt: new Date().toISOString() });
+  }
+}
+async function analyzeCatalogPhoto() {
+  resetPhotoAnalysis();
+  const file = catalogField("catalogMainImage")?.files?.[0];
+  if (!file || !catalogField("catalogAnalyzePhoto")?.checked) return;
+  const status = catalogField("catalogAnalysisStatus"), snapshot = photoSnapshot(), sequence = photoAnalysisSequence;
+  if (file.size > 5 * 1024 * 1024) { status.textContent = "AI accepts photos up to 5 MB. Enter details manually."; return; }
+  photoAnalysisBusy = true; photoAnalysisAbort = new AbortController();
+  const controller = photoAnalysisAbort, timer = setTimeout(() => controller.abort(), 40000);
+  status.textContent = "Analyzing the product photo…";
+  try {
+    const body = new FormData(); body.append("image", file);
+    const response = await fetch(`${BASE_URL}/api/products/image-analysis`, {
+      method: "POST", headers: { Authorization: `Bearer ${adminToken}` }, body, signal: controller.signal,
+    });
+    const result = await response.json();
+    if (sequence !== photoAnalysisSequence) return;
+    if (!response.ok) throw new Error(result.message || "Analysis unavailable. Enter details manually.");
+    photoAnalysisResult = result; applyPhotoSuggestions(snapshot);
+    const duplicate = result.possibleDuplicates?.length ? "Possible duplicates: " + result.possibleDuplicates.map(row => row.name).join(", ") : "";
+    status.textContent = ["Suggestions ready. Check every detail before saving.", ...(result.warnings || []), duplicate].filter(Boolean).join(" ");
+    catalogField("catalogAnalysisPreview").textContent = JSON.stringify({ ...result.suggestions, classification: result.classification }, null, 2);
+    catalogField("catalogUseImageSuggestions").classList.remove("hidden");
+  } catch (error) {
+    if (sequence === photoAnalysisSequence) status.textContent = error.name === "AbortError" ? "Analysis timed out. Enter details manually." : error.message;
+  } finally { clearTimeout(timer); if (sequence === photoAnalysisSequence) photoAnalysisBusy = false; }
+}
+catalogField("catalogMainImage")?.addEventListener("change", analyzeCatalogPhoto);
+catalogField("catalogAnalyzePhoto")?.addEventListener("change", resetPhotoAnalysis);
+catalogField("catalogUseImageSuggestions")?.addEventListener("click", () => { if (photoAnalysisResult) applyPhotoSuggestions(photoSnapshot(), true); });
+for (const id of Object.values(photoFields)) catalogField(id)?.addEventListener("input", () => {
+  if (photoAnalysisApplied) catalogField("catalogAnalysisReviewed").checked = false;
+});
 catalogSellerType?.addEventListener("change", () => { toggleVendorField(); applyDefaultWarehouse(); });
 catalogField("catalogCategory")?.addEventListener("change", () => populateSubcategorySelect("catalogCategory", "catalogSubcategory"));
 catalogField("aiCatalogCategory")?.addEventListener("change", () => populateSubcategorySelect("aiCatalogCategory", "aiCatalogSubcategory"));
@@ -667,10 +763,13 @@ catalogField("refreshCostLowStoreBtn")?.addEventListener("click", () => {
 if (currentPage === "product-moderation") {
   loadWarehouseSettings();
   loadCostLowStoreSettings();
-  populateCategorySelect("catalogCategory");
-  populateCategorySelect("aiCatalogCategory");
-  populateSubcategorySelect("catalogCategory", "catalogSubcategory");
-  populateSubcategorySelect("aiCatalogCategory", "aiCatalogSubcategory");
+  loadCatalogTaxonomy(() => {
+    for (const [parent, child] of [["catalogCategory", "catalogSubcategory"], ["aiCatalogCategory", "aiCatalogSubcategory"]]) {
+      const selectedChild = catalogField(child)?.value || "";
+      populateCategorySelect(parent);
+      populateSubcategorySelect(parent, child, selectedChild);
+    }
+  });
   toggleVendorField();
   Promise.all([loadApprovedVendors(), fetchCatalogProducts(), fetchProductModerationQueue(), fetchCatalogAiConfig()]);
 }

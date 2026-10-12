@@ -6,8 +6,9 @@ const vm = require('node:vm');
 
 function taxonomy() {
   const source = fs.readFileSync(path.join(__dirname, '../js/admin/catalog-taxonomy.js'), 'utf8');
-  const context = vm.createContext({});
-  return vm.runInContext(source + '\nNAIJAGO_CATALOG_TAXONOMY;', context);
+  const data = JSON.parse(fs.readFileSync(path.join(__dirname, "../js/admin/catalog-taxonomy.fallback.json"), "utf8"));
+  const context = vm.createContext({ data });
+  return vm.runInContext(source + '\napplyCatalogHierarchy(data); NAIJAGO_CATALOG_TAXONOMY;', context);
 }
 
 test('admin offers creator equipment under Photography exactly once', () => {

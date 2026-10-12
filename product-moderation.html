@@ -131,6 +131,15 @@
           <label class="flex items-center gap-3 text-sm text-light-gray"><input id="catalogImageRights" type="checkbox" /> Image rights/accuracy confirmed</label>
           <label class="block xl:col-span-3"><span class="text-sm text-light-gray">Description *</span><textarea id="catalogDescription" class="input-field mt-2 w-full min-h-28" required></textarea></label>
           <label class="block"><span class="text-sm text-light-gray">Main image <span id="mainImageRequiredLabel">*</span></span><input id="catalogMainImage" type="file" accept="image/*" class="input-field mt-2 w-full" /></label>
+          <section class="xl:col-span-3 rounded-xl border border-gray-700 p-4">
+            <label class="flex items-center gap-3"><input id="catalogAnalyzePhoto" type="checkbox" checked /> Suggest product details from the main photo using AI</label>
+            <p class="text-sm text-light-gray mt-2">The selected photo is sent to Gemini. Check visible details and category; enter the actual price and stock yourself.</p>
+            <p id="catalogAnalysisStatus" role="status" aria-live="polite" class="mt-2 text-sm"></p>
+            <pre id="catalogAnalysisPreview" class="mt-2 whitespace-pre-wrap text-sm"></pre>
+            <button id="catalogUseImageSuggestions" type="button" class="hidden btn btn-primary-alt mt-2">Use suggestions in this form</button>
+            <label class="flex items-center gap-3 mt-3"><input id="catalogAnalysisReviewed" type="checkbox" /> I checked the suggested details and selected the correct category</label>
+          </section>
+          <label class="block xl:col-span-3"><span class="text-sm text-light-gray">Visible attributes / model (JSON, editable)</span><textarea id="catalogSpecifications" class="input-field mt-2 w-full" placeholder='{"colour":"blue"}'></textarea></label>
           <label class="block md:col-span-1 xl:col-span-2"><span class="text-sm text-light-gray">Additional images (up to 10)</span><input id="catalogExtraImages" type="file" accept="image/*" multiple class="input-field mt-2 w-full" /></label>
           <section id="catalogGeneratedImagePanel" class="hidden xl:col-span-3 rounded-xl border border-gray-700 bg-dark-card p-4">
             <div class="grid gap-4 md:grid-cols-[180px_1fr] md:items-center">
@@ -180,6 +189,7 @@
 
     <script src="js/admin/runtime.js"></script>
     <script src="js/admin/catalog-taxonomy.js"></script>
+    <script src="js/admin/product-image-analysis.js"></script>
     <script src="js/admin/product-moderation.js"></script>
     <script src="js/admin-panel.js"></script>
     <script src='js/admin/product-videos.js'></script>
