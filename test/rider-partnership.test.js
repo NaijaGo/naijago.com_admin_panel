@@ -9,15 +9,16 @@ class Element {
   replaceChildren(...nodes) { this.children = nodes; }
   addEventListener(event, fn) { this.listeners[event] = fn; }
   setAttribute(name, value) { this[name] = value; }
+  focus() { this.focused = true; }
   trigger(event) { return this.listeners[event]?.({ preventDefault() {} }); }
 }
 const id = 'a'.repeat(24);
-function harness({ token = 'fixture', confirmed = true, published = false, fail = false,
+function harness({ token = 'fixture', confirmed = true, published = false, required = false, empty = false, setup, fail = false,
   contacts = [{ id, source: 'individual', name: 'Fixture rider', phoneNumber: '+2348000000000', email: 'fixture@example.invalid', plateNumber: 'FIXTURE-1' }],
   pages = 1, history = { status: { accepted: true }, acceptances: [{ _id: id, version: '1.0', contentHash: 'b'.repeat(64), acceptedAt: '2026-10-13T10:00:00Z' }] },
   respond } = {}) {
   const nodes = new Map(), calls = []; let failures = fail;
-  const state = { agreements: [{ _id: id, version: '1.0', content: '<script>fixture only</script> Full agreement', contentHash: 'b'.repeat(64), status: published ? 'published' : 'draft', effectiveAt: '2026-01-01', __v: 0 }], policy: { revision: 0, history: [], agreementId: published ? id : null } };
+  const state = { agreements: empty ? [] : [{ _id: id, version: '1.0', content: '<script>fixture only</script> Full agreement', contentHash: 'b'.repeat(64), status: published ? 'published' : 'draft', effectiveAt: '2026-01-01', __v: 0 }], policy: { revision: 0, history: [], agreementId: required ? id : null }, ...(setup ? { setup } : {}) };
   const get = key => { if (!nodes.has(key)) nodes.set(key, new Element()); return nodes.get(key); };
   vm.runInNewContext(source, { document: { getElementById: get, createElement: () => new Element() },
     adminToken: token, BASE_URL: 'https://fixture.invalid', AbortSignal, Date, URLSearchParams,
@@ -25,19 +26,32 @@ function harness({ token = 'fixture', confirmed = true, published = false, fail 
     async fetch(url, options) {
       calls.push({ url, options }); if (failures) throw new Error('Fixture unavailable');
       if (respond) {
-        const response = await respond(url, options);
+        const response = await respond(url, options, state);
         if (response) return response;
       }
       let response = state;
       if (url.includes('/contacts/riders?')) response = { contacts, pagination: { pages } };
       else if (url.endsWith('/bonuses')) response = { bonuses: [{ _id: 'c'.repeat(24), riderId: { fullName: 'Fixture rider' }, day: '2026-10-13', amount: 10000, completedOrderIds: Array(20).fill(id) }] };
-      else if (options.method !== 'GET') response = { agreement: state.agreements[0], policy: state.policy, bonus: {} };
+      else if (options.method !== 'GET') {
+        const body = JSON.parse(options.body);
+        let agreement = state.agreements.find(a => url.includes(a._id));
+        if (url.endsWith('/agreements') && options.method === 'POST') {
+          agreement = { _id: 'e'.repeat(24), version: body.version, content: body.content.replace(/\r\n?/g, '\n').normalize('NFC'), status: 'draft', __v: 0 };
+          state.agreements.push(agreement);
+        } else if (url.endsWith('/publish')) Object.assign(agreement, { status: 'published', effectiveAt: '2026-01-01', __v: agreement.__v + 1 });
+        else if (agreement && options.method === 'PUT') Object.assign(agreement, { content: body.content.replace(/\r\n?/g, '\n').normalize('NFC'), __v: agreement.__v + 1 });
+        else if (url.endsWith('/required')) {
+          state.policy.agreementId = body.agreementId; state.policy.revision++;
+          state.policy.history.push({ agreementId: body.agreementId, reason: body.reason, changedAt: '2026-10-13', changedBy: 'fixture-admin' });
+        }
+        response = { agreement, policy: state.policy, bonus: {} };
+      }
       else if (url.includes('/acceptances?')) response = history;
-      return { ok: true, status: 200, json: async () => response };
+      return { ok: true, status: 200, json: async () => structuredClone(response) };
     },
   });
   const settle = async () => { for (let i = 0; i < 5; i++) await new Promise(resolve => setImmediate(resolve)); };
-  return { get, nodes, calls, settle, fail: () => failures = true };
+  return { get, nodes, calls, state, settle, fail: () => failures = true };
 }
 test('dashboard exposes partnership management using existing authentication runtime', () => {
   assert.match(fs.readFileSync(require.resolve('../index.html'), 'utf8'), /href="rider-partnership.html"/);
@@ -66,6 +80,163 @@ test('draft save sends full content and revision without changing required polic
 test('cancelled publication sends no write', async () => {
   const h = harness({ confirmed: false }); await h.settle(); h.get('agreementSelect').value = id; h.get('agreementSelect').trigger('change');
   h.get('publishAgreement').trigger('click'); await h.settle(); assert.equal(h.calls.some(c => c.options.method === 'POST'), false);
+  assert.match(h.get('partnershipStatus').textContent, /Cancelled/);
+});
+
+test('new agreement walks through saved draft, immutable publication and explicit requirement', async () => {
+  const h = harness({ empty: true, setup: { ready: true } }); await h.settle();
+  assert.equal(h.get('saveRequired').disabled, true); assert.match(h.get('requiredStepStatus').textContent, /publish it in step 1/);
+  h.get('agreementVersion').value = '2.0'; h.get('agreementContent').value = ' Complete fixture agreement\r\nAll paragraphs. ';
+  h.get('draftForm').trigger('submit'); await h.settle();
+  assert.equal(h.state.agreements.length, 1); assert.equal(h.state.policy.agreementId, null);
+  assert.equal(h.get('agreementContent').value, ' Complete fixture agreement\nAll paragraphs. ');
+  assert.match(h.get('partnershipStatus').textContent, /Draft saved and confirmed/);
+  assert.equal(h.get('publishAgreement').disabled, false); assert.equal(h.get('saveRequired').disabled, true);
+  h.get('publishAgreement').trigger('click'); await h.settle();
+  assert.equal(h.state.agreements[0].status, 'published'); assert.equal(h.get('agreementContent').readOnly, true);
+  assert.equal(h.state.policy.agreementId, null); assert.equal(h.get('requiredAgreement').value, h.state.agreements[0]._id);
+  assert.match(h.get('partnershipStatus').textContent, /published and locked/);
+  assert.equal(h.get('saveRequired').disabled, true);
+  h.get('requiredReason').value = 'Initial approved agreement'; h.get('requiredReason').trigger('input');
+  assert.equal(h.get('saveRequired').disabled, false);
+  h.get('requiredForm').trigger('submit'); await h.settle();
+  assert.equal(h.state.policy.agreementId, h.state.agreements[0]._id); assert.equal(h.state.policy.revision, 1);
+  assert.match(h.get('requiredStatus').textContent, /Required version: 2.0/);
+  assert.match(h.get('partnershipStatus').textContent, /Required agreement confirmed/);
+  assert.equal(h.get('saveRequired').disabled, true); assert.match(h.get('requiredStepStatus').textContent, /already required/);
+  assert.deepEqual(h.calls.filter(c => c.options.method !== 'GET').map(c => c.options.method), ['POST', 'POST', 'PUT']);
+  assert.equal(h.calls.some(c => c.url.includes('/review')), false);
+});
+
+test('missing version and content produce visible local errors without requests or lost text', async () => {
+  for (const [version, content, expected] of [['', 'Keep full text', /Enter a version/], ['bad version!', 'Keep text', /Enter a version/], ['2.0', '', /complete approved/]]) {
+    const h = harness(); await h.settle(); const before = h.calls.length;
+    h.get('agreementVersion').value = version; h.get('agreementContent').value = content;
+    h.get('draftForm').trigger('submit'); await h.settle();
+    assert.match(h.get('agreementStepStatus').textContent, expected); assert.equal(h.get('agreementContent').value, content);
+    assert.equal(h.calls.length, before); assert.doesNotMatch(h.get('partnershipStatus').textContent, /Server records confirmed/);
+  }
+  const page = fs.readFileSync(require.resolve('../rider-partnership.html'), 'utf8');
+  assert.match(page, /id="draftForm"[^>]*novalidate/); assert.match(page, /id="requiredForm"[^>]*novalidate/);
+});
+
+test('backend setup missing disables mutations while preserving input and history access', async () => {
+  const h = harness({ setup: { ready: false, code: 'RIDER_AGREEMENT_SETUP_REQUIRED', message: 'Explicit backend setup needed.' } }); await h.settle();
+  assert.match(h.get('agreementSetupStatus').textContent, /Explicit backend setup/);
+  assert.equal(h.get('saveDraft').disabled, true); assert.equal(h.get('saveRequired').disabled, true);
+  h.get('agreementVersion').value = '2.0'; h.get('agreementContent').value = 'Keep original full text';
+  h.get('draftForm').trigger('submit'); await h.settle();
+  assert.equal(h.get('agreementContent').value, 'Keep original full text'); assert.equal(h.calls.some(c => c.options.method !== 'GET'), false);
+  assert.equal(h.get('historyRider').disabled, false);
+});
+
+test('empty, draft, future or malformed versions never enable requirement writes', async () => {
+  for (const date of [null, 'bad-date', '2099-01-01']) {
+    const h = harness({ published: true }); h.state.agreements[0].effectiveAt = date; await h.settle();
+    assert.equal(h.get('requiredAgreement').children.length, 1); assert.equal(h.get('saveRequired').disabled, true);
+    h.get('requiredAgreement').value = id; h.get('requiredReason').value = 'Approved terms';
+    h.get('requiredForm').trigger('submit'); await h.settle();
+    assert.equal(h.calls.some(c => c.options.method !== 'GET'), false); assert.match(h.get('requiredStepStatus').textContent, /publish an agreement/);
+  }
+  const h = harness(); await h.settle(); assert.equal(h.get('saveRequired').disabled, true);
+});
+
+test('requirement needs a selected published version and a bounded reason', async () => {
+  const h = harness({ published: true }); await h.settle();
+  assert.equal(h.get('requiredAgreement').value, ''); assert.equal(h.get('saveRequired').disabled, true);
+  h.get('requiredAgreement').value = id; h.get('requiredAgreement').trigger('change');
+  for (const reason of ['', 'aa', 'a'.repeat(501)]) {
+    h.get('requiredReason').value = reason; h.get('requiredReason').trigger('input');
+    assert.equal(h.get('saveRequired').disabled, true); h.get('requiredForm').trigger('submit'); await h.settle();
+    assert.match(h.get('requiredStepStatus').textContent, /3 to 500/);
+  }
+  assert.equal(h.calls.some(c => c.options.method !== 'GET'), false);
+});
+
+test('cancelled requirement and already-required version send no writes', async () => {
+  for (const required of [false, true]) {
+    const h = harness({ published: true, required, confirmed: false }); await h.settle();
+    h.get('requiredAgreement').value = id; h.get('requiredReason').value = 'Approved terms';
+    h.get('requiredForm').trigger('submit'); await h.settle();
+    assert.equal(h.calls.some(c => c.options.method !== 'GET'), false);
+    assert.match(h.get('partnershipStatus').textContent, required ? /already required/ : /Cancelled/);
+  }
+});
+
+test('refresh, bonus load failure and rejected saves preserve unsaved agreement text', async () => {
+  const h = harness({ respond: async (url, options) => {
+    if (url.endsWith('/bonuses')) throw new Error('Bonus fixture unavailable');
+    if (options.method === 'PUT') return { ok: false, status: 409, json: async () => ({ message: 'Draft changed; reload', code: 'AGREEMENT_DRAFT_CHANGED' }) };
+  } }); await h.settle();
+  assert.equal(h.get('saveDraft').disabled, false); assert.match(h.get('bonusRecords').children[0].textContent, /Unable to load bonus/);
+  h.get('agreementSelect').value = id; h.get('agreementSelect').trigger('change'); h.get('agreementContent').value = 'Keep every unsaved paragraph';
+  h.get('refreshPartnership').trigger('click'); await h.settle(); assert.equal(h.get('agreementContent').value, 'Keep every unsaved paragraph');
+  h.get('draftForm').trigger('submit'); await h.settle(); assert.equal(h.get('agreementContent').value, 'Keep every unsaved paragraph');
+  assert.match(h.get('partnershipStatus').textContent, /Draft changed.*No success is assumed/);
+  h.get('publishAgreement').trigger('click'); await h.settle();
+  assert.match(h.get('agreementStepStatus').textContent, /Save your draft edits/);
+  assert.equal(h.calls.filter(c => c.options.method !== 'GET').length, 1);
+});
+
+for (const kind of ['save', 'publish', 'required']) test(`lost ${kind} response reconciles a confirmed write without retrying`, async () => {
+  const h = harness({ empty: kind === 'save', published: kind === 'required', respond: async (url, options, state) => {
+    if (options.method === 'GET') return;
+    const body = JSON.parse(options.body);
+    if (kind === 'save') state.agreements.push({ _id: id, version: body.version, content: body.content, status: 'draft', __v: 0 });
+    if (kind === 'publish') Object.assign(state.agreements[0], { status: 'published', effectiveAt: '2026-01-01', __v: 1 });
+    if (kind === 'required') {
+      state.policy.agreementId = body.agreementId; state.policy.revision++;
+      state.policy.history.push({ agreementId: body.agreementId, reason: body.reason });
+    }
+    throw new Error('Fixture lost response');
+  } }); await h.settle();
+  if (kind === 'save') { h.get('agreementVersion').value = '2.0'; h.get('agreementContent').value = 'Full new fixture terms'; h.get('draftForm').trigger('submit'); }
+  if (kind === 'publish') { h.get('agreementSelect').value = id; h.get('agreementSelect').trigger('change'); h.get('publishAgreement').trigger('click'); }
+  if (kind === 'required') { h.get('requiredAgreement').value = id; h.get('requiredReason').value = 'Approved fixture terms'; h.get('requiredForm').trigger('submit'); }
+  await h.settle(); assert.match(h.get('partnershipStatus').textContent, /Confirmed by reloading server records/);
+  assert.equal(h.calls.filter(c => c.options.method !== 'GET').length, 1);
+  if (kind === 'save') assert.equal(h.get('agreementSelect').value, id);
+});
+
+test('explicit 409 conflict is never reported as a successful reconciled mutation', async () => {
+  const h = harness({ respond: async (url, options) => options.method === 'PUT'
+    ? { ok: false, status: 409, json: async () => ({ message: 'Another administrator changed the draft' }) } : null }); await h.settle();
+  h.get('agreementSelect').value = id; h.get('agreementSelect').trigger('change'); h.get('draftForm').trigger('submit'); await h.settle();
+  assert.match(h.get('partnershipStatus').textContent, /Another administrator.*No success is assumed/);
+  assert.equal(h.calls.filter(c => c.options.method !== 'GET').length, 1);
+});
+
+test('changing requirement or approving a bonus preserves an unrelated unsaved draft', async () => {
+  const h = harness({ published: true }); await h.settle();
+  h.get('agreementVersion').value = '2.0'; h.get('agreementContent').value = 'Unsaved next version with every paragraph';
+  h.get('requiredAgreement').value = id; h.get('requiredReason').value = 'Initial requirement';
+  h.get('requiredForm').trigger('submit'); await h.settle();
+  assert.equal(h.get('agreementVersion').value, '2.0'); assert.equal(h.get('agreementContent').value, 'Unsaved next version with every paragraph');
+  const card = h.get('bonusRecords').children[0]; card.children[1].value = 'Verified fixture orders'; card.children[2].trigger('click'); await h.settle();
+  assert.equal(h.get('agreementContent').value, 'Unsaved next version with every paragraph');
+  assert.equal(h.calls.filter(c => c.url.endsWith('/agreements') && c.options.method === 'POST').length, 0);
+});
+
+test('malformed agreement reads fail closed without crashing controls', async () => {
+  const h = harness({ respond: async url => url.endsWith('/agreements')
+    ? { ok: true, status: 200, json: async () => ({ agreements: null, policy: { revision: 0 } }) } : null });
+  await h.settle(); assert.equal(h.get('saveDraft').disabled, true); assert.equal(h.get('saveRequired').disabled, true);
+  assert.match(h.get('partnershipStatus').textContent, /Incomplete agreement records/);
+  assert.equal(h.calls.some(c => c.options.method !== 'GET'), false);
+});
+
+test('concurrent publication preserves unsaved text as a new draft without mislabeling locked content', async () => {
+  const h = harness({ respond: async (url, options, state) => {
+    if (options.method !== 'PUT') return;
+    state.agreements[0].status = 'published'; state.agreements[0].__v++;
+    return { ok: false, status: 409, json: async () => ({ message: 'The draft was published; reload it' }) };
+  } }); await h.settle(); h.get('agreementSelect').value = id; h.get('agreementSelect').trigger('change');
+  h.get('agreementContent').value = 'Keep my uncommitted edits'; h.get('draftForm').trigger('submit'); await h.settle();
+  assert.equal(h.get('agreementContent').value, 'Keep my uncommitted edits'); assert.equal(h.get('agreementSelect').value, '');
+  assert.equal(h.get('agreementContent').readOnly, false); assert.equal(h.get('publishAgreement').disabled, true);
+  assert.match(h.get('agreementMetadata').textContent, /New draft/);
+  assert.equal(h.state.agreements[0].content, '<script>fixture only</script> Full agreement');
+  assert.match(h.get('partnershipStatus').textContent, /No success is assumed/);
 });
 test('required version changes include current revision and an explicit reason', async () => {
   const h = harness({ published: true }); await h.settle(); h.get('requiredAgreement').value = id; h.get('requiredReason').value = 'Full approved terms';

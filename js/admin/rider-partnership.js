@@ -1,6 +1,6 @@
 (() => {
   const el = id => document.getElementById(id);
-  let data = null, selected = null, busy = false;
+  let data = null, selected = null, busy = false, pendingWrite = null;
   let riders = [], lookupPage = 1, lookupPages = 1, lookupTerm = '', lookupBusy = false,
     recordsBusy = false, lookupSequence = 0, recordsSequence = 0, sessionUnavailable = false;
   const text = (tag, value) => { const node = document.createElement(tag); node.textContent = String(value ?? ''); return node; };
@@ -17,14 +17,51 @@
     return result;
   }
   const api = (path, method = 'GET', body) => request(`${BASE_URL}/api/admin/rider-partnership${path}`, method, body);
+  const effectiveAgreements = () => (data?.agreements || []).filter(a => a.status === 'published'
+    && a.effectiveAt && Number.isFinite(new Date(a.effectiveAt).getTime()) && new Date(a.effectiveAt) <= new Date());
+  const setupReady = () => !!data && data.setup?.ready !== false
+    && Number.isInteger(data.policy?.revision) && data.policy.revision >= 0;
   function controls() {
-    el('draftFields').disabled = busy || !data || !adminToken || sessionUnavailable;
-    el('requiredFields').disabled = busy || !Number.isInteger(data?.policy?.revision) || !adminToken || sessionUnavailable;
+    const unavailable = busy || !data || !adminToken || sessionUnavailable;
+    const effective = effectiveAgreements(), target = effective.find(a => a._id === el('requiredAgreement').value);
+    const reasonLength = el('requiredReason').value.trim().length;
+    el('draftFields').disabled = unavailable;
+    el('requiredFields').disabled = unavailable || !setupReady() || !effective.length;
     el('refreshPartnership').disabled = busy;
     el('agreementSelect').disabled = busy || !data;
-    el('saveDraft').disabled = busy || selected?.status === 'published';
-    el('publishAgreement').disabled = busy || selected?.status !== 'draft';
+    el('saveDraft').disabled = unavailable || !setupReady() || selected?.status === 'published';
+    el('publishAgreement').disabled = unavailable || !setupReady() || selected?.status !== 'draft';
+    el('saveRequired').disabled = unavailable || !setupReady() || !target || target._id === data?.policy?.agreementId || reasonLength < 3 || reasonLength > 500;
+    el('agreementSetupStatus').textContent = !data ? 'Agreement storage has not been verified.' : !setupReady()
+      ? data.setup?.message || 'Backend agreement setup is incomplete. Saving and publishing are unavailable until explicit setup is completed.' : '';
+    el('agreementStepStatus').textContent = !data ? 'Refresh records before saving.' : selected?.status === 'published'
+      ? `Version ${selected.version} is published and locked. Use step 2 to make it required.`
+      : selected ? `Version ${selected.version} is a saved draft. Save any edits before publishing.`
+        : 'Enter an agreement version and the complete text, then click Save draft.';
+    el('requiredStepStatus').textContent = !setupReady() ? 'Backend setup must be confirmed before requiring an agreement.'
+      : !effective.length ? 'Save a draft and publish it in step 1 first. Only published, effective versions appear here.'
+        : !target ? 'Choose a published agreement, then enter a reason.'
+          : target._id === data.policy.agreementId ? `Version ${target.version} is already required. No change is needed.`
+          : reasonLength < 3 || reasonLength > 500 ? 'Enter a reason of 3 to 500 characters to enable Set required version.'
+            : `Ready to require version ${target.version}. This needs your confirmation.`;
     riderControls();
+  }
+  function invalid(message, section, field) {
+    if (field) el(field).focus();
+    throw Object.assign(new Error(message), { localValidation: true, section });
+  }
+  function editorSnapshot() {
+    return { id: selected?._id || '', version: el('agreementVersion').value, content: el('agreementContent').value,
+      reason: el('requiredReason').value, requiredId: el('requiredAgreement').value };
+  }
+  function restoreEditor(snapshot) {
+    // Keep unsaved text as a new draft if another admin published this version.
+    // Never display that text as the immutable published document.
+    const saved = data?.agreements.find(a => a._id === snapshot.id);
+    choose(saved?.status === 'published' && saved.content !== snapshot.content.replace(/\r\n?/g, '\n').normalize('NFC') ? '' : snapshot.id);
+    el('agreementVersion').value = snapshot.version; el('agreementContent').value = snapshot.content;
+    el('requiredReason').value = snapshot.reason;
+    if (effectiveAgreements().some(a => a._id === snapshot.requiredId)) el('requiredAgreement').value = snapshot.requiredId;
   }
   function riderControls() {
     const unavailable = !adminToken || sessionUnavailable;
@@ -120,68 +157,125 @@
     if (!Array.isArray(data?.agreements)) throw new Error('Incomplete agreement records.');
     const option = (value, label) => { const node = text('option', label); node.value = value; return node; };
     el('agreementSelect').replaceChildren(option('', 'New draft'), ...data.agreements.map(a => option(a._id, `${a.version} | ${a.status}`)));
-    const effective = data.agreements.filter(a => a.status === 'published' && new Date(a.effectiveAt) <= new Date());
-    el('requiredAgreement').replaceChildren(...effective.map(a => option(a._id, a.version)));
+    const effective = effectiveAgreements(), previous = el('requiredAgreement').value;
+    el('requiredAgreement').replaceChildren(option('', effective.length ? 'Choose a published agreement' : 'Publish an agreement in step 1 first'),
+      ...effective.map(a => option(a._id, a.version)));
+    el('requiredAgreement').value = effective.some(a => a._id === previous) ? previous
+      : effective.some(a => a._id === selected?._id) ? selected._id
+        : effective.some(a => a._id === data.policy?.agreementId) ? data.policy.agreementId : '';
     const current = data.agreements.find(a => a._id === data.policy?.agreementId);
     el('requiredStatus').textContent = current ? `Required version: ${current.version}` : 'No agreement is required yet. Delivery work is blocked until setup is completed.';
     el('policyHistory').replaceChildren(...[...(data.policy?.history || [])].reverse().map(h => text('p', `${new Date(h.changedAt).toLocaleString()} | ${h.reason} | Admin ${h.changedBy}`)));
     choose(selected?._id);
   }
   async function refresh() {
-    data = await api('/agreements'); render();
-    const result = await api('/bonuses');
-    if (!Array.isArray(result.bonuses)) throw new Error('Incomplete bonus records.');
-    el('bonusRecords').replaceChildren(...result.bonuses.map(b => {
-      const card = text('article', ''); card.className = 'rounded border border-slate-600 p-4 space-y-3';
-      card.append(text('p', `${b.riderId?.fullName || b.riderId} | ${b.day} | ${b.completedOrderIds?.length || 0} orders | NGN ${b.amount}`));
-      const reason = document.createElement('textarea'); reason.className = 'input-field w-full'; reason.maxLength = 500;
-      reason.setAttribute('aria-label', 'Bonus review reason'); card.append(reason);
-      for (const state of ['approved', 'rejected']) {
-        const button = text('button', state === 'approved' ? 'Approve and credit NGN 10,000' : 'Reject bonus'); button.className = 'btn btn-primary-alt px-4 py-2';
-        button.addEventListener('click', () => action(async () => {
-          if (reason.value.trim().length < 3) throw new Error('Give a review reason of at least three characters.');
-          if (!window.confirm(state === 'approved' ? 'Approve this bonus and credit NGN 10,000 to the rider wallet?' : 'Reject this bonus request?')) return;
-          await api(`/bonuses/${b._id}/review`, 'POST', { state, reason: reason.value.trim() }); await refresh();
-        })); card.append(button);
-      }
-      return card;
-    }));
-    if (!result.bonuses.length) el('bonusRecords').append(text('p', 'No bonus requests awaiting approval.'));
+    const records = await api('/agreements');
+    if (!Array.isArray(records?.agreements) || (records.policy?.history && !Array.isArray(records.policy.history))) throw new Error('Incomplete agreement records.');
+    data = records; render();
+    try {
+      const result = await api('/bonuses');
+      if (!Array.isArray(result.bonuses)) throw new Error('Incomplete bonus records.');
+      el('bonusRecords').replaceChildren(...result.bonuses.map(b => {
+        const card = text('article', ''); card.className = 'rounded border border-slate-600 p-4 space-y-3';
+        card.append(text('p', `${b.riderId?.fullName || b.riderId} | ${b.day} | ${b.completedOrderIds?.length || 0} orders | NGN ${b.amount}`));
+        const reason = document.createElement('textarea'); reason.className = 'input-field w-full'; reason.maxLength = 500;
+        reason.setAttribute('aria-label', 'Bonus review reason'); card.append(reason);
+        for (const state of ['approved', 'rejected']) {
+          const button = text('button', state === 'approved' ? 'Approve and credit NGN 10,000' : 'Reject bonus'); button.className = 'btn btn-primary-alt px-4 py-2';
+          button.addEventListener('click', () => action(async () => {
+            if (reason.value.trim().length < 3) throw new Error('Give a review reason of at least three characters.');
+            if (!window.confirm(state === 'approved' ? 'Approve this bonus and credit NGN 10,000 to the rider wallet?' : 'Reject this bonus request?')) return false;
+            await api(`/bonuses/${b._id}/review`, 'POST', { state, reason: reason.value.trim() }); await refreshPreservingEditor();
+          }, state === 'approved' ? 'Bonus approval confirmed by the server.' : 'Bonus rejection confirmed by the server.')); card.append(button);
+        }
+        return card;
+      }));
+      if (!result.bonuses.length) el('bonusRecords').append(text('p', 'No bonus requests awaiting approval.'));
+    } catch (error) {
+      el('bonusRecords').replaceChildren(text('p', `Unable to load bonus requests: ${error.message}`));
+    }
   }
-  async function action(task) {
+  async function refreshPreservingEditor() {
+    const snapshot = editorSnapshot(); await refresh(); restoreEditor(snapshot);
+  }
+  function reconciledWrite(write) {
+    if (!data || !write) return false;
+    if (write.kind === 'required') return data.policy?.agreementId === write.id && data.policy.revision > write.revision
+      && data.policy.history?.slice(write.historyLength).some(h => String(h.agreementId) === write.id && h.reason === write.reason);
+    const agreement = data.agreements.find(a => write.id ? a._id === write.id : a.version === write.version);
+    if (!agreement) return false;
+    if (agreement.content !== write.content.replace(/\r\n?/g, '\n').normalize('NFC')) return false;
+    if (write.kind === 'publish' ? agreement.status !== 'published' || agreement.__v <= write.revision
+      : agreement.status !== 'draft') return false;
+    choose(agreement._id); return true;
+  }
+  async function action(task, message = 'Agreement and policy records loaded.', preserve = true) {
     if (busy || !adminToken || sessionUnavailable) return;
+    const snapshot = editorSnapshot(); pendingWrite = null;
     busy = true; controls(); el('partnershipStatus').textContent = 'Checking server confirmation...';
-    try { await task(); el('partnershipStatus').textContent = 'Server records confirmed.'; }
+    let failure;
+    try {
+      const result = await task();
+      el('partnershipStatus').textContent = result === false ? 'Cancelled. No changes were sent.' : typeof result === 'string' ? result : message;
+    }
     catch (error) {
-      el('partnershipStatus').textContent = `${error.message} No success is assumed; refresh before retrying.`;
-      // A write may have committed despite a lost response. Reconcile before another write.
-      data = null;
-      try { await refresh(); } catch (_) { /* controls stay disabled when authoritative reads fail */ }
-    } finally { busy = false; controls(); }
+      failure = error;
+      if (!error.localValidation) {
+        // Re-read after uncertain writes; never automatically retry a mutation.
+        data = null;
+        try { await refresh(); } catch (_) { /* writes stay disabled when authoritative reads fail */ }
+      }
+      if ((!error.status || error.status >= 500) && reconciledWrite(pendingWrite)) {
+        if (pendingWrite.kind === 'required') restoreEditor(snapshot);
+        failure = null; el('partnershipStatus').textContent = `${message} Confirmed by reloading server records after a lost response.`;
+      } else {
+        if (preserve) restoreEditor(snapshot);
+        el('partnershipStatus').textContent = `${error.message} No success is assumed; your entered text is preserved. Refresh before retrying.`;
+      }
+    } finally {
+      pendingWrite = null; busy = false; controls();
+      if (failure?.section) el(failure.section).textContent = failure.message;
+    }
   }
   el('logoutAdminBtn').addEventListener('click', () => { clearAdminSession(); redirectToLogin('logout'); });
   el('agreementSelect').addEventListener('change', () => choose(el('agreementSelect').value));
   el('newDraft').addEventListener('click', () => choose(''));
-  el('refreshPartnership').addEventListener('click', () => action(refresh));
+  el('refreshPartnership').addEventListener('click', () => action(refreshPreservingEditor, 'Agreement and policy records refreshed. Your entered text is preserved.'));
+  for (const id of ['requiredAgreement', 'requiredReason']) el(id).addEventListener(id === 'requiredAgreement' ? 'change' : 'input', controls);
   el('draftForm').addEventListener('submit', event => { event.preventDefault(); action(async () => {
     const content = el('agreementContent').value, version = el('agreementVersion').value.trim();
-    if (!content.trim() || !version) throw new Error('Provide the complete approved text and a version.');
+    if (!setupReady()) invalid('Backend agreement setup is incomplete. No draft was sent.', 'agreementStepStatus');
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/.test(version)) invalid('Enter a version such as 1.0 (letters, numbers, dots, hyphens or underscores; up to 40 characters).', 'agreementStepStatus', 'agreementVersion');
+    if (!content.trim() || content.length > 200000 || content.includes('\0')) invalid('Enter the complete approved agreement text (up to 200,000 characters).', 'agreementStepStatus', 'agreementContent');
+    if (selected?.status === 'published') invalid('Published text is locked. Start a new draft to change the agreement.', 'agreementStepStatus');
+    if (selected && (!Number.isInteger(selected.__v) || selected.__v < 0)) invalid('Reload the draft before saving edits.', 'agreementStepStatus');
+    pendingWrite = { kind: 'save', id: selected?._id, version, content };
     const result = selected ? await api(`/agreements/${selected._id}`, 'PUT', { content, revision: selected.__v })
       : await api('/agreements', 'POST', { version, content });
+    if (!result.agreement?._id || result.agreement.status !== 'draft') throw new Error('The server did not confirm a saved draft.');
     selected = result.agreement; await refresh();
-  }); });
+    if (!reconciledWrite(pendingWrite)) throw new Error('The saved draft could not be verified from server records.');
+  }, 'Draft saved and confirmed. Next: click Publish immutable version. The required agreement has not changed.'); });
   el('publishAgreement').addEventListener('click', () => action(async () => {
-    if (!selected || selected.status !== 'draft') return;
-    if (el('agreementContent').value !== selected.content) throw new Error('Save your draft edits before publishing.');
-    if (!window.confirm('Publish this full agreement permanently? Its content and version cannot be edited or deleted afterwards.')) return;
+    if (!setupReady() || !selected || selected.status !== 'draft') invalid('Save a draft before publishing.', 'agreementStepStatus');
+    if (el('agreementContent').value !== selected.content) invalid('Save your draft edits before publishing.', 'agreementStepStatus');
+    if (!Number.isInteger(selected.__v) || selected.__v < 0) invalid('Reload the draft before publishing.', 'agreementStepStatus');
+    if (!window.confirm('Publish this full agreement permanently? Its content and version cannot be edited or deleted afterwards.')) return false;
+    pendingWrite = { kind: 'publish', id: selected._id, content: selected.content, revision: selected.__v };
     const result = await api(`/agreements/${selected._id}/publish`, 'POST', { revision: selected.__v }); selected = result.agreement; await refresh();
-  }));
+    if (!reconciledWrite(pendingWrite)) throw new Error('Publication could not be verified from server records.');
+  }, 'Agreement published and locked. Next: choose it in step 2 and enter a reason to make it required.'));
   el('requiredForm').addEventListener('submit', event => { event.preventDefault(); action(async () => {
-    if (!data?.policy || !el('requiredAgreement').value) throw new Error('Initialize the policy and publish an effective agreement first.');
-    if (el('requiredReason').value.trim().length < 3) throw new Error('Give a reason for the policy change.');
-    if (!window.confirm('Require this version now? Affected riders will be taken offline until acceptance; active deliveries remain finishable.')) return;
-    await api('/required', 'PUT', { agreementId: el('requiredAgreement').value, revision: data.policy.revision, reason: el('requiredReason').value.trim() }); await refresh();
-  }); });
+    const target = effectiveAgreements().find(a => a._id === el('requiredAgreement').value), reason = el('requiredReason').value.trim();
+    if (!setupReady() || !target) invalid('Save and publish an agreement in step 1, then choose a published effective version.', 'requiredStepStatus');
+    if (target._id === data.policy.agreementId) return `Version ${target.version} is already required. No changes were sent.`;
+    if (reason.length < 3 || reason.length > 500) invalid('Enter a reason of 3 to 500 characters for the policy change.', 'requiredStepStatus', 'requiredReason');
+    if (!window.confirm('Require this version now? Affected riders will be taken offline until acceptance; active deliveries remain finishable.')) return false;
+    const revision = data.policy.revision;
+    pendingWrite = { kind: 'required', id: target._id, revision, reason, historyLength: data.policy.history?.length || 0 };
+    await api('/required', 'PUT', { agreementId: target._id, revision, reason }); await refreshPreservingEditor();
+    if (data?.policy?.agreementId !== target._id || data.policy.revision <= revision) throw new Error('The required version could not be verified from server records.');
+  }, 'Required agreement confirmed by the server. Riders must accept this version before new delivery work.'); });
   el('riderLookupForm').addEventListener('submit', event => { event.preventDefault(); searchRiders(el('riderLookupSearch').value.trim()); });
   el('riderLookupSearch').addEventListener('input', () => {
     lookupSequence++; lookupBusy = false; riders = []; clearHistory();
@@ -193,6 +287,6 @@
   el('historyRider').addEventListener('change', loadHistory);
   el('acceptanceForm').addEventListener('submit', event => { event.preventDefault(); loadHistory(); });
   controls();
-  if (adminToken) { action(refresh); searchRiders(); }
+  if (adminToken) { action(refresh, 'Agreement and policy records loaded.', false); searchRiders(); }
   else { el('historyRiderStatus').textContent = 'Sign in as an admin to find riders.'; }
 })();
