@@ -12,7 +12,8 @@
     />
     <script src="https://cdn.tailwindcss.com/3.4.1"></script>
     <link rel="stylesheet" href="css/admin-panel.css" />
-  </head>
+      <link rel="stylesheet" href="css/brand-colors.css" />
+</head>
   <body class="p-8" data-page="product-moderation">
     <div class="container mx-auto">
       <div class="flex flex-col gap-6 mb-8 md:flex-row md:items-center md:justify-between">
@@ -129,6 +130,9 @@
           <label class="block md:col-span-2"><span class="text-sm text-light-gray">Primary source URL</span><input id="catalogSourceUrl" type="url" class="input-field mt-2 w-full" /></label>
           <label class="flex items-center gap-3 text-sm text-light-gray"><input id="catalogVerified" type="checkbox" /> I verified the real product, supplier, price and stock</label>
           <label class="flex items-center gap-3 text-sm text-light-gray"><input id="catalogImageRights" type="checkbox" /> Image rights/accuracy confirmed</label>
+          <label class="block"><span class="text-sm text-light-gray">Available colours (optional)</span><input id="catalogColors" class="input-field mt-2 w-full" placeholder="Black, Royal Blue, Cream" /><small>Only colours you sell. Choices share total stock.</small></label>
+          <label class="block"><span class="text-sm text-light-gray">Size type (optional)</span><select id="catalogSizeType" class="input-field mt-2 w-full"><option value="">No standard sizes / preserve custom dimensions</option><option value="clothing">Clothing</option><option value="shoes">Shoes</option><option value="watches">Watches</option><option value="baby">Baby</option><option value="pet">Pet</option></select></label>
+          <label class="block"><span class="text-sm text-light-gray">Available sizes (optional)</span><input id="catalogSizes" class="input-field mt-2 w-full" placeholder="S, M, L or 38, 40, 42" /><small>Leave saved custom dimensions unchanged unless intentionally replacing them.</small></label>
           <label class="block xl:col-span-3"><span class="text-sm text-light-gray">Description *</span><textarea id="catalogDescription" class="input-field mt-2 w-full min-h-28" required></textarea></label>
           <label class="block"><span class="text-sm text-light-gray">Main image <span id="mainImageRequiredLabel">*</span></span><input id="catalogMainImage" type="file" accept="image/*" class="input-field mt-2 w-full" /></label>
           <section class="xl:col-span-3 rounded-xl border border-gray-700 p-4">
@@ -190,6 +194,7 @@
     <script src="js/admin/runtime.js"></script>
     <script src="js/admin/catalog-taxonomy.js"></script>
     <script src="js/admin/product-image-analysis.js"></script>
+    <script src="js/admin/product-options.js"></script>
     <script src="js/admin/product-moderation.js"></script>
     <script src="js/admin-panel.js"></script>
     <script src='js/admin/product-videos.js'></script>

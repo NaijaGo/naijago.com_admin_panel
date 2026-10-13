@@ -257,6 +257,7 @@ function removeGeneratedImage() {
 function resetCatalogForm() {
   resetPhotoAnalysis(true);
   catalogProductForm?.reset();
+  window.NaijaGoProductOptions?.fill();
   catalogField("catalogProductId").value = "";
   catalogField("catalogGeneratedImageUrl").value = "";
   activeAiImageDraftIndex = null;
@@ -278,6 +279,7 @@ function editCatalogProduct(productId) {
   resetPhotoAnalysis(true);
   const product = catalogProducts.find((entry) => String(entry._id || entry.id) === String(productId));
   if (!product) return;
+  window.NaijaGoProductOptions?.fill(product);
   for (const [field, id] of [['gender', 'catalogGender'], ['ageGroup', 'catalogAgeGroup'], ['productType', 'catalogProductType']]) {
     if (catalogField(id)) catalogField(id).value = product[field] || '';
   }
@@ -318,6 +320,7 @@ function editCatalogProduct(productId) {
 
 function buildProductFormData() {
   const data = new FormData();
+  window.NaijaGoProductOptions?.append(data);
   const specifications = catalogField("catalogSpecifications")?.value.trim();
   if (specifications) {
     const parsed = JSON.parse(specifications);

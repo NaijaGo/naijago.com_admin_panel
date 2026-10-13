@@ -1,0 +1,65 @@
+/* Shared NaijaGo palette. Legacy class names remain compatible with all pages. */
+:root {
+  color-scheme: light;
+  --brand-primary: #4169E1;
+  --brand-dark: #1E3A8A;
+  --brand-light: #EFF6FF;
+  --brand-green: #16A34A;
+  --brand-white: #FFFFFF;
+  --brand-background: #F8FAFC;
+  --brand-text: #0F172A;
+  --brand-muted: #64748B;
+  --brand-border: #E2E8F0;
+  --primary-blue: var(--brand-background);
+  --secondary-blue: var(--brand-white);
+  --accent-cyan: var(--brand-dark);
+  --light-slate: var(--brand-text);
+  --light-gray: var(--brand-muted);
+  --green-pastel: #166534;
+  --red-pastel: #B91C1C;
+  --yellow-pastel: #92400E;
+}
+body { background: var(--brand-background); color: var(--brand-text); }
+.container, .card, .login-shell .card { background: var(--brand-white); border-color: var(--brand-border); box-shadow: none; backdrop-filter: none; }
+.card:hover { transform: none; box-shadow: none; }
+.input-field, select, textarea { background-color: var(--brand-white); color: var(--brand-text); border-color: var(--brand-border); }
+.input-field:focus, select:focus, textarea:focus { border-color: var(--brand-primary); box-shadow: 0 0 0 3px var(--brand-light); }
+input::placeholder, textarea::placeholder { color: var(--brand-muted); }
+a { color: var(--brand-dark); }
+.btn-primary, .btn-primary-alt, .btn-shipped, .btn-primary:visited { background: var(--brand-primary); color: var(--brand-white); border-color: var(--brand-primary); }
+.btn-primary:hover, .btn-primary-alt:hover, .btn-shipped:hover { background: var(--brand-dark); color: var(--brand-white); }
+.btn-success, .btn-delivered, .btn-resolved { background: #166534; color: var(--brand-white); }
+.btn-success:hover, .btn-delivered:hover, .btn-resolved:hover { background: #14532D; color: var(--brand-white); }
+.btn-warning { background: #FEF3C7; color: #78350F; }
+.btn-danger { background: #B91C1C; color: var(--brand-white); }
+.btn-danger:hover { background: #991B1B; color: var(--brand-white); }
+.text-accent-cyan { color: var(--brand-dark); }
+.text-light-slate { color: var(--brand-text); }
+.text-light-gray { color: var(--brand-muted); }
+.bg-primary-blue, .bg-dark-bg { background: var(--brand-background); }
+.bg-secondary-blue, .bg-dark-card, .bg-gray-900 { background: var(--brand-white); }
+.border-gray-600, .border-gray-700, .border-gray-800 { border-color: var(--brand-border); }
+.card h1.text-white, .card h2.text-white, .card h3.text-white, .card h4.text-white,
+.card label.text-white, .card p.text-white, .card span.text-white { color: var(--brand-text); }
+.status-active, .status-approved, .status-completed, .message.success { background: #F0FDF4; color: #166534; }
+.status-pending, .message.warning { background: #FFFBEB; color: #92400E; }
+.status-rejected, .message.error { background: #FEF2F2; color: #B91C1C; }
+input[type=checkbox], input[type=radio], progress { accent-color: var(--brand-primary); }
+:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 3px; }
+#adminActivityButton { background: var(--brand-primary) !important; color: white !important; border-color: var(--brand-border) !important; box-shadow: none !important; }
+#adminActivityPanel { background: white !important; color: var(--brand-text) !important; border-color: var(--brand-border) !important; box-shadow: 0 8px 24px #0F172A14 !important; }
+#adminActivityReadAll { color: var(--brand-dark) !important; }
+#enableAdminPush { background: var(--brand-primary) !important; color: white !important; }
+#adminActivityPanel strong { color: var(--brand-text) !important; }
+#adminActivityPanel small, #adminActivityItems p, #adminPushState { color: var(--brand-muted) !important; }
+.analytics-card::before { background: none; }
+.analytics-fill { background: var(--brand-primary); }
+.analytics-track { background: var(--brand-light); }
+.analytics-pill.good { color: #166534; background: #F0FDF4; }
+.analytics-pill.medium { color: #92400E; background: #FFFBEB; }
+.analytics-pill.high { color: #B91C1C; background: #FEF2F2; }
+.insight-item { background: var(--brand-light); }
+.shimmer-text { background: none; -webkit-text-fill-color: currentColor; color: var(--brand-dark); animation: none; }
+.text-yellow-300, .text-yellow-400 { color: #92400E; }
+.text-green-300, .text-green-400 { color: #166534; }
+.text-red-300, .text-red-400 { color: #B91C1C; }
