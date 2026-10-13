@@ -13,6 +13,21 @@
 <button id="newDraft" type="button" class="btn btn-primary-alt px-4 py-2">Start new draft</button><button id="saveDraft" class="btn btn-success px-4 py-2" type="submit">Save draft</button><button id="publishAgreement" type="button" class="btn btn-primary-alt px-4 py-2" disabled>Publish immutable version</button></fieldset></form></section>
 <section class="card p-6 space-y-4"><h2 class="text-xl font-bold">Required agreement</h2><p id="requiredStatus"></p><p>Changing the required version takes affected riders offline and releases unclaimed offers. It preserves claimed deliveries, wallet funds and acceptance history. Riders must accept again before new delivery work.</p>
 <form id="requiredForm" class="space-y-3"><fieldset id="requiredFields" disabled><label class="block" for="requiredAgreement">Published effective version</label><select id="requiredAgreement" class="input-field w-full"></select><label class="block mt-3" for="requiredReason">Reason for changing the requirement</label><textarea id="requiredReason" class="input-field w-full" minlength="3" maxlength="500" required></textarea><button id="saveRequired" class="btn btn-danger px-4 py-2 mt-3">Set required version</button></fieldset></form><div id="policyHistory" class="space-y-2"></div></section>
-<section class="card p-6 space-y-4"><h2 class="text-xl font-bold">Rider acceptance history</h2><form id="acceptanceForm"><label for="historyRider">Rider database ID</label><input id="historyRider" class="input-field w-full" pattern="[a-fA-F0-9]{24}" required><button class="btn btn-primary-alt px-4 py-2 mt-3">View rider records</button></form><div id="acceptanceRecords" class="space-y-3"></div></section>
+<section class="card p-6 space-y-4" aria-labelledby="acceptanceHeading">
+<h2 id="acceptanceHeading" class="text-xl font-bold">Rider acceptance history</h2>
+<p id="riderLookupHelp" class="text-light-gray">Find a Go-Rider account by name, phone number, email or vehicle plate. Select the rider to open their agreement records.</p>
+<form id="riderLookupForm" class="space-y-3">
+<label class="block" for="riderLookupSearch">Find a rider</label>
+<div class="flex flex-col gap-3 md:flex-row"><input id="riderLookupSearch" type="search" class="input-field w-full" maxlength="100" placeholder="Name, phone, email or plate" aria-describedby="riderLookupHelp" autocomplete="off"><button id="searchHistoryRiders" type="submit" class="btn btn-primary px-4 py-2" disabled>Search riders</button></div>
+</form>
+<p id="historyRiderStatus" class="text-sm text-light-gray" role="status" aria-live="polite">Loading rider list...</p>
+<form id="acceptanceForm" class="space-y-3">
+<label class="block" for="historyRider">Select rider</label><select id="historyRider" class="input-field w-full" required disabled><option value="">Choose a rider</option></select>
+<div class="flex flex-wrap items-center gap-3"><button id="historyRiderPrevious" type="button" class="btn btn-primary-alt px-4 py-2" disabled>Previous</button><span id="historyRiderPage" class="text-sm text-light-gray"></span><button id="historyRiderNext" type="button" class="btn btn-primary-alt px-4 py-2" disabled>Next</button></div>
+<p id="historyRiderIdentity" class="text-sm text-light-gray break-all"></p>
+<button id="viewRiderRecords" type="submit" class="btn btn-primary-alt px-4 py-2" disabled>Refresh rider records</button>
+</form>
+<p id="acceptanceStatus" role="status" aria-live="polite">Select a rider to view their records.</p><div id="acceptanceRecords" class="space-y-3"></div>
+</section>
 <section class="card p-6 space-y-4"><h2 class="text-xl font-bold">Daily bonus requests</h2><p>20 paid completed orders in one Lagos calendar day qualify for a &#8358;10,000 bonus. Only an admin approval credits the wallet. Each rider can receive one bonus per day.</p><div id="bonusRecords" class="space-y-4"></div></section>
 </main><script src="js/admin/runtime.js"></script><script src="js/admin/rider-partnership.js"></script></body></html>

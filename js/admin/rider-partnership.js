@@ -1,24 +1,110 @@
 (() => {
   const el = id => document.getElementById(id);
   let data = null, selected = null, busy = false;
+  let riders = [], lookupPage = 1, lookupPages = 1, lookupTerm = '', lookupBusy = false,
+    recordsBusy = false, lookupSequence = 0, recordsSequence = 0, sessionUnavailable = false;
   const text = (tag, value) => { const node = document.createElement(tag); node.textContent = String(value ?? ''); return node; };
-  async function api(path, method = 'GET', body) {
-    const response = await fetch(`${BASE_URL}/api/admin/rider-partnership${path}`, {
+  async function request(url, method = 'GET', body) {
+    const response = await fetch(url, {
       method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
       ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(20000),
     });
-    if (handleAdminSessionExpiry(response.status)) throw new Error('Admin session expired.');
+    if (handleAdminSessionExpiry(response.status)) {
+      sessionUnavailable = true; controls(); throw new Error('Admin session expired. Sign in again to view rider records.');
+    }
     const result = await response.json();
-    if (!response.ok) throw new Error(result.message || 'Request failed. Refresh to verify the outcome.');
+    if (!response.ok) throw Object.assign(new Error(result.message || 'Request failed. Refresh to verify the outcome.'), { code: result.code, status: response.status });
     return result;
   }
+  const api = (path, method = 'GET', body) => request(`${BASE_URL}/api/admin/rider-partnership${path}`, method, body);
   function controls() {
-    el('draftFields').disabled = busy || !data;
-    el('requiredFields').disabled = busy || !Number.isInteger(data?.policy?.revision);
+    el('draftFields').disabled = busy || !data || !adminToken || sessionUnavailable;
+    el('requiredFields').disabled = busy || !Number.isInteger(data?.policy?.revision) || !adminToken || sessionUnavailable;
     el('refreshPartnership').disabled = busy;
     el('agreementSelect').disabled = busy || !data;
     el('saveDraft').disabled = busy || selected?.status === 'published';
     el('publishAgreement').disabled = busy || selected?.status !== 'draft';
+    riderControls();
+  }
+  function riderControls() {
+    const unavailable = !adminToken || sessionUnavailable;
+    el('riderLookupSearch').disabled = unavailable;
+    el('searchHistoryRiders').disabled = unavailable;
+    el('historyRider').disabled = unavailable || lookupBusy || !riders.length;
+    el('historyRiderPrevious').disabled = unavailable || lookupBusy || !riders.length || lookupPage <= 1;
+    el('historyRiderNext').disabled = unavailable || lookupBusy || !riders.length || lookupPage >= lookupPages;
+    el('viewRiderRecords').disabled = unavailable || recordsBusy || !selectedRider();
+  }
+  function selectedRider() { return riders.find(rider => rider.id === el('historyRider').value); }
+  function clearHistory() {
+    recordsSequence++; recordsBusy = false;
+    el('acceptanceRecords').replaceChildren(); el('historyRiderIdentity').textContent = '';
+    el('acceptanceStatus').textContent = 'Select a rider to view their records.';
+  }
+  function riderLabel(rider) {
+    return [rider.name || 'Unnamed rider', rider.phoneNumber || 'No phone', rider.email || 'No email',
+      rider.plateNumber ? `Plate ${rider.plateNumber}` : '', `ID ${rider.id}`].filter(Boolean).join(' | ');
+  }
+  async function searchRiders(term = '', page = 1) {
+    if (!adminToken || sessionUnavailable) return;
+    const sequence = ++lookupSequence;
+    lookupBusy = true; riders = []; clearHistory();
+    el('historyRider').replaceChildren(text('option', 'Choose a rider'));
+    el('historyRiderPage').textContent = ''; el('historyRiderStatus').textContent = 'Searching Go-Rider accounts...'; riderControls();
+    try {
+      if (term.length > 100) throw new Error('Keep the rider search to 100 characters or fewer.');
+      // The existing contacts endpoint uses a regex. Escape user text so +234,
+      // punctuation and other characters are searched literally.
+      const literal = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const params = new URLSearchParams({ source: 'individual', page: String(page), limit: '20' });
+      if (term) params.set('search', literal);
+      const result = await request(`${BASE_URL}/api/admin/contacts/riders?${params}`);
+      if (sequence !== lookupSequence) return;
+      if (!Array.isArray(result.contacts)) throw new Error('The rider list is unavailable. Try searching again.');
+      riders = result.contacts.filter(rider => rider.source === 'individual' && typeof rider.id === 'string' && /^[a-f0-9]{24}$/i.test(rider.id));
+      lookupTerm = term; lookupPage = page; lookupPages = Math.max(page, Number(result.pagination?.pages) || page);
+      const placeholder = text('option', riders.length ? 'Choose a rider' : 'No matching riders'); placeholder.value = '';
+      el('historyRider').replaceChildren(placeholder, ...riders.map(rider => {
+        const option = text('option', riderLabel(rider)); option.value = rider.id; return option;
+      }));
+      el('historyRider').value = '';
+      el('historyRiderPage').textContent = riders.length ? `Page ${lookupPage} of ${lookupPages}` : '';
+      el('historyRiderStatus').textContent = riders.length
+        ? `${riders.length} rider${riders.length === 1 ? '' : 's'} shown. Select the matching account below.`
+        : 'No matching Go-Rider accounts. Try a name, phone, email or plate number.';
+    } catch (error) {
+      if (sequence === lookupSequence) el('historyRiderStatus').textContent = `Unable to load riders: ${error.message}`;
+    } finally { if (sequence === lookupSequence) { lookupBusy = false; riderControls(); } }
+  }
+  async function loadHistory() {
+    if (!adminToken || sessionUnavailable) return;
+    const rider = selectedRider(); clearHistory();
+    if (!rider) { riderControls(); return; }
+    const sequence = ++recordsSequence;
+    recordsBusy = true; el('historyRiderIdentity').textContent = riderLabel(rider);
+    el('acceptanceStatus').textContent = 'Loading this rider’s acceptance records...'; riderControls();
+    try {
+      const result = await api(`/acceptances?riderId=${encodeURIComponent(rider.id)}`);
+      if (sequence !== recordsSequence || selectedRider()?.id !== rider.id) return;
+      if (result.rider && String(result.rider._id) !== rider.id) throw new Error('The server returned a different rider. Search and select the account again.');
+      if (!Array.isArray(result.acceptances)) throw new Error('Incomplete acceptance history. Refresh this rider’s records.');
+      let statusText;
+      if (typeof result.status?.accepted === 'boolean') {
+        statusText = result.status.accepted ? 'Current version accepted' : 'Current version not accepted';
+        if (result.status.requiredVersion) statusText += ` | Required version ${result.status.requiredVersion}`;
+      } else if (result.statusError?.code === 'RIDER_AGREEMENT_NOT_CONFIGURED') {
+        statusText = 'Agreement setup is incomplete. Historical records are shown below; current-version acceptance is not verified.';
+      } else throw new Error('Current agreement acceptance could not be verified. Refresh this rider’s records.');
+      const records = result.acceptances.map(a => text('p', `${a.version} | ${new Date(a.acceptedAt).toLocaleString()} | SHA-256 ${a.contentHash} | Record ${a._id}`));
+      el('acceptanceRecords').replaceChildren(...records);
+      if (!records.length) el('acceptanceRecords').append(text('p', 'No saved acceptance records for this rider.'));
+      el('acceptanceStatus').textContent = statusText;
+    } catch (error) {
+      if (sequence === recordsSequence) {
+        el('acceptanceRecords').replaceChildren();
+        el('acceptanceStatus').textContent = `Unable to load acceptance records: ${error.message}`;
+      }
+    } finally { if (sequence === recordsSequence) { recordsBusy = false; riderControls(); } }
   }
   function choose(id) {
     selected = data?.agreements.find(a => a._id === id) || null;
@@ -63,7 +149,7 @@
     if (!result.bonuses.length) el('bonusRecords').append(text('p', 'No bonus requests awaiting approval.'));
   }
   async function action(task) {
-    if (busy || !adminToken) return;
+    if (busy || !adminToken || sessionUnavailable) return;
     busy = true; controls(); el('partnershipStatus').textContent = 'Checking server confirmation...';
     try { await task(); el('partnershipStatus').textContent = 'Server records confirmed.'; }
     catch (error) {
@@ -96,11 +182,17 @@
     if (!window.confirm('Require this version now? Affected riders will be taken offline until acceptance; active deliveries remain finishable.')) return;
     await api('/required', 'PUT', { agreementId: el('requiredAgreement').value, revision: data.policy.revision, reason: el('requiredReason').value.trim() }); await refresh();
   }); });
-  el('acceptanceForm').addEventListener('submit', event => { event.preventDefault(); action(async () => {
-    const id = el('historyRider').value.trim(); if (!/^[a-f0-9]{24}$/i.test(id)) throw new Error('Enter a valid rider ID.');
-    const result = await api(`/acceptances?riderId=${encodeURIComponent(id)}`);
-    el('acceptanceRecords').replaceChildren(text('p', result.status.accepted ? 'Current version accepted' : 'Current version not accepted'),
-      ...result.acceptances.map(a => text('p', `${a.version} | ${new Date(a.acceptedAt).toLocaleString()} | SHA-256 ${a.contentHash} | Record ${a._id}`)));
-  }); });
-  controls(); if (adminToken) action(refresh);
+  el('riderLookupForm').addEventListener('submit', event => { event.preventDefault(); searchRiders(el('riderLookupSearch').value.trim()); });
+  el('riderLookupSearch').addEventListener('input', () => {
+    lookupSequence++; lookupBusy = false; riders = []; clearHistory();
+    el('historyRider').replaceChildren(text('option', 'Search to choose a rider')); el('historyRider').value = '';
+    el('historyRiderPage').textContent = ''; el('historyRiderStatus').textContent = 'Press Search riders or Enter to find this account.'; riderControls();
+  });
+  el('historyRiderPrevious').addEventListener('click', () => { if (!el('historyRiderPrevious').disabled) searchRiders(lookupTerm, lookupPage - 1); });
+  el('historyRiderNext').addEventListener('click', () => { if (!el('historyRiderNext').disabled) searchRiders(lookupTerm, lookupPage + 1); });
+  el('historyRider').addEventListener('change', loadHistory);
+  el('acceptanceForm').addEventListener('submit', event => { event.preventDefault(); loadHistory(); });
+  controls();
+  if (adminToken) { action(refresh); searchRiders(); }
+  else { el('historyRiderStatus').textContent = 'Sign in as an admin to find riders.'; }
 })();
