@@ -13,12 +13,42 @@ class Element {
   trigger(event) { return this.listeners[event]?.({ preventDefault() {} }); }
 }
 const id = 'a'.repeat(24);
-function harness({ token = 'fixture', confirmed = true, published = false, required = false, empty = false, setup, fail = false,
+test('paused backend status is visible without allowing setup or claiming acceptance', async () => {
+  const h = harness({ enforcementEnabled: false, empty: true, setup: { ready: false } }); await h.settle();
+  assert.match(h.get('agreementEnforcementStatus').textContent, /temporarily paused/);
+  assert.match(h.get('requiredStatus').textContent, /paused for approved riders/);
+  assert.doesNotMatch(h.get('requiredStatus').textContent, /work is blocked/);
+  assert.equal(h.get('saveDraft').disabled, true); assert.equal(h.get('saveRequired').disabled, true);
+  assert.equal(h.calls.some(c => c.options.method !== 'GET'), false);
+});
+test('preparing a required version leaves the pause visible after authoritative refresh', async () => {
+  const h = harness({ enforcementEnabled: false, published: true }); await h.settle();
+  h.get('requiredAgreement').value = id; h.get('requiredReason').value = 'Prepare approved terms';
+  h.get('requiredForm').trigger('submit'); await h.settle();
+  assert.match(h.get('partnershipStatus').textContent, /Enforcement remains temporarily paused/);
+  assert.match(h.get('requiredStatus').textContent, /enforcement paused/);
+  assert.match(h.get('requirementImpact').textContent, /preserves online status/);
+  assert.equal(h.state.policy.agreementId, id);
+});
+test('pause history preserves records and never labels the pause as accepted', async () => {
+  const h = harness({ enforcementEnabled: false, history: { status: { enforcementEnabled: false, enforcementPaused: true, accepted: false },
+    acceptances: [{ _id: id, version: '0.9', acceptedAt: '2026-10-01T12:00:00Z' }] } }); await h.settle();
+  h.get('historyRider').value = id; h.get('historyRider').trigger('change'); await h.settle();
+  assert.match(h.get('acceptanceStatus').textContent, /temporarily paused/);
+  assert.doesNotMatch(h.get('acceptanceStatus').textContent, /Current version accepted/);
+  assert.ok(h.get('acceptanceRecords').children.length);
+});
+test('restricted rider history stays readable without claiming operational access', async () => {
+  const h = harness({ history: { status: null, statusError: { code: 'RIDER_ACCOUNT_RESTRICTED' }, acceptances: [] } }); await h.settle();
+  h.get('historyRider').value = id; h.get('historyRider').trigger('change'); await h.settle();
+  assert.match(h.get('acceptanceStatus').textContent, /delivery work is not allowed/);
+});
+function harness({ token = 'fixture', confirmed = true, published = false, required = false, empty = false, setup, enforcementEnabled = true, fail = false,
   contacts = [{ id, source: 'individual', name: 'Fixture rider', phoneNumber: '+2348000000000', email: 'fixture@example.invalid', plateNumber: 'FIXTURE-1' }],
   pages = 1, history = { status: { accepted: true }, acceptances: [{ _id: id, version: '1.0', contentHash: 'b'.repeat(64), acceptedAt: '2026-10-13T10:00:00Z' }] },
   respond } = {}) {
   const nodes = new Map(), calls = []; let failures = fail;
-  const state = { agreements: empty ? [] : [{ _id: id, version: '1.0', content: '<script>fixture only</script> Full agreement', contentHash: 'b'.repeat(64), status: published ? 'published' : 'draft', effectiveAt: '2026-01-01', __v: 0 }], policy: { revision: 0, history: [], agreementId: required ? id : null }, ...(setup ? { setup } : {}) };
+  const state = { enforcementEnabled, agreements: empty ? [] : [{ _id: id, version: '1.0', content: '<script>fixture only</script> Full agreement', contentHash: 'b'.repeat(64), status: published ? 'published' : 'draft', effectiveAt: '2026-01-01', __v: 0 }], policy: { revision: 0, history: [], agreementId: required ? id : null }, ...(setup ? { setup } : {}) };
   const get = key => { if (!nodes.has(key)) nodes.set(key, new Element()); return nodes.get(key); };
   vm.runInNewContext(source, { document: { getElementById: get, createElement: () => new Element() },
     adminToken: token, BASE_URL: 'https://fixture.invalid', AbortSignal, Date, URLSearchParams,

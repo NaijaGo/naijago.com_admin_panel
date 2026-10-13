@@ -21,7 +21,17 @@
     && a.effectiveAt && Number.isFinite(new Date(a.effectiveAt).getTime()) && new Date(a.effectiveAt) <= new Date());
   const setupReady = () => !!data && data.setup?.ready !== false
     && Number.isInteger(data.policy?.revision) && data.policy.revision >= 0;
+  const enforcementPaused = () => data?.enforcementEnabled === false;
+  const requirementResult = () => enforcementPaused()
+    ? 'Required agreement confirmed by the server. Enforcement remains temporarily paused; no acceptance is recorded.'
+    : 'Required agreement confirmed by the server. Riders must accept this version before new delivery work.';
   function controls() {
+    el('agreementEnforcementStatus').textContent = !data ? 'Agreement enforcement status has not been verified.'
+      : enforcementPaused() ? 'Agreement requirement temporarily paused by the backend. Approved riders may work; approval and delivery checks remain active. Acceptance is not recorded. Setup is still required before saving or publishing.'
+        : 'Agreement requirement is enforced. Riders must accept the required version before new delivery work.';
+    el('requirementImpact').textContent = enforcementPaused()
+      ? 'You can prepare a required version after backend setup. Changing it during the pause preserves online status and delivery offers. Only a backend configuration change can resume enforcement.'
+      : 'Changing the required version takes affected riders offline and releases unclaimed offers. It preserves claimed deliveries, wallet funds and acceptance history. Riders must accept again before new delivery work.';
     const unavailable = busy || !data || !adminToken || sessionUnavailable;
     const effective = effectiveAgreements(), target = effective.find(a => a._id === el('requiredAgreement').value);
     const reasonLength = el('requiredReason').value.trim().length;
@@ -126,11 +136,15 @@
       if (result.rider && String(result.rider._id) !== rider.id) throw new Error('The server returned a different rider. Search and select the account again.');
       if (!Array.isArray(result.acceptances)) throw new Error('Incomplete acceptance history. Refresh this rider’s records.');
       let statusText;
-      if (typeof result.status?.accepted === 'boolean') {
+      if (result.status?.enforcementEnabled === false && result.status?.enforcementPaused === true) {
+        statusText = 'Agreement requirement temporarily paused. Historical records are shown below; no new acceptance has been recorded by the pause.';
+      } else if (typeof result.status?.accepted === 'boolean') {
         statusText = result.status.accepted ? 'Current version accepted' : 'Current version not accepted';
         if (result.status.requiredVersion) statusText += ` | Required version ${result.status.requiredVersion}`;
       } else if (result.statusError?.code === 'RIDER_AGREEMENT_NOT_CONFIGURED') {
         statusText = 'Agreement setup is incomplete. Historical records are shown below; current-version acceptance is not verified.';
+      } else if (result.statusError?.code === 'RIDER_ACCOUNT_RESTRICTED') {
+        statusText = 'Rider account restricted. Historical acceptance records are shown below; delivery work is not allowed.';
       } else throw new Error('Current agreement acceptance could not be verified. Refresh this rider’s records.');
       const records = result.acceptances.map(a => text('p', `${a.version} | ${new Date(a.acceptedAt).toLocaleString()} | SHA-256 ${a.contentHash} | Record ${a._id}`));
       el('acceptanceRecords').replaceChildren(...records);
@@ -164,7 +178,9 @@
       : effective.some(a => a._id === selected?._id) ? selected._id
         : effective.some(a => a._id === data.policy?.agreementId) ? data.policy.agreementId : '';
     const current = data.agreements.find(a => a._id === data.policy?.agreementId);
-    el('requiredStatus').textContent = current ? `Required version: ${current.version}` : 'No agreement is required yet. Delivery work is blocked until setup is completed.';
+    el('requiredStatus').textContent = current ? `Required version: ${current.version}${enforcementPaused() ? ' (enforcement paused)' : ''}`
+      : enforcementPaused() ? 'No required version is configured. The agreement requirement is temporarily paused for approved riders.'
+        : 'No agreement is required yet. Delivery work is blocked until setup is completed.';
     el('policyHistory').replaceChildren(...[...(data.policy?.history || [])].reverse().map(h => text('p', `${new Date(h.changedAt).toLocaleString()} | ${h.reason} | Admin ${h.changedBy}`)));
     choose(selected?._id);
   }
@@ -227,7 +243,7 @@
       }
       if ((!error.status || error.status >= 500) && reconciledWrite(pendingWrite)) {
         if (pendingWrite.kind === 'required') restoreEditor(snapshot);
-        failure = null; el('partnershipStatus').textContent = `${message} Confirmed by reloading server records after a lost response.`;
+        failure = null; el('partnershipStatus').textContent = `${pendingWrite.kind === 'required' ? requirementResult() : message} Confirmed by reloading server records after a lost response.`;
       } else {
         if (preserve) restoreEditor(snapshot);
         el('partnershipStatus').textContent = `${error.message} No success is assumed; your entered text is preserved. Refresh before retrying.`;
@@ -270,11 +286,14 @@
     if (!setupReady() || !target) invalid('Save and publish an agreement in step 1, then choose a published effective version.', 'requiredStepStatus');
     if (target._id === data.policy.agreementId) return `Version ${target.version} is already required. No changes were sent.`;
     if (reason.length < 3 || reason.length > 500) invalid('Enter a reason of 3 to 500 characters for the policy change.', 'requiredStepStatus', 'requiredReason');
-    if (!window.confirm('Require this version now? Affected riders will be taken offline until acceptance; active deliveries remain finishable.')) return false;
+    if (!window.confirm(enforcementPaused()
+      ? 'Configure this required version? Enforcement will remain paused until the backend setting is changed. Online status and delivery offers are preserved during the pause.'
+      : 'Require this version now? Affected riders will be taken offline until acceptance; active deliveries remain finishable.')) return false;
     const revision = data.policy.revision;
     pendingWrite = { kind: 'required', id: target._id, revision, reason, historyLength: data.policy.history?.length || 0 };
     await api('/required', 'PUT', { agreementId: target._id, revision, reason }); await refreshPreservingEditor();
     if (data?.policy?.agreementId !== target._id || data.policy.revision <= revision) throw new Error('The required version could not be verified from server records.');
+    return requirementResult();
   }, 'Required agreement confirmed by the server. Riders must accept this version before new delivery work.'); });
   el('riderLookupForm').addEventListener('submit', event => { event.preventDefault(); searchRiders(el('riderLookupSearch').value.trim()); });
   el('riderLookupSearch').addEventListener('input', () => {
